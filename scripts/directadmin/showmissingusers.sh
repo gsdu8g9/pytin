@@ -22,28 +22,22 @@
 
 # Description:
 #
-# Script is used to update DNS zones in NAMED format.
-# All config parameters are in dns_updater.py script
-#
-# Usage:
-# dns_update.sh /path/to/named/zone/files
+# Script shows users from /home that are not exists in /usr/local/directadmin/data/users
+# This script can be used to purge orphaned user dirs.
 
-if [ -z $1 ];
-then
-    echo "named zones path?"
-    exit 1
-fi
+USERS_HOME=/home
+DA_USERS=/usr/local/directadmin/data/users
 
-NAMED_ZONES_PATH=$1
+for user in `ls ${USERS_HOME}`; do
+{
+    if [[ ! -d ${USERS_HOME}/$user  ]]
+    then
+        continue
+    fi
 
-for file in `ls ${NAMED_ZONES_PATH}/*.db`; do
-
-    db_file=${file}
-
-    echo "Updating: " ${db_file}
-    python dns_updater.py ${db_file}
-
+    if [[ ! -e ${DA_USERS}/$user ]]
+    then
+        echo $user
+    fi
+}
 done
-
-
-exit 0
