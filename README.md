@@ -90,16 +90,24 @@ List all available increments and look up creation dates:
     
 You get output similar to this (with dates, sizes etc):
 
-    $ user1-1.tar.gz
-    $ user1-2.tar.gz
-    $ user1-3.tar.gz
-    $ user1-4.tar.gz
-    $ user1-5.tar.gz
-    $ user1-6.tar.gz
-    $ user1-7.tar.gz
+    $ -rw-r--r-- 1 user1 user1 8178 Feb 17 05:51 user1-1.tar.gz
+    $ -rw-r--r-- 1 user1 user1  404 Feb 18 05:51 user1-2.tar.gz
+    $ -rw-r--r-- 1 user1 user1  408 Feb 19 05:51 user1-3.tar.gz
+    $ -rw-r--r-- 1 user1 user1  409 Feb 20 05:51 user1-4.tar.gz
+    $ -rw-r--r-- 1 user1 user1  401 Feb 21 05:51 user1-5.tar.gz
+    $ -rw-r--r-- 1 user1 user1  797 Feb 22 05:51 user1-6.tar.gz
+    $ -rw-r--r-- 1 user1 user1  915 Feb 23 05:51 user1-7.tar.gz
     
-Notice the index of file for required date and execute:
+Notice the index of the file for the required date and execute (for example 5):
 
     $ ./extract_user.sh -n user1 -t /home/user1.from.backup -c 5
 
 All extracted files are available here: /home/user1.from.backup
+
+### /scripts/kvm ###
+
+Shell script to create KVM guest with kickstarter file.
+
+### /scripts/openvz ###
+
+Python script to set bandwidth limits for OpenVZ guests.

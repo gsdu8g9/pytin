@@ -52,6 +52,15 @@ then
     exit 1
 fi
 
+LOCK_FILE=/tmp/users_backup.lock
+if [[ -f ${LOCK_FILE} ]]
+then
+    echo "! archive is in progress"
+    exit 100
+fi
+
+trap "{ echo '!!! Clean up'; rm -f ${LOCK_FILE} ; exit 0; }" EXIT
+echo "progress" > ${LOCK_FILE}
 
 # target dir containing all the backups
 USERDATA_PATH=$1
