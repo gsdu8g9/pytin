@@ -13,18 +13,31 @@
 # Using foreign DNS 8.8.8.8 is important, because if own DNS is used,
 # you get wrong stats.
 #
-# only_domains.list contains domains list:
+# Usage:
+# ns_stats.py domains.list
+#
+# domains.list contains plain list of domains:
 # domain1.com
 # domain2.com
 # domain3.com
 # ....
 #
 
+import os
+import sys
 import re
 import operator
+import exceptions
 from subprocess import Popen, PIPE
 
-domains_list_file = 'only_domains.list'
+
+if len(sys.argv) < 2:
+    raise Exception('Specify domains list file')
+
+domains_list_file = sys.argv[1]
+
+if not os.path.exists(domains_list_file):
+    raise exceptions.OSError("domains_list_file")
 
 with open(domains_list_file, 'r') as f:
     ns_rating = {}
