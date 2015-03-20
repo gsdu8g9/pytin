@@ -76,7 +76,7 @@ then
     exit 1
 fi
 
-FULL_BACKUP_INDEX=$(( NEEDED_BACKUP_INDEX - (NEEDED_BACKUP_INDEX % INCREMENT_COUNT) + 1 ))
+FULL_BACKUP_INDEX=$(( (NEEDED_BACKUP_INDEX / (INCREMENT_COUNT + 1)) * INCREMENT_COUNT + 1 ))
 
 echo "*** Extracting backup of user " ${USER_NAME}
 echo "    backup source: " ${BACKUPS_ROOT}
