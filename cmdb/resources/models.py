@@ -65,6 +65,36 @@ class Resource(models.Model):
     class Meta:
         db_table = "resources"
 
+    @staticmethod
+    def find(**search_fields):
+        """
+        Search for Resources using Options (only in active resources)
+        search_fields keys can be specified with lookups:
+        https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
+
+        Resource fields has higher priority than ResourceOption fields
+        """
+
+        query = {}
+
+        for field_name_with_lookup in search_fields.keys():
+            field_name = field_name_with_lookup.split('__')[0]
+
+            if hasattr(Resource(), field_name):
+                query[field_name_with_lookup] = search_fields[field_name_with_lookup]
+            else:
+                if hasattr(ResourceOption(), field_name):
+                    query['resourceoption__%s' % field_name_with_lookup] = search_fields[field_name_with_lookup]
+                else:
+                    # convert field__lookup = value to:
+                    # resourceoption__name__exact = field
+                    # resourceoption__value__lookup = value
+                    query['resourceoption__name__exact'] = field_name
+                    query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
+                        search_fields[field_name_with_lookup]
+
+        return Resource.objects.filter(**query).distinct()
+
     def set_option(self, name, value, format=ResourceOption.FORMAT_STRING, namespace=''):
         if not name:
             raise exceptions.ValueError('name')

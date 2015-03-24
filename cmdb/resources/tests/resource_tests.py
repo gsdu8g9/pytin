@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from django.test import TestCase
 
 from resources.models import Resource, ResourceOption
@@ -86,28 +87,27 @@ class ResourceTest(TestCase):
         self.assertEqual('value_3_ed', resource1.get_option_value('nst_field'))
         self.assertEqual('value_2_ed', resource2.get_option_value('nst_field', namespace='nst2'))
 
-    def test_find_by_options(self):
-        resource1 = Resource()
-        resource1.save()
+    def test_find(self):
+        self._create_test_resources(50)
 
-        option1, created = resource1.resourceoption_set.update_or_create(name='test1',
-                                                                         defaults=dict(
-                                                                             format=ResourceOption.FORMAT_STRING,
-                                                                             value='testval1'
-                                                                         ))
+        self.assertEqual(50, len(Resource.objects.all()))
+        self.assertEqual(2500, len(ResourceOption.objects.all()))
 
-        self.assertEqual(True, created)
-        self.assertEqual('test1', option1.name)
-        self.assertEqual('testval1', option1.value)
-        self.assertEqual(ResourceOption.FORMAT_STRING, option1.format)
+        # search by fields
+        self.assertEqual(50, len(Resource.find(field_2='value_2')))
+        self.assertEqual(1, len(Resource.find(field_2='value_2', namespace='ns10')))
+        self.assertEqual(50, len(Resource.find(field_2__contains='value')))
 
-        option1, created = resource1.resourceoption_set.update_or_create(name='test1',
-                                                                         defaults=dict(
-                                                                             format=ResourceOption.FORMAT_INT,
-                                                                             value='1000'
-                                                                         ))
+        # search by existing fields
+        self.assertEqual(10, len(Resource.find(status=Resource.STATUS_FREE)))
+        self.assertEqual(10, len(Resource.find(status=Resource.STATUS_DELETED)))
 
-        self.assertEqual(False, created)  # updated
-        self.assertEqual('test1', option1.name)
-        self.assertEqual('1000', option1.value)
-        self.assertEqual(ResourceOption.FORMAT_INT, option1.format)
+        # status from Resource, namespace from ResourceOption
+        self.assertEqual(1, len(Resource.find(status=Resource.STATUS_FREE, namespace='ns5')))
+
+    def _create_test_resources(self, count):
+        for idx1 in range(1, count + 1):
+            resource = Resource.objects.create(status=Resource.STATUS_CHOICES[idx1 % len(Resource.STATUS_CHOICES)][0])
+
+            for idx2 in range(1, count + 1):
+                resource.set_option('field_%s' % idx2, 'value_%s' % idx2, namespace='ns%s' % idx1)
