@@ -6,6 +6,40 @@ from resources.models import Resource, ResourceOption
 
 
 class ResourceTest(TestCase):
+    def test_option_type(self):
+        resource1 = Resource()
+        resource1.save()
+
+        res_id = resource1.pk
+
+        resource1.set_option('g_field1', 155, format=ResourceOption.FORMAT_INT)
+        resource1.set_option('g_field2', 155.551, format=ResourceOption.FORMAT_FLOAT)
+        resource1.set_option('g_field3', {'name1': 'val1', 'name2': 'val2'}, format=ResourceOption.FORMAT_DICT)
+
+        del resource1
+
+        resource1 = Resource.objects.get(pk=res_id)
+
+        self.assertEqual(155, resource1.get_option_value('g_field1'))
+        self.assertEqual(155.551, resource1.get_option_value('g_field2'))
+        self.assertEqual({'name1': 'val1', 'name2': 'val2'}, resource1.get_option_value('g_field3'))
+
+    def test_option_type_guessed_format(self):
+        resource1 = Resource()
+        resource1.save()
+
+        resource1.set_option('g_field0', None)
+        resource1.set_option('g_field1', 'alksdj')
+        resource1.set_option('g_field2', 155)
+        resource1.set_option('g_field3', 155.551)
+        resource1.set_option('g_field4', {'name1': 'val1', 'name2': 'val2'})
+
+        self.assertEqual(ResourceOption.FORMAT_STRING, resource1.get_option('g_field0').format)
+        self.assertEqual(ResourceOption.FORMAT_STRING, resource1.get_option('g_field1').format)
+        self.assertEqual(ResourceOption.FORMAT_INT, resource1.get_option('g_field2').format)
+        self.assertEqual(ResourceOption.FORMAT_FLOAT, resource1.get_option('g_field3').format)
+        self.assertEqual(ResourceOption.FORMAT_DICT, resource1.get_option('g_field4').format)
+
     def test_create(self):
         resource1 = Resource()
         resource1.save()

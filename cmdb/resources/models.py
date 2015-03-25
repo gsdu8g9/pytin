@@ -1,6 +1,9 @@
+import json
+import exceptions
+
 from django.db import models
 from django.utils import timezone
-from django.core import exceptions
+from django.core import exceptions as djexceptions
 
 
 class ActiveResources(models.Manager):
@@ -9,16 +12,52 @@ class ActiveResources(models.Manager):
 
 
 class ResourceOption(models.Model):
-    FORMAT_JSON = 'json'
+    class StringValue:
+        _value = ''
+
+        def __init__(self, value):
+            self._value = str(value)
+
+        def get_value(self):
+            return self._value
+
+        def __str__(self):
+            return self._value
+
+    class IntegerValue(StringValue):
+        def get_value(self):
+            return int(self._value)
+
+    class FloatValue(StringValue):
+        def get_value(self):
+            return float(self._value)
+
+    class DictionaryValue(StringValue):
+        def __init__(self, value):
+            self._value = value
+
+            if isinstance(value, dict):
+                self._value = json.dumps(value)
+
+        def get_value(self):
+            return json.loads(self._value, encoding='utf-8', parse_float=True, parse_int=True, parse_constant=True)
+
+    FORMAT_DICT = 'dict'
     FORMAT_INT = 'int'
     FORMAT_FLOAT = 'float'
     FORMAT_STRING = 'string'
     FORMAT_CHOICES = (
-        (FORMAT_JSON, 'JSON string'),
+        (FORMAT_DICT, 'Dictionary string'),
         (FORMAT_INT, 'Integer value'),
         (FORMAT_FLOAT, 'Float value'),
         (FORMAT_STRING, 'String value'),
     )
+    FORMAT_HANDLERS = {
+        FORMAT_DICT: DictionaryValue,
+        FORMAT_INT: IntegerValue,
+        FORMAT_FLOAT: FloatValue,
+        FORMAT_STRING: StringValue,
+    }
 
     resource = models.ForeignKey('Resource')
     name = models.CharField(max_length=155, db_index=True)
@@ -27,8 +66,41 @@ class ResourceOption(models.Model):
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
     format = models.CharField(max_length=25, db_index=True, choices=FORMAT_CHOICES, default=FORMAT_STRING)
 
+    format_handler = None
+
     class Meta:
         db_table = "resource_options"
+
+    def __init__(self, *args, **kwargs):
+        super(ResourceOption, self).__init__(*args, **kwargs)
+        self.format_handler = self.FORMAT_HANDLERS[self.format]
+
+    @staticmethod
+    def save_value(value, format):
+        if not format:
+            raise exceptions.ValueError('format')
+
+        return str(ResourceOption.FORMAT_HANDLERS[format](value))
+
+    @staticmethod
+    def guess_format(value):
+        ret_format = ResourceOption.FORMAT_STRING
+
+        if isinstance(value, int):
+            ret_format = ResourceOption.FORMAT_INT
+        elif isinstance(value, float):
+            ret_format = ResourceOption.FORMAT_FLOAT
+        elif isinstance(value, dict):
+            ret_format = ResourceOption.FORMAT_DICT
+
+        return ret_format
+
+    def get_value(self, typed=True):
+        """
+        Returns stored option value.
+        If typed=True, then value is converted to object of specific format.
+        """
+        return self.format_handler(self.value).get_value() if typed else self.value
 
     def __str__(self):
         return "%s = '%s'..." % (self.name, self.value[:15])
@@ -95,16 +167,23 @@ class Resource(models.Model):
 
         return Resource.objects.filter(**query).distinct()
 
-    def set_option(self, name, value, format=ResourceOption.FORMAT_STRING, namespace=''):
+    def set_option(self, name, value, format=None, namespace=''):
+        """
+        Set resource option. If format is omitted, then format is guessed from value type.
+        """
+
         if not name:
             raise exceptions.ValueError('name')
+
+        if not format:
+            format = ResourceOption.guess_format(value)
 
         query = dict(
             name=name,
             namespace=namespace,
             defaults=dict(
                 format=format,
-                value=value,
+                value=ResourceOption.save_value(value, format),
                 namespace=namespace
             )
         )
@@ -122,7 +201,7 @@ class Resource(models.Model):
     def has_option(self, name, namespace=''):
         try:
             self.get_option(name, namespace=namespace)
-        except exceptions.ObjectDoesNotExist:
+        except djexceptions.ObjectDoesNotExist:
             return False
 
         return True
@@ -131,8 +210,8 @@ class Resource(models.Model):
         option_value = default
         try:
             option = self.get_option(name, namespace=namespace)
-            option_value = option.value
-        except exceptions.ObjectDoesNotExist:
+            option_value = option.get_value()
+        except djexceptions.ObjectDoesNotExist:
             option_value = default
 
         return option_value
