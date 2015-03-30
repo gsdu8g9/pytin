@@ -36,24 +36,24 @@ EOF
 
 cat <<EOF > /etc/httpd/conf/extra/httpd-info.conf
 <Location /server-status>
-	SetHandler server-status
-	AuthType Basic
-	AuthName Stat
-	AuthGroupFile /dev/null
-	AuthUserFile /etc/httpd/conf/secret/passwd
-	require valid-user
-	Order deny,allow
-	Deny from all
-	Allow from all
+    SetHandler server-status
+    AuthType Basic
+    AuthName Stat
+    AuthGroupFile /dev/null
+    AuthUserFile /etc/httpd/conf/secret/passwd
+    require valid-user
+    Order deny,allow
+    Deny from all
+    Allow from all
 </Location>
 
 ExtendedStatus On
 
 <Location /server-info>
-	SetHandler server-info
-	Order deny,allow
-	Deny from all
-	Allow from .example.com
+    SetHandler server-info
+    Order deny,allow
+    Deny from all
+    Allow from .example.com
 </Location>
 EOF
 
