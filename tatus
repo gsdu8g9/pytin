@@ -1,0 +1,134 @@
+[33mcommit afc20208b4383c2de5404af5db0859673f39bf57[m
+Merge: 95dbb9b d51cb93
+Author: servancho <bxtgroup@gmail.com>
+Date:   Mon Mar 30 13:41:59 2015 +0300
+
+    Merge branch 'master' of github.com:servancho/pytin
+
+[33mcommit 95dbb9b8e885d7b31484e8e614b0d261fcf002bc[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Mon Mar 30 13:41:46 2015 +0300
+
+    Added db file post processing
+
+[33mcommit d51cb93127158bf49ede4c03cfde28f47e3db359[m
+Author: RemiZOffAlex <remizoffalex@gmail.com>
+Date:   Mon Mar 30 06:19:25 2015 +0300
+
+    Kickstart для CentOS
+
+[33mcommit 3de4f51b1c873e623f30a1c2f4207ceaa6c7fafa[m
+Author: RemiZOffAlex <remizoffalex@gmail.com>
+Date:   Mon Mar 30 04:45:48 2015 +0300
+
+    Добавлены kickstart файлы автоустановщика для CentOS
+
+[33mcommit 2891385a94047a7a311c804dc3eb10e2d90418b2[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Wed Mar 25 14:53:29 2015 +0300
+
+    Support for typed resource options
+
+[33mcommit d9eb133de66d1c22e984c894aab49b5be47de7b8[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Wed Mar 25 01:34:27 2015 +0300
+
+    Search for Resources using ResourceOptions
+
+[33mcommit f7c6462a45d71e6df86871bf33b244f083e8e4bc[m
+Merge: 3984c3f 6be5daf
+Author: servancho <bxtgroup@gmail.com>
+Date:   Tue Mar 24 14:38:14 2015 +0300
+
+    Merge branch 'master' of github.com:servancho/pytin
+
+[33mcommit 3984c3fa81ad854b2cdccc3d6b3b22a11060c6ff[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Tue Mar 24 14:37:45 2015 +0300
+
+    Resources and Options model
+
+[33mcommit 6be5daf1a367aad6c1e32b5e78b703f70bc6b588[m
+Author: RemiZOffAlex <remizoffalex@gmail.com>
+Date:   Fri Mar 20 20:02:34 2015 +0300
+
+    Скрипт загрузки таблицы чёрного списка заблокированных IP
+
+[33mcommit 161647298567cddfbba5c174a10ca4953903d250[m
+Author: RemiZOffAlex <it@justhost.ru>
+Date:   Fri Mar 20 19:56:11 2015 +0300
+
+    Добавление скрипта парсинга логов на предмет брута для FreeBSD
+
+[33mcommit 4be50ddd0a652216f4609a6994773bc73fd55756[m
+Merge: 972a5d7 ef346a6
+Author: RemiZOffAlex <it@justhost.ru>
+Date:   Fri Mar 20 19:19:47 2015 +0300
+
+    Merge branch 'master' of https://github.com/servancho/pytin
+
+[33mcommit 972a5d771cf56b68c31c5b710a0b8b7353d849d4[m
+Author: RemiZOffAlex <it@justhost.ru>
+Date:   Fri Mar 20 19:18:52 2015 +0300
+
+    Добавление скрипта дополнительной настройки CentOS
+
+[33mcommit ef346a658df5bbb2cb3c45dce0d6f577eef5d989[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Fri Mar 20 01:59:13 2015 +0300
+
+    ns_stats annotation updated
+
+[33mcommit 0e0e385459d5abac2fef50b8a2ee60b958c242d2[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Fri Mar 20 01:54:40 2015 +0300
+
+    Unnecessary file removed
+
+[33mcommit 533822d6d55943db582cbb1680717096b50ff923[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Fri Mar 20 01:54:10 2015 +0300
+
+    NS stats script added
+
+[33mcommit 5d51a849997031a99bf4c439133f4ef4d3e461e8[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Thu Mar 19 23:50:08 2015 +0300
+
+    Incremental bugfix, CMDB port continues
+
+[33mcommit e444c1bd028ac155f871e5adf90c7aadc668ce5e[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Thu Mar 19 12:56:44 2015 +0300
+
+    KVM and OpenVZ tools
+
+[33mcommit 4c64b34cbd546e4fb034bd1cf7bc678691a7a95a[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Tue Mar 10 14:46:49 2015 +0300
+
+    Incremental backup scripts added
+
+[33mcommit e8b6f8ce01d1a5a2077446555717581f5214fa62[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Mon Mar 9 18:46:34 2015 +0300
+
+    Project updates
+
+[33mcommit d7bc87d79ee660cf1743400616c3050751fbd47c[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Mon Mar 9 18:36:21 2015 +0300
+
+    Created Django project
+
+[33mcommit ce18286a85b1a5c165d36fc1b6d364e2d5a24cc2[m
+Author: servancho <bxtgroup@gmail.com>
+Date:   Mon Mar 9 18:33:54 2015 +0300
+
+    Initial commit
+
+[33mcommit de35973c28c5b8b1e4b54e44c34ca73e2eaa98c1[m
+Author: Dmitry Shilyaev <bxtgroup@gmail.com>
+Date:   Mon Mar 9 18:31:31 2015 +0300
+
+    Initial commit
