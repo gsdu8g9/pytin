@@ -1,3 +1,13 @@
+#!/bin/sh
+
+# RemiZOffAlex
+#
+# Description:
+#	Скрипт установки DirectAdmin и минимальной настройки
+#
+# Requirements:
+#	CentOS 6
+
 bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
 
 yum -y install nano wget openssh-clients gcc gcc-c++ flex bison make bind bind-libs bind-utils openssl openssl-devel perl perl-CPAN quota libaio libcom_err-devel libcurl-devel gd zlib-devel zip unzip libcap-devel cronie bzip2 cyrus-sasl-devel perl-ExtUtils-Embed autoconf automake libtool which patch db4-devel
@@ -59,4 +69,5 @@ EOF
 
 mkdir -p /etc/httpd/conf/secret
 
+echo 'Enter password for Apache server-status user:'
 htpasswd -c /etc/httpd/conf/secret/passwd info
