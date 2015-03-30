@@ -15,5 +15,3 @@ yum -y install nano wget
 
 sed -e "s/\e\[5~/\e\[A/g" /etc/inputrc > /tmp/inputrc
 sed -e "s/\e\[6~/\e[B/g" /tmp/inputrc > /etc/inputrc
-
-reboot 
