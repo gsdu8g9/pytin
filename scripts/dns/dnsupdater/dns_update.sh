@@ -43,6 +43,10 @@ for file in `ls ${NAMED_ZONES_PATH}/*.db`; do
     echo "Updating: " ${db_file}
     python dns_updater.py ${db_file}
 
+    # standartized way
+    perl -pi -e 's/@ 14400 IN SOA/@ IN SOA/g' ${db_file}
+    perl -pi -e 's/ ([\d ]+)$/ \($1\)/g' ${db_file}
+
 done
 
 
