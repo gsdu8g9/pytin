@@ -49,7 +49,7 @@ DNS2=<dns2_of_the_vm>
 
 # do not change
 SCRIPTDIR=$(pwd)
-KSFILENAME="centvm.ks"
+KSFILENAME="centos.ks.tpl"
 KSRTFILENAME="vmcurr"
 
 KSTPL="${SCRIPTDIR}/${KSFILENAME}"
