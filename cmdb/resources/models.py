@@ -6,11 +6,27 @@ from django.utils import timezone
 from django.core import exceptions as djexceptions
 
 
-class ResourcesWithOptions(models.Manager):
+class ModelFieldChecker:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def is_model_field(class_type, name):
+        """
+        Check if field name belongs to model fields
+        """
+        assert name is not None, "Parameter 'name' must be defined."
+        assert issubclass(class_type, models.Model), "Class 'class_type' must be the subclass of models.Model."
+
+        try:
+            return name in [f.name for f in class_type._meta.fields]
+        except models.FieldDoesNotExist:
+            return False
+
+
+class ResourcesWithOptionsManager(models.Manager):
     def active(self, *args, **kwargs):
-        return super(ResourcesWithOptions, self).get_queryset() \
-            .filter(*args, **kwargs) \
-            .exclude(status=Resource.STATUS_DELETED)
+        return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
 
     def filter(self, *args, **kwargs):
         """
@@ -27,22 +43,26 @@ class ResourcesWithOptions(models.Manager):
 
         search_fields = kwargs
 
+        # if filter is called for proxy model, filter by proxy type
+        if self.model.__name__ != Resource.__name__:
+            search_fields['type'] = self.model.__name__
+
         query = {}
 
         for field_name_with_lookup in search_fields.keys():
             field_name = field_name_with_lookup.split('__')[0]
 
-            if hasattr(Resource(), field_name):
+            if ModelFieldChecker.is_model_field(Resource, field_name):
                 query[field_name_with_lookup] = search_fields[field_name_with_lookup]
             else:
-                if hasattr(ResourceOption(), field_name):
+                if ModelFieldChecker.is_model_field(ResourceOption, field_name):
                     query['resourceoption__%s' % field_name_with_lookup] = search_fields[field_name_with_lookup]
                 else:
                     query['resourceoption__name__exact'] = field_name
                     query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
                         search_fields[field_name_with_lookup]
 
-        return super(ResourcesWithOptions, self).get_queryset().filter(*args, **query).distinct()
+        return super(ResourcesWithOptionsManager, self).get_queryset().filter(*args, **query).distinct()
 
 
 class ResourceOption(models.Model):
@@ -167,17 +187,73 @@ class Resource(models.Model):
     created_at = models.DateTimeField('Date created', db_index=True, default=timezone.now())
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
 
-    objects = ResourcesWithOptions()
+    objects = ResourcesWithOptionsManager()
 
     class Meta:
         db_table = "resources"
 
+    @classmethod
+    def create(cls, **kwargs):
+        """
+        Create new model of calling class type. Model fields are only checked for Resource() model
+        to not interfere with proxy model properties.
+        :param kwargs: model parameters with model options
+        :return: created model
+        """
+        model_fields = {}
+        option_fields = {}
+
+        for field_name in kwargs.keys():
+            if ModelFieldChecker.is_model_field(Resource, field_name):
+                model_fields[field_name] = kwargs[field_name]
+            else:
+                option_fields[field_name] = kwargs[field_name]
+
+        new_object = cls(**model_fields)
+        new_object.save()
+        for option_field in option_fields.keys():
+            if hasattr(new_object, option_field):
+                setattr(new_object, option_field, option_fields[option_field])
+            else:
+                new_object.set_option(option_field, option_fields[option_field], namespace=new_object.type)
+
+        return new_object
+
     def get_proxy(self):
         return get_model(self._meta.app_label, self.type)
+
+    def lock(self):
+        self.status = self.STATUS_LOCKED
+
+    def use(self):
+        self.status = self.STATUS_INUSE
+
+    def fail(self):
+        self.status = self.STATUS_FAILED
+
+    def free(self):
+        self.status = self.STATUS_FREE
+
+    @property
+    def is_locked(self):
+        return self.status == self.STATUS_LOCKED
+
+    @property
+    def is_used(self):
+        return self.status == self.STATUS_INUSE
+
+    @property
+    def is_failed(self):
+        return self.status == self.STATUS_FAILED
+
+    @property
+    def is_free(self):
+        return self.status == self.STATUS_FREE
 
     def set_option(self, name, value, format=None, namespace=''):
         """
         Set resource option. If format is omitted, then format is guessed from value type.
+        If namespace is omitted, then namespace = calling class name
         """
 
         assert self._is_saved(), "Resource must be saved before setting options"
@@ -185,6 +261,9 @@ class Resource(models.Model):
 
         if not format:
             format = ResourceOption.guess_format(value)
+
+        if not namespace:
+            namespace = self.type
 
         query = dict(
             name=name,
@@ -199,6 +278,11 @@ class Resource(models.Model):
         self.resourceoption_set.update_or_create(**query)
 
     def get_option(self, name, namespace=''):
+        assert name is not None, "Parameter 'name' must be defined."
+
+        if not namespace:
+            namespace = self.type
+
         query = dict(
             name=name,
             namespace=namespace
@@ -207,6 +291,8 @@ class Resource(models.Model):
         return self.resourceoption_set.get(**query)
 
     def has_option(self, name, namespace=''):
+        assert name is not None, "Parameter 'name' must be defined."
+
         try:
             self.get_option(name, namespace=namespace)
         except djexceptions.ObjectDoesNotExist:
@@ -215,6 +301,8 @@ class Resource(models.Model):
         return True
 
     def get_option_value(self, name, namespace='', default=''):
+        assert name is not None, "Parameter 'name' must be defined."
+
         option_value = default
         try:
             option = self.get_option(name, namespace=namespace)
@@ -233,18 +321,8 @@ class Resource(models.Model):
     def _is_saved(self):
         return self.id is not None
 
-    def _field_exists(self, name):
-        assert name is not None, "Parameter 'name' must be defined."
-
-        try:
-            self._meta.get_field_by_name(name)
-
-            return True
-        except models.FieldDoesNotExist:
-            return False
-
     def __str__(self):
-        return "%d\t%s\t%s (%s, %s)" % (self.pk, self.type, self.status, self.created_at, self.updated_at)
+        return "%d\t%s\t%s (%s, %s)" % (self.id, self.type, self.status, self.created_at, self.updated_at)
 
 
 class ResourcePool(Resource):
@@ -261,4 +339,8 @@ class ResourcePool(Resource):
     def _set_pool_name(self, value):
         self.set_option('name', value, namespace='ResourcePool')
 
+    def _get_usage(self):
+        raise NotImplementedError()
+
     name = property(fget=_get_pool_name, fset=_set_pool_name)
+    usage = property(fget=_get_usage)

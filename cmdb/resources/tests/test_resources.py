@@ -6,6 +6,19 @@ from resources.models import Resource, ResourceOption, ResourcePool
 
 
 class ResourceTest(TestCase):
+    def test_static_create(self):
+        new_res = Resource.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
+
+        self.assertEqual(Resource.STATUS_INUSE, new_res.status)
+        self.assertEqual('someval1', new_res.get_option_value('somekey1', namespace='Resource'))
+        self.assertEqual('someval2', new_res.get_option_value('somekey2', namespace='Resource'))
+
+        new_res1 = ResourcePool.create(status=Resource.STATUS_LOCKED, somekey1='someval11', somekey2='someval21')
+
+        self.assertEqual(Resource.STATUS_LOCKED, new_res1.status)
+        self.assertEqual('someval11', new_res1.get_option_value('somekey1', namespace='ResourcePool'))
+        self.assertEqual('someval21', new_res1.get_option_value('somekey2', namespace='ResourcePool'))
+
     def test_option_type(self):
         resource1 = Resource()
         resource1.save()
@@ -157,7 +170,6 @@ class ResourceTest(TestCase):
 
         # status from Resource, namespace from ResourceOption
         self.assertEqual(1, len(Resource.objects.filter(status=Resource.STATUS_FREE, namespace='ns5')))
-
 
     def _create_test_resources(self, count):
         for idx1 in range(1, count + 1):

@@ -40,7 +40,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'resources',
     'events',
-    'ipman'
+    'ipman',
+    'assets'
 )
 
 MIDDLEWARE_CLASSES = (
