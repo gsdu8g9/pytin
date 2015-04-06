@@ -44,6 +44,7 @@ cp ./initrd.img ../../target/
 
 popd
 
-umount ./work/iso
+umount ./work/iso/
+sleep 3
 
 rm -rf ./work/{download,iso,build}
