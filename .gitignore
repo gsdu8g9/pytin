@@ -56,3 +56,6 @@ target/
 .idea
 .DS_Store
 cmdb/db/cmdb.sqlite3
+
+scripts/proxmox/target
+scripts/proxmox/work
