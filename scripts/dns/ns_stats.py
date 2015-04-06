@@ -17,6 +17,7 @@
 # ns_stats.py domains.list
 #
 # domains.list contains plain list of domains:
+#
 # domain1.com
 # domain2.com
 # domain3.com

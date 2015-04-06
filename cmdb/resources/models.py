@@ -35,10 +35,6 @@ class ResourcesWithOptionsManager(models.Manager):
         https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
 
         Resource fields has higher priority than ResourceOption fields
-
-        convert field__lookup = value to:
-            resourceoption__name__exact = field
-            resourceoption__value__lookup = value
         """
 
         search_fields = kwargs
@@ -58,6 +54,9 @@ class ResourcesWithOptionsManager(models.Manager):
                 if ModelFieldChecker.is_model_field(ResourceOption, field_name):
                     query['resourceoption__%s' % field_name_with_lookup] = search_fields[field_name_with_lookup]
                 else:
+                    # convert field__lookup = value to:
+                    # resourceoption__name__exact = field
+                    # resourceoption__value__lookup = value
                     query['resourceoption__name__exact'] = field_name
                     query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
                         search_fields[field_name_with_lookup]
@@ -192,6 +191,9 @@ class Resource(models.Model):
     class Meta:
         db_table = "resources"
 
+    def __str__(self):
+        return "%d\t%s\t%s" % (self.id, self.type, self.status)
+
     @classmethod
     def create(cls, **kwargs):
         """
@@ -321,9 +323,6 @@ class Resource(models.Model):
     def _is_saved(self):
         return self.id is not None
 
-    def __str__(self):
-        return "%d\t%s\t%s (%s, %s)" % (self.id, self.type, self.status, self.created_at, self.updated_at)
-
 
 class ResourcePool(Resource):
     """
@@ -333,14 +332,15 @@ class ResourcePool(Resource):
     class Meta:
         proxy = True
 
-    def _get_pool_name(self):
+    @property
+    def name(self):
         return self.get_option_value('name', 'ResourcePool', None)
 
-    def _set_pool_name(self, value):
+    @name.setter
+    def name(self, value):
         self.set_option('name', value, namespace='ResourcePool')
 
-    def _get_usage(self):
+    @property
+    def usage(self):
         raise NotImplementedError()
 
-    name = property(fget=_get_pool_name, fset=_set_pool_name)
-    usage = property(fget=_get_usage)
