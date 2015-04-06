@@ -1,17 +1,56 @@
 import json
-import exceptions
 
 from django.db import models
+from django.db.models.loading import get_model
 from django.utils import timezone
 from django.core import exceptions as djexceptions
 
 
-class ActiveResources(models.Manager):
-    def get_query_set(self):
-        return super(ActiveResources, self).get_queryset().exclude(status=Resource.STATUS_DELETED)
+class ResourcesWithOptions(models.Manager):
+    def active(self, *args, **kwargs):
+        return super(ResourcesWithOptions, self).get_queryset() \
+            .filter(*args, **kwargs) \
+            .exclude(status=Resource.STATUS_DELETED)
+
+    def filter(self, *args, **kwargs):
+        """
+        Search for Resources using Options (only in active resources)
+        search_fields keys can be specified with lookups:
+        https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
+
+        Resource fields has higher priority than ResourceOption fields
+
+        convert field__lookup = value to:
+            resourceoption__name__exact = field
+            resourceoption__value__lookup = value
+        """
+
+        search_fields = kwargs
+
+        query = {}
+
+        for field_name_with_lookup in search_fields.keys():
+            field_name = field_name_with_lookup.split('__')[0]
+
+            if hasattr(Resource(), field_name):
+                query[field_name_with_lookup] = search_fields[field_name_with_lookup]
+            else:
+                if hasattr(ResourceOption(), field_name):
+                    query['resourceoption__%s' % field_name_with_lookup] = search_fields[field_name_with_lookup]
+                else:
+                    query['resourceoption__name__exact'] = field_name
+                    query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
+                        search_fields[field_name_with_lookup]
+
+        return super(ResourcesWithOptions, self).get_queryset().filter(*args, **query).distinct()
 
 
 class ResourceOption(models.Model):
+    """
+    Resource option with support for namespaces. Resources is able to have different options and
+    client can search by them.
+    """
+
     class StringValue:
         _value = ''
 
@@ -77,8 +116,7 @@ class ResourceOption(models.Model):
 
     @staticmethod
     def save_value(value, format):
-        if not format:
-            raise exceptions.ValueError('format')
+        assert format is not None, "Parameter 'format' must be defined."
 
         return str(ResourceOption.FORMAT_HANDLERS[format](value))
 
@@ -107,11 +145,9 @@ class ResourceOption(models.Model):
 
 
 class Resource(models.Model):
-    TYPE_GENERIC = 'generic'
-    TYPE_CHOICES = (
-        (TYPE_GENERIC, 'Generic resource'),
-    )
-
+    """
+    Generic resource representation. Support for search by ResourceOptions.
+    """
     STATUS_FREE = 'free'
     STATUS_INUSE = 'inuse'
     STATUS_FAILED = 'failed'
@@ -126,54 +162,26 @@ class Resource(models.Model):
     )
 
     parent = models.ForeignKey("self", default=0)
-    type = models.CharField(max_length=155, db_index=True, choices=TYPE_CHOICES, default=TYPE_GENERIC)
+    type = models.CharField(max_length=155, db_index=True, default='Resource')
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
     created_at = models.DateTimeField('Date created', db_index=True, default=timezone.now())
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
 
-    active = ActiveResources()
-    objects = models.Manager()
+    objects = ResourcesWithOptions()
 
     class Meta:
         db_table = "resources"
 
-    @staticmethod
-    def find(**search_fields):
-        """
-        Search for Resources using Options (only in active resources)
-        search_fields keys can be specified with lookups:
-        https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
-
-        Resource fields has higher priority than ResourceOption fields
-        """
-
-        query = {}
-
-        for field_name_with_lookup in search_fields.keys():
-            field_name = field_name_with_lookup.split('__')[0]
-
-            if hasattr(Resource(), field_name):
-                query[field_name_with_lookup] = search_fields[field_name_with_lookup]
-            else:
-                if hasattr(ResourceOption(), field_name):
-                    query['resourceoption__%s' % field_name_with_lookup] = search_fields[field_name_with_lookup]
-                else:
-                    # convert field__lookup = value to:
-                    # resourceoption__name__exact = field
-                    # resourceoption__value__lookup = value
-                    query['resourceoption__name__exact'] = field_name
-                    query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
-                        search_fields[field_name_with_lookup]
-
-        return Resource.objects.filter(**query).distinct()
+    def get_proxy(self):
+        return get_model(self._meta.app_label, self.type)
 
     def set_option(self, name, value, format=None, namespace=''):
         """
         Set resource option. If format is omitted, then format is guessed from value type.
         """
 
-        if not name:
-            raise exceptions.ValueError('name')
+        assert self._is_saved(), "Resource must be saved before setting options"
+        assert name is not None, "Parameter 'name' must be defined."
 
         if not format:
             format = ResourceOption.guess_format(value)
@@ -216,9 +224,17 @@ class Resource(models.Model):
 
         return option_value
 
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        self.type = self.__class__.__name__
+
+        return super(Resource, self).save(force_insert, force_update, using, update_fields)
+
+    def _is_saved(self):
+        return self.id is not None
+
     def _field_exists(self, name):
-        if not name:
-            raise exceptions.ValueError("store_path")
+        assert name is not None, "Parameter 'name' must be defined."
 
         try:
             self._meta.get_field_by_name(name)
@@ -229,3 +245,20 @@ class Resource(models.Model):
 
     def __str__(self):
         return "%d\t%s\t%s (%s, %s)" % (self.pk, self.type, self.status, self.created_at, self.updated_at)
+
+
+class ResourcePool(Resource):
+    """
+    Resource grouping.
+    """
+
+    class Meta:
+        proxy = True
+
+    def _get_pool_name(self):
+        return self.get_option_value('name', 'ResourcePool', None)
+
+    def _set_pool_name(self, value):
+        self.set_option('name', value, namespace='ResourcePool')
+
+    name = property(fget=_get_pool_name, fset=_set_pool_name)

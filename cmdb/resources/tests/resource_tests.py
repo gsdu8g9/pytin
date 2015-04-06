@@ -2,7 +2,7 @@
 
 from django.test import TestCase
 
-from resources.models import Resource, ResourceOption
+from resources.models import Resource, ResourceOption, ResourcePool
 
 
 class ResourceTest(TestCase):
@@ -51,9 +51,9 @@ class ResourceTest(TestCase):
         resource3.save()
 
         self.assertEqual(3, len(Resource.objects.all()))
-        self.assertEqual(2, len(Resource.active.all()))
+        self.assertEqual(2, len(Resource.objects.active()))
 
-    def test_find(self):
+    def test_filter_queryset_active(self):
         resource1 = Resource()
         resource1.save()
 
@@ -63,12 +63,12 @@ class ResourceTest(TestCase):
         resource3 = Resource(status=Resource.STATUS_LOCKED)
         resource3.save()
 
-        self.assertEqual(0, len(Resource.active.filter(status=Resource.STATUS_DELETED)))
-        self.assertEqual(1, len(Resource.active.filter(status=Resource.STATUS_LOCKED)))
+        self.assertEqual(0, len(Resource.objects.active(status=Resource.STATUS_DELETED)))
+        self.assertEqual(1, len(Resource.objects.active(status=Resource.STATUS_LOCKED)))
 
-        self.assertEqual(2, len(Resource.active.filter(type=Resource.TYPE_GENERIC)))
-        self.assertEqual(1, len(Resource.active.filter(type=Resource.TYPE_GENERIC, status=Resource.STATUS_LOCKED)))
-        self.assertEqual(0, len(Resource.active.filter(type='unknown')))
+        self.assertEqual(2, len(Resource.objects.active()))
+        self.assertEqual(1, len(Resource.objects.active(status=Resource.STATUS_LOCKED)))
+        self.assertEqual(0, len(Resource.objects.active(type='unknown')))
 
     def test_set_get_options(self):
         resource1 = Resource()
@@ -121,23 +121,43 @@ class ResourceTest(TestCase):
         self.assertEqual('value_3_ed', resource1.get_option_value('nst_field'))
         self.assertEqual('value_2_ed', resource2.get_option_value('nst_field', namespace='nst2'))
 
-    def test_find(self):
+    def test_proxy_models(self):
+        resource1 = Resource()
+        resource1.status = Resource.STATUS_FREE
+        resource1.save()
+
+        resource_pool1 = ResourcePool()
+        resource_pool1.status = Resource.STATUS_INUSE
+        resource_pool1.save()
+
+        resource_pool1.name = 'test pool'
+
+        # search with target type
+        resource = Resource.objects.filter(status=Resource.STATUS_FREE)[0].get_proxy()
+        resource_pool = Resource.objects.filter(status=Resource.STATUS_INUSE)[0].get_proxy()
+
+        self.assertEqual(Resource, resource)
+        self.assertEqual(ResourcePool, resource_pool)
+
+    def test_find_objects(self):
         self._create_test_resources(50)
 
         self.assertEqual(50, len(Resource.objects.all()))
         self.assertEqual(2500, len(ResourceOption.objects.all()))
 
         # search by fields
-        self.assertEqual(50, len(Resource.find(field_2='value_2')))
-        self.assertEqual(1, len(Resource.find(field_2='value_2', namespace='ns10')))
-        self.assertEqual(50, len(Resource.find(field_2__contains='value')))
+        self.assertEqual(50, len(Resource.objects.filter(field_2='value_2')))
+        self.assertEqual(1, len(Resource.objects.filter(field_2='value_2', namespace='ns10')))
+        self.assertEqual(50, len(Resource.objects.filter(field_2__contains='value')))
+        self.assertEqual(0, len(Resource.objects.filter(notexists_4='notexists_value_4')))
 
         # search by existing fields
-        self.assertEqual(10, len(Resource.find(status=Resource.STATUS_FREE)))
-        self.assertEqual(10, len(Resource.find(status=Resource.STATUS_DELETED)))
+        self.assertEqual(10, len(Resource.objects.filter(status=Resource.STATUS_FREE)))
+        self.assertEqual(10, len(Resource.objects.filter(status=Resource.STATUS_DELETED)))
 
         # status from Resource, namespace from ResourceOption
-        self.assertEqual(1, len(Resource.find(status=Resource.STATUS_FREE, namespace='ns5')))
+        self.assertEqual(1, len(Resource.objects.filter(status=Resource.STATUS_FREE, namespace='ns5')))
+
 
     def _create_test_resources(self, count):
         for idx1 in range(1, count + 1):
