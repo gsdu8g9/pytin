@@ -1,9 +1,8 @@
 import json
 
 from django.db import models
-from django.db.models.loading import get_model
-from django.utils import timezone
 from django.core import exceptions as djexceptions
+from django.apps import apps
 
 
 class ModelFieldChecker:
@@ -121,7 +120,7 @@ class ResourceOption(models.Model):
     name = models.CharField(max_length=155, db_index=True)
     namespace = models.CharField(max_length=155, db_index=True, default='')
     value = models.TextField('Option value')
-    updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
+    updated_at = models.DateTimeField('Date updated', auto_now_add=True, db_index=True)
     format = models.CharField(max_length=25, db_index=True, choices=FORMAT_CHOICES, default=FORMAT_STRING)
 
     format_handler = None
@@ -183,7 +182,7 @@ class Resource(models.Model):
     parent = models.ForeignKey("self", default=0)
     type = models.CharField(max_length=155, db_index=True, default='Resource')
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
-    created_at = models.DateTimeField('Date created', db_index=True, default=timezone.now())
+    created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
 
     objects = ResourcesWithOptionsManager()
@@ -222,7 +221,7 @@ class Resource(models.Model):
         return new_object
 
     def get_proxy(self):
-        return get_model(self._meta.app_label, self.type)
+        return apps.get_model(self._meta.app_label, self.type)
 
     def lock(self):
         self.status = self.STATUS_LOCKED
