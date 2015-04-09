@@ -6,6 +6,8 @@ from django.apps import apps
 
 
 class ModelFieldChecker:
+    builtin = ['pk']
+
     def __init__(self):
         pass
 
@@ -16,6 +18,9 @@ class ModelFieldChecker:
         """
         assert name is not None, "Parameter 'name' must be defined."
         assert issubclass(class_type, models.Model), "Class 'class_type' must be the subclass of models.Model."
+
+        if name in ModelFieldChecker.builtin:
+            return True
 
         try:
             return name in [f.name for f in class_type._meta.fields]
@@ -327,19 +332,49 @@ class ResourcePool(Resource):
     """
     Resource grouping.
     """
-
     class Meta:
         proxy = True
 
+    def __contains__(self, item):
+        return Resource.objects.active(pk=item.id, parent=self).exists()
+
+    def __iter__(self):
+        for resource in Resource.objects.active(parent=self):
+            yield resource
+
     @property
     def name(self):
-        return self.get_option_value('name', 'ResourcePool', None)
+        return self.get_option_value('name', default='')
 
     @name.setter
     def name(self, value):
-        self.set_option('name', value, namespace='ResourcePool')
+        self.set_option('name', value)
 
-    @property
-    def usage(self):
-        raise NotImplementedError()
+    def available(self):
+        """
+        Iterate through available resources in the pool. Override this method in resource specific pools.
+        """
+        for res in Resource.objects.active(parent=self, status=Resource.STATUS_FREE):
+            yield res
 
+    def can_add(self, resource):
+        """
+        Test if resource can be added to this pool.
+        """
+        return True
+
+    def __add__(self, other):
+        assert isinstance(other, Resource), "Can't add object that is not a Resource"
+
+        other.parent = self
+        other.save()
+
+        return self
+
+    def __sub__(self, other):
+        assert isinstance(other, Resource), "Can't sub object that is not a Resource"
+
+        other.parent = 0
+        other.save()
+
+        return self
