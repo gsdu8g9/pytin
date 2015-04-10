@@ -1,5 +1,5 @@
-pytin
-=======
+The Pytin Project
+=================
 
 Pytin is the collection of a datacenter management utils, used internally in justhost.ru.
 
@@ -10,7 +10,7 @@ Bash scripts are need to be refactored and documented to be useful outside justh
 
 
 Repository structure
---------
+--------------------
 
 ### /cmdb ###
 
