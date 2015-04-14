@@ -48,7 +48,7 @@ import dns.rdataset
 ####################
 node_updates = [
     {
-        'nodes': ['pop', 'smtp', 'mail', 'ftp', 'ssh', 'pop.mn1', 'smtp.mn1', 'mail.mn1', 'ftp.mn1', 'ssh.mn1'],
+        'nodes': ['@', 'pop', 'smtp', 'mail', 'ftp', 'ssh', 'pop.mn1', 'smtp.mn1', 'mail.mn1', 'ftp.mn1', 'ssh.mn1'],
         'class': dns.rdataclass.IN,
         'type': dns.rdatatype.A,
         'value': '46.29.160.31',
