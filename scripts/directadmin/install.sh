@@ -69,5 +69,8 @@ EOF
 
 mkdir -p /etc/httpd/conf/secret
 
-echo 'Enter password for Apache server-status user:'
-htpasswd -c /etc/httpd/conf/secret/passwd info
+# Генерация паролей
+passhtstatus=`perl -le'print map+(A..Z,a..z,0..9)[rand 62],0..15'`
+echo "Password for Apache server-status user: "${passhtstatus} >> ~/da.txt
+echo "Password for Apache server-status user: "${passhtstatus}
+htpasswd -b -c /etc/httpd/conf/secret/passwd info ${passhtstatus}

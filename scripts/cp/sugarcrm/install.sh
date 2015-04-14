@@ -2,9 +2,28 @@
 
 # SugarCRM
 
-bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+/bin/bash <(/usr/bin/curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
 
-yum install -y httpd php php-cli php-gd php-mysql php-tidy php-xml php-xmlrpc mysql mysql-server php-mbstring php-imap
+/usr/bin/yum install -y httpd php php-cli php-gd php-mysql php-tidy php-xml php-xmlrpc mysql mysql-server php-mbstring php-imap
+
+# iptables
+cat <<EOF > /etc/sysconfig/iptables
+# Firewall configuration written by system-config-firewall
+# Manual customization of this file is not recommended.
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
+-A INPUT -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+COMMIT
+EOF
+service iptables restart
 
 # Генерация паролей
 passmysql=`perl -le'print map+(A..Z,a..z,0..9)[rand 62],0..15'`
@@ -39,10 +58,10 @@ chown -R apache:apache /data/www/sugarcrm
 # Apache
 mkdir /etc/httpd/vhosts
 cat <<EOF > /etc/httpd/vhosts/sugarcrm.conf
-<VirtualHost *:8080>
+<VirtualHost *:80>
         ServerAdmin info@domain.ltd
         DocumentRoot "/data/www/sugarcrm"
-         ErrorLog "/var/log/httpd/sugarcrm-error.log"
+        ErrorLog "/var/log/httpd/sugarcrm-error.log"
         CustomLog "/var/log/httpd/sugarcrm-access.log" common
         AcceptPathInfo On
         <Directory /data/www/sugarcrm>
@@ -53,8 +72,10 @@ cat <<EOF > /etc/httpd/vhosts/sugarcrm.conf
 </VirtualHost>
 EOF
 
-echo "NameVirtualHost *:80" >> /etc/httpd/conf/httpd.conf
-echo "include vhosts/*.conf" >> /etc/httpd/conf/httpd.conf
+cat <<EOF >> /etc/httpd/conf/httpd.conf
+NameVirtualHost *:80
+include vhosts/*.conf
+EOF
 chkconfig httpd on
 service httpd start
 
@@ -64,21 +85,3 @@ echo "*    *    *    *    *     cd /data/www/sugarcrm; php -f cron.php > /dev/nu
 # php.ini
 cp /etc/php.ini /etc/php.ini.orig
 sed 's/upload_max_filesize =.*/upload_max_filesize = 16M/' /etc/php.ini.orig > /etc/php.ini
-
-# iptables
-cat <<EOF > /etc/sysconfig/iptables
-# Firewall configuration written by system-config-firewall
-# Manual customization of this file is not recommended.
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
--A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
--A INPUT -p icmp -j ACCEPT
--A INPUT -i lo -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
--A INPUT -j REJECT --reject-with icmp-host-prohibited
--A FORWARD -j REJECT --reject-with icmp-host-prohibited
-COMMIT
-EOF
