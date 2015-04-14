@@ -115,8 +115,6 @@ echo "    source: ${SOURCE_PATH}"
 echo "    target: ${TARGET_PATH}"
 echo "    base name: ${BASE_NAME}"
 
-set -e
-
 PRE_PATH=`pwd`
 cd ${TARGET_PATH}
 
@@ -127,5 +125,3 @@ do
 done
 
 cd ${PRE_PATH}
-
-set +e
