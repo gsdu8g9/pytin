@@ -4,6 +4,21 @@ from ipman.models import IPAddress, IPNetworkPool, IPAddressPool, IPAddressRange
 
 
 class IPmanTest(TestCase):
+    def test_pool_add_sub(self):
+        ipnet = IPNetworkPool.create(network='192.168.1.1/24')
+
+        ip1 = ipnet.available().next()
+        ip2 = IPAddress.create(address='192.168.1.2')
+
+        self.assertEqual(ipnet.id, ip1.parent_id)
+        self.assertEqual(None, ip2.parent_id)
+
+        ipnet += ip2
+        ipnet -= ip1
+
+        self.assertEqual(None, ip1.parent_id)
+        self.assertEqual(ipnet.id, ip2.parent_id)
+
     def test_pool_range_owns_acquire(self):
         iprange = IPAddressRangePool.create(name='IP range', range_from='172.1.1.1', range_to='172.1.2.1')
 
@@ -25,6 +40,7 @@ class IPmanTest(TestCase):
         self.assertTrue(ipset.can_add('192.168.1.10'))
         self.assertRaises(StopIteration, ipset.available().next)
 
+        # add resource to the pool
         ipset += IPAddress.create(address='172.27.27.10')
 
         usable_ip = ipset.available().next()

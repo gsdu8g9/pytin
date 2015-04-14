@@ -13,7 +13,7 @@ class AssetsTest(TestCase):
 
         self.assertEqual(dc.parent.id, city.id)
         self.assertEqual(city.parent.id, country.id)
-        self.assertEqual(country.parent_id, 0)
+        self.assertEqual(country.parent_id, None)
 
         rack1 = RackResource.create(name='Rackmount 1/9', parent=dc)
         rack2 = RackResource.create(name='Rackmount 2/4', parent=dc)

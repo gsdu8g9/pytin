@@ -72,11 +72,17 @@ fi
 
 if [ -z ${NEEDED_BACKUP_INDEX} ]
 then
-    usage
-    exit 1
+    NEEDED_BACKUP_INDEX=`cat ${INCREMENT_FILE}`
 fi
 
-FULL_BACKUP_INDEX=$(( (NEEDED_BACKUP_INDEX / (INCREMENT_COUNT + 1)) * INCREMENT_COUNT + 1 ))
+idx_mod=$(( NEEDED_BACKUP_INDEX % INCREMENT_COUNT ))
+if [ -z idx_mod ]
+then
+    idx_mod=${INCREMENT_COUNT}
+fi
+
+FULL_BACKUP_INDEX=$(( NEEDED_BACKUP_INDEX - idx_mod + 1 ))
+
 
 echo "*** Extracting backup of user " ${USER_NAME}
 echo "    backup source: " ${BACKUPS_ROOT}

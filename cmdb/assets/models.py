@@ -18,24 +18,25 @@ class PortResource(Resource):
     class Meta:
         proxy = True
 
-    def _get_mac(self):
+    @property
+    def mac(self):
         return self.get_option_value('mac', default="00:00:00:00:00:00")
 
-    def _set_mac(self, value):
+    @mac.setter
+    def mac(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('mac', value)
 
-    def _get_number(self):
+    @property
+    def number(self):
         return self.get_option_value('number', default="0")
 
-    def _set_number(self, value):
+    @number.setter
+    def number(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('number', value)
-
-    mac = property(fget=_get_mac, fset=_set_mac)
-    number = property(fget=_get_number, fset=_set_number)
 
 
 class InventoryResource(Resource):
@@ -47,28 +48,30 @@ class InventoryResource(Resource):
     class Meta:
         proxy = True
 
-    def _get_label(self):
+    @property
+    def label(self):
         return self.get_option_value('label', default="s%s" % self.id)
 
-    def _set_label(self, value):
+    @label.setter
+    def label(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('label', value)
 
-    def _get_serial(self):
+    @property
+    def serial(self):
         return self.get_option_value('serial', default="sn%s" % self.id)
 
-    def _set_serial(self, value):
+    @serial.setter
+    def serial(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('serial', value)
 
-    def _get_is_failed(self):
-        return self.objects.active(status=Resource.STATUS_FAILED).exists()
-
-    label = property(fget=_get_label, fset=_set_label)
-    serial = property(fget=_get_serial, fset=_set_serial)
-    is_failed = property(fget=_get_is_failed)
+    @property
+    def is_failed(self):
+        return super(Resource, self).is_failed or \
+               Resource.objects.active(status=Resource.STATUS_FAILED, parent=self).exists()
 
 
 class ServerResource(InventoryResource):

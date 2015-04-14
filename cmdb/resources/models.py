@@ -6,6 +6,9 @@ from django.apps import apps
 
 
 class ModelFieldChecker:
+    """
+    Utility class to query Django model fields.
+    """
     builtin = ['pk']
 
     def __init__(self):
@@ -29,12 +32,23 @@ class ModelFieldChecker:
 
 
 class ResourcesWithOptionsManager(models.Manager):
+    """
+
+    """
+
     def active(self, *args, **kwargs):
+        """
+        Search for Resources with Options (only on active resources)
+        search_fields keys can be specified with lookups:
+        https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
+
+        Resource fields has higher priority than ResourceOption fields
+        """
         return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
 
     def filter(self, *args, **kwargs):
         """
-        Search for Resources using Options (only in active resources)
+        Search for Resources using Options
         search_fields keys can be specified with lookups:
         https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
 
@@ -184,7 +198,7 @@ class Resource(models.Model):
         (STATUS_DELETED, 'Deleted'),
     )
 
-    parent = models.ForeignKey("self", default=0)
+    parent = models.ForeignKey("self", default=None, db_index=True, null=True)
     type = models.CharField(max_length=155, db_index=True, default='Resource')
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
@@ -197,6 +211,29 @@ class Resource(models.Model):
 
     def __str__(self):
         return "%d\t%s\t%s" % (self.id, self.type, self.status)
+
+    def __add__(self, other):
+        """
+        Add child to the Resource object
+        """
+        assert isinstance(other, Resource), "Can't add object that is not a Resource"
+        assert self.can_add(other), "Child resource can't be added to this Resource"
+
+        other.parent = self
+        other.save()
+
+        return self
+
+    def __sub__(self, other):
+        """
+        Remove child from the Resource object
+        """
+        assert isinstance(other, Resource), "Can't sub object that is not a Resource"
+
+        other.parent = None
+        other.save()
+
+        return self
 
     @classmethod
     def create(cls, **kwargs):
@@ -225,8 +262,8 @@ class Resource(models.Model):
 
         return new_object
 
-    def get_proxy(self):
-        return apps.get_model(self._meta.app_label, self.type)
+    # def get_proxy(self):
+    #     return apps.get_model(self._meta.app_label, self.type)
 
     def lock(self):
         self.status = self.STATUS_LOCKED
@@ -324,6 +361,12 @@ class Resource(models.Model):
 
         return super(Resource, self).save(force_insert, force_update, using, update_fields)
 
+    def can_add(self, child):
+        """
+        Test if child can be added to this resource.
+        """
+        return True
+
     def _is_saved(self):
         return self.id is not None
 
@@ -357,24 +400,3 @@ class ResourcePool(Resource):
         for res in Resource.objects.active(parent=self, status=Resource.STATUS_FREE):
             yield res
 
-    def can_add(self, resource):
-        """
-        Test if resource can be added to this pool.
-        """
-        return True
-
-    def __add__(self, other):
-        assert isinstance(other, Resource), "Can't add object that is not a Resource"
-
-        other.parent = self
-        other.save()
-
-        return self
-
-    def __sub__(self, other):
-        assert isinstance(other, Resource), "Can't sub object that is not a Resource"
-
-        other.parent = 0
-        other.save()
-
-        return self

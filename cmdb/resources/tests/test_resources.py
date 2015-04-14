@@ -146,11 +146,11 @@ class ResourceTest(TestCase):
         resource_pool1.name = 'test pool'
 
         # search with target type
-        resource = Resource.objects.filter(status=Resource.STATUS_FREE)[0].get_proxy()
-        resource_pool = Resource.objects.filter(status=Resource.STATUS_INUSE)[0].get_proxy()
+        resource = Resource.objects.filter(status=Resource.STATUS_FREE)[0]
+        resource_pool = Resource.objects.filter(status=Resource.STATUS_INUSE)[0]
 
-        self.assertEqual(Resource, resource)
-        self.assertEqual(ResourcePool, resource_pool)
+        self.assertEqual('Resource', resource.type)
+        self.assertEqual('ResourcePool', resource_pool.type)
 
     def test_find_objects(self):
         self._create_test_resources(50)
