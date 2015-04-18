@@ -1,0 +1,180 @@
+(also note README_NEW)
+
+----------------------------------------------
+ FOR UPDATE AND VERSION HISTORY SEE "UPDATES"
+----------------------------------------------
+
+DESCRIPTION
+===========
+This software (DirectSlave) is designed for fast & easy slave DNS management,
+interacting with DirectAdmin powered servers using DirectAdmin multiserver API.
+Configuration of master DirectAdmin server is not necessary, software provides
+DirectAdmin multiserver API emulation via HTTP protocol. You only need to enable
+Multi Server feature on master DirectAdmin server and set it up to work with
+DirectSlave. Basic understanding of DNS credentials also might be helpful.
+How to configure DirectSlave see CONFIGURATION section.
+
+STRUCTURE
+=========
+Package contains one directory (directslave) with following structure:
+bin = main script location,
+  -> directslave
+  -> pass
+etc = config file location
+  -> directslave.conf 
+    rc.d = startup scripts for various platforms
+      -> directslave.bsd - startup script for FreeBSD (/usr/local/etc/rc.d)
+lib = hacked CGI.pm to process DirectAdmin raw POST data
+  -> CGI.pm (or DSGI.pm for v. 1.3 and newer)
+log = log files location, as defined in etc/directslave.conf
+  -> access.log
+  -> action.log
+  -> error.log
+run = directory for pid file, as defined in etc/directslave.conf
+  ~> directslave.pid
+
+PREREQISITES
+============
+Since DirectSlave is written purely on perl, you need (obviously) perl itself
+and a set of modules, which can be installed from you system package collection
+or from CPAN, does not matter (see MODULES). You also need root privileges on
+slave DNS server to start the DirectSlave and modify bind configs.
+
+MODULES
+=======
+POSIX            = system features package (bundled in perl distr)
+FindBin          = to find relative directories (lib etc)
+CGI              = CGI implementation 
+Crypt::PasswdMD5 = for password encryption
+Digest::MD5      = for stronger password encryption
+Config::Auto     = to read and parse etc/directslave.conf
+MIME::Base64     = authenticating incoming connections
+Net::Server      = main server & daemon realisation
+Net::CIDR        = for checking access hosts
+
+INSTALLATION
+============
+Just copy directslave directory structure into /usr/local/directslave on your
+slave DNS server and decide under which uid and gid you want to run the
+directslave process, then run chown
+# chown -R $uid:$gid /usr/local/directslave
+Configure directslave to suite your needs. Set up bind (named) DNS to include
+named.conf which DirectSlave should produce (see CONFIGURATION).
+
+CONFIGURATION
+=============
+Main configuration file is located in /usr/local/directslave/etc/ and named
+directslave.conf - it's an apache-style plaintext config file. Before modifying
+it please make a backup
+
+$ cp directslave.conf ~directslave.conf
+
+Details for fields:
+
+background 1 - start process in background (daemonize it). When set to 1,
+               process detaches itself from terminal (console) and writes all
+               STDERR output to error_log (see below), and when set to 0 does
+               not detach from terminal and logs all errors to console (for
+               debug)
+
+server_type Fork - forks a new process for each one query. Since DirectAdmin
+                   generates queries to API in single-threaded manner, it
+                   consumes very low CPU & memory, generates almost no LA
+        
+host 212.109.44.44 - bind to specified IP on your host, if asterisk (*) - binds
+                     to all
+
+port 2222 - bind to specified port
+
+debug 0 or 1 - for debugging purposes (use Data::Dumper format)
+
+uid bind - user and group, under which rights daemon should work, usually bind 
+gid bind   or named to have access to namedb/secondary directory
+
+            various log entries and pid file 
+pid         /usr/local/directslave/run/directslave.pid
+access_log  /usr/local/directslave/log/access.log - W3C formatted access log 
+error_log   /usr/local/directslave/log/error.log - debug from daemon server
+action_log  /usr/local/directslave/log/action.log - shows which action is taken
+                                                    at a definite moment of time
+                                                    (shows which domain was
+                                                    created, reloaded or removed
+                                                    and by which master server)
+
+mode master - takes "master" or "slave". In "master" mode DirectSlave writes an
+              entry for zone in named.conf using template
+              zone "$zone" { type master; file "$named_workdir/$zone.db"; } and
+              zone $zone.db file itself
+              in "slave", it provides classic slave DNS server (you need to set
+              up axfr on DirectAdmin master server)
+
+named_workdir /etc/namedb/secondary - where $zone.db files must be stored
+named_conf /etc/namedb/secondary/named.conf - file to add/remove entries for
+                                              $zone
+retry_time  1200 - DNS retry time for "slave" mode
+rndc_path /usr/sbin/rndc - where is your rndc tool located, or 'none', if you
+                           don't use rndc
+
+allow           0.0.0.0/0 - list of allowed hosts in cidr format, must be
+                            specified as ip/mask. 0.0.0.0/0 - allow all, or
+                            list of values (212.109.44.44/32, 217.20.163.14/32)
+
+auth admin:$1$13404696$1QdYe4TvGr6291FrpjkMy - authentication credentials to set
+                            in master DirectAdmin MultiServer setup. Generated
+                            by bin/pass utility. If no entry, it will be created
+
+Okay, I hope, you understand all of this. For final step, you need to include
+DirectSlave named.conf to you main named.conf, add entry
+
+include "/etc/named/secondary/named.conf"
+
+Add auth entry to config, run
+
+# /usr/local/directslave/bin/pass admin yourhardtoreadpassword
+
+Now you are ready to run directslave (run it as root, like other system
+services).
+
+Set `background 0` in config for tests and go
+
+# /usr/local/directslave/bin/directslave
+You must see output like this
+
+2012/06/22-01:18:53 main (type Net::Server::HTTP -> MultiType -> Net::Server::Fo
+rk) starting! pid(57841)
+Binding to TCP port 2222 on host 212.109.44.44 with IPv4
+
+Turn on and set up your DirectAdmin MultiServer feature to transfer zone to your
+DirectSlave enabled server and test connection.
+
+If you see`212.109.44.44 DirectSlave/1.0 connection OK` then everything works
+fine. Now create a test domain on your DirectAdmin server, check
+named_workdir and named_conf file as you defined in config. You must see
+named.conf conf entry for your new domain (and zone.db file, if in 'master'
+mode), also check log files. If everything's OK, stop directslave process
+# kill `cat /usr/local/directslave/run/directslave.pid`
+Set `background 1` and start directslave daemonized. Check error.log. Ready for
+hard slave work :)
+
+If you have any questions, feel free to contact me. See CONTACTS.
+
+WARNING
+=======
+This software is provided as is. You can use it in your production or
+test environment, but author is not responsible for any data loss or damage to
+your system including servers and their components (workstations, phones,
+cables and coffee machine).
+
+Tested with DirectAdmin v1.41 (and less)
+
+CONTACTS
+========
+E-Mail: roman.mazur@gmail.com
+G-Talk: roman.mazur@gmail.com
+PayPal: roman.mazur@gmail.com
+Skype:  roman_iris
+
+If you find this software useful, you can donate me via PayPal.
+Feel free to contact me.
+
+(c) Roman Mazur, 2012 (http://mazur.net.ua/)

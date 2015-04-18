@@ -1,0 +1,246 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use FindBin qw($Bin);
+use lib "$Bin/../lib/";
+use DSGI;
+use Data::Dumper;
+use POSIX qw(strftime);
+use Config::Auto;
+use base qw(Net::Server::HTTP);
+use Digest::MD5 qw(md5_base64);
+use Crypt::PasswdMD5;
+use MIME::Base64;
+
+my $VERSION = "1.3";
+
+my $config = Config::Auto::parse("$Bin/../etc/directslave.conf", 
+	     format => "space");
+
+print STDERR "Config: ", Dumper($config) if $config->{debug} == 1;
+
+if($config->{background} == 0) { undef($config->{error_log}) }
+
+__PACKAGE__->run(
+    background 		=> $config->{background},
+    server_type 	=> $config->{server_type},
+    min_spare_servers 	=> $config->{min_spare_servers},
+    spare_servers	=> $config->{spare_servers},
+    max_servers 	=> $config->{max_servers},
+    host  => $config->{host},
+    port  => $config->{port},
+    user  => $config->{uid},
+    group => $config->{gid},
+    pid_file 	    => $config->{pid},
+    server_revision => "DirectSlave/$VERSION",
+    access_log_file => $config->{access_log},
+    log_file        => $config->{error_log},
+    cidr_allow	    => $config->{allow}
+);
+
+sub process_http_request($) {
+    my $self  = shift;
+
+    my $query = new CGI;
+
+    print STDERR "SERVER OPTIONS: ",Dumper($self) if $config->{debug} == 1;
+    print STDERR "CGI QUERY: ". Dumper($query) if $config->{debug} == 1;
+
+    print $query->header( -type=>"text/plain" );
+
+    if(&authenticate) {
+	&do_work($self, $query);
+    } else {
+	print "error=1&text=Login FAIL&details=none";
+	return;
+    }
+
+    undef($query);
+    undef($self);
+
+    return;
+}
+
+sub authenticate {
+    return 0 if(!defined($ENV{'HTTP_AUTHORIZATION'}));
+    $ENV{'HTTP_AUTHORIZATION'} =~ s/Basic\s+//i;
+
+    my($user,$pass) = split(/:/, decode_base64($ENV{'HTTP_AUTHORIZATION'}));
+
+    my $salt  = md5_base64 $user;
+    my $crypt = unix_md5_crypt($pass, $salt);
+
+    print STDERR "Checking credentials: received $user:$crypt vs $config->{auth}\n"
+        if $config->{debug} == 1;
+
+    if(($config->{auth} eq "$user:$crypt")) { 
+	return 1;
+    } else {
+	print "error=1&text=Login fail&details=password or name mismatch\n";
+	&action_log( "Auth failed for $user from $ENV{'REMOTE_ADDR'}" );
+	return 0;
+    }
+    return 0;
+}
+
+sub do_work($$) {
+    my $self  = shift;
+    my $query = shift;
+
+    my $cmd = $ENV{'PATH_INFO'};
+
+    if($cmd eq "/CMD_API_DNS_ADMIN")     { &dns_admin($self, $query);  }
+    elsif($cmd eq "/CMD_API_LOGIN_TEST") { &login_test($query); }
+    else { &default_action($query); }
+    undef($query);
+    return;
+}
+
+sub dns_admin($) {
+    my $self   = shift;
+    my $query  = shift;
+
+    my $domain = $query->param("domain") || "";
+    my $action = $query->param("action") || "";
+
+    my $zone;
+
+    if(!defined($query->{param}{zone})) { $query->{param}{zone} = ''; }
+
+    if(length($query->{param}{zone})) {
+	$zone = $query->{param}{zone}
+    } else {
+	foreach my $key (@{$query->{".parameters"}}) { 
+	    $zone .= $key."=".$query->param($key); 
+	}
+    }
+
+    my $master = $ENV{'REMOTE_ADDR'};
+
+    if($action eq "delete") {
+	$domain = $query->param("select0");
+	&remove($domain,$master);
+	&action_log( "domain $domain removed from master $master" );
+    }
+    
+    if ($action eq "exists") {
+	if (&exist($domain)) {
+    	    print "error=0&exists=1"
+	}
+        else {
+            print "error=0&exists=0"
+        }
+    }    
+
+    if(($ENV{'REQUEST_URI'} =~ /action\=rawsave/) && ($action eq "")) { 
+	($domain) = $ENV{'REQUEST_URI'} =~ /CMD_API_DNS_ADMIN\?.+domain\=(.+)?/;
+	if(&exist($domain)) {
+	    if($config->{mode} eq "master") { &rewrite($domain,$zone); }
+	    &reload($domain);
+	    &action_log( "reloaded $domain on master $master" );
+	} else {
+	    my $if_master = "as master from $master";
+	    if($config->{mode} eq "slave") { $if_master = "with master $master"; }
+	    &add($domain,$master,$zone);
+	    &reload($domain);
+	    &action_log( "domain $domain added $if_master" );
+	}
+    }
+    return;
+}
+
+sub login_test($) {
+    print "error=0&text=Login OK&details=none";
+    return;
+}
+
+sub exist($) {
+    my ($domain) = @_;
+    my $exist = 0;
+    open(CONF, $config->{named_conf});
+	flock CONF, 2;
+	while(<CONF>) { if ($_ =~ /^zone \"$domain\"/) { $exist = 1; } }
+    close (CONF);
+    return $exist;
+}
+
+sub add($$$) {
+    my $domain = shift;
+    my $master = shift;
+    my $zone   = shift;
+
+    my $template = "zone \"".$domain."\" { type slave; file \"".$config->{named_workdir}."/".$domain.".db\"; masters { $master; }; max-retry-time ".$config->{retry_time}."; min-retry-time ".$config->{retry_time}."; };\n";
+
+    if(!-d($config->{named_workdir})) {
+	print STDERR $config->{named_workdir}." not found. Creating.\n"
+	    if $config->{debug} == 1;
+	mkdir($config->{named_workdir}) ||
+	    print STDERR "Can't create ".$config->{named_workdir}."\n"
+		if $config->{debug} == 1 ;
+    }
+
+    if($config->{mode} eq "master") {
+	$template = "zone \"".$domain."\" { type master; file \"".$config->{named_workdir}."/".$domain.".db\"; };\n";
+	&rewrite($domain, $zone);
+    }
+
+    open(SEC, ">>",  $config->{named_conf});
+	flock SEC, 2;
+	print SEC $template;
+    close(SEC);
+    return;
+}
+
+sub rewrite($$) {
+    my $domain = shift;
+    my $zone   = shift;
+    
+    open(FILE, ">", $config->{named_workdir}."/".$domain.".db");
+	flock FILE, 2;
+	print FILE $zone;
+    close(FILE);
+    undef($zone);
+    return;
+}
+
+sub reload($) {
+    my $domain = shift;
+    return if($config->{rndc_path} eq "none");
+    system("$config->{rndc_path} reload");
+    system("$config->{rndc_path} retransfer ".$domain);
+    return 1;
+}
+
+sub remove($) {
+    my $domain = shift;
+    my $file = "";
+
+    open(CONF, $config->{named_conf});
+	flock CONF, 2;
+	while(<CONF>) { if ($_ =~ /^zone \"$domain\"/) { next; } else { $file .= $_; } }
+    close (CONF);
+
+    open(CONF, ">", $config->{named_conf});
+	flock CONF, 2;
+	print CONF $file; 
+    close (CONF);
+
+    if(-f($config->{named_workdir}."/".$domain.".db")) { unlink ($config->{named_workdir}."/".$domain.".db"); }
+
+    return 1;
+}
+
+sub default_action {
+    return;
+}
+
+sub action_log($) {
+    my $record = shift;
+    my $date = strftime "%Y-%m-%d %H:%M:%S", localtime;
+    open(LOG, ">>", $config->{action_log});
+	flock LOG, 2;
+	printf LOG ("%s: %s\n",$date,$record);
+    close (LOG);
+    return;
+}

@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 # Description:
+#   Script shows users from /home that are not exists in /usr/local/directadmin/data/users
+#   This script can be used to purge orphaned user dirs.
 #
-# Script shows users from /home that are not exists in /usr/local/directadmin/data/users
-# This script can be used to purge orphaned user dirs.
 
 USERS_HOME=/home
 DA_USERS=/usr/local/directadmin/data/users

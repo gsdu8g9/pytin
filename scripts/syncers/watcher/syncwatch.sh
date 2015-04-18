@@ -19,35 +19,43 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+#
+#
 # Description:
+#   This script monitors some directory for the specific file events via inotifywait
+#   and triggers actions.sh script.
 #
-# Script is used to update DNS zones in NAMED format.
-# All config parameters are in dns_updater.py script
 #
-# Usage:
-# dns_update.sh /path/to/named/zone/files
+# Requirements:
+#   inotify-tools
+#
 
-if [ -z $1 ];
+# Monitor this directory and trigger on specific events
+WATCH_DIR=/path/to/some/dir
+
+# Trigger if file with this pattern was created or written in WATCH_DIR
+PATTERN=*-sync.log
+
+
+LOCK_FILE=/tmp/selector-sync.lock
+if [[ -f ${LOCK_FILE} ]]
 then
-    echo "named zones path?"
-    exit 1
+    exit 100
 fi
 
-NAMED_ZONES_PATH=$1
+trap "{ echo '!!! Clean up'; rm -f ${LOCK_FILE} ; exit 0; }" EXIT
+echo "progress" > ${LOCK_FILE}
 
-for file in `ls ${NAMED_ZONES_PATH}/*.db`; do
+while true; do
+    source ./actions.sh >sync-actions.log 2>sync-errors.log &
 
-    db_file=${file}
-
-    echo "Updating: " ${db_file}
-    python dns_updater.py ${db_file}
-
-    # standartized way
-    perl -pi -e 's/[^ ]+ \d+ IN SOA/@ IN SOA/g' ${db_file}
-    perl -pi -e 's/ ([\d ]+)$/ \($1\)/g' ${db_file}
-
+    inotifywait -e close_write --format "%w %f" ${WATCH_DIR} | while read dir file; do
+	filename=${dir}${file}
+	if [[ "${filename}" == ${PATTERN} ]]
+	then
+    	    source ./actions.sh >sync-actions.log 2>sync-errors.log &
+    	    sleep 1
+	fi
+    done
 done
 
-
-exit 0

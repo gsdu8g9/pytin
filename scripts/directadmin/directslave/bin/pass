@@ -1,0 +1,52 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Digest::MD5 qw(md5_base64);
+use Crypt::PasswdMD5;
+use FindBin qw($Bin);
+
+my $user = $ARGV[0];
+my $pass = $ARGV[1];
+
+if(!defined($user)||!defined($pass)){
+    die "Usage: ./pass username password\n";
+}
+
+my $conf = "$Bin/../etc/directslave.conf";
+
+&replace($conf,$user,&set_pass($user,$pass));
+
+sub set_pass {
+    my ($user,$pass) = @_;
+    if(length($pass) == 0) { die "Password not given."; }
+    my $salt  = md5_base64 $user;
+    my $crypt = unix_md5_crypt($pass, $salt);
+    return $crypt;
+}
+
+sub replace {
+    my $file  = shift;
+    my $user  = shift;
+    my $crypt = shift;
+    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+	$atime,$mtime,$ctime,$blksize,$blocks) = stat($file);
+    my $newfile = $file.".new";
+    my $content;
+    open(F, "$file");
+    open(NF, ">> $newfile");
+    my $is_here = 0;
+    while(<F>) {
+    my $line = $_;
+	if ($line =~ /^auth/) { $is_here = 1; $line = "auth\t\t$user:$crypt\n"; }
+        printf NF $line;
+    }
+    close(F);
+    if($is_here == 0) { print NF "\nauth\t\t$user:$crypt\n"; }
+    close(NF);
+    rename($newfile, $file);
+    print "$file processed\n";
+    chmod 0640, "$file";
+    chown $uid, $gid, "$file";
+    return 1;
+}

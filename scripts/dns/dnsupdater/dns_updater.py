@@ -41,29 +41,66 @@ import dns.rdata
 import dns.rdataset
 
 
+
+
 ####################
 #
 # Config and run
+# Use @ for domain main A-record
 #
 ####################
+
+# change only this IPs
+subject_ips = [
+    '1.2.3.4',
+    '1.2.3.5',
+    '1.2.3.6',
+    'aa00:b00b:1::2',
+    'aa00:b00b:1::3'
+]
+
+# define substitutions
+# record classes and data types defined in dns.rdataclass and dns.rdatatype
 node_updates = [
     {
-        'nodes': ['@', 'pop', 'smtp', 'mail', 'ftp', 'ssh', 'pop.mn1', 'smtp.mn1', 'mail.mn1', 'ftp.mn1', 'ssh.mn1'],
+        'nodes': ['pop', 'smtp', 'mail'],
         'class': dns.rdataclass.IN,
         'type': dns.rdatatype.A,
-        'value': '46.29.160.31',
+        'value': '1.2.3.7',
+    },
+
+    {
+        'nodes': ['ftp'],
+        'class': dns.rdataclass.IN,
+        'type': dns.rdatatype.A,
+        'value': '1.2.3.8',
     },
     {
-        'nodes': ['pop', 'smtp', 'mail', 'ftp', 'ssh', 'pop.mn1', 'smtp.mn1', 'mail.mn1', 'ftp.mn1', 'ssh.mn1'],
+        'nodes': ['ssh'],
+        'class': dns.rdataclass.IN,
+        'type': dns.rdatatype.A,
+        'value': '1.2.3.9',
+    },
+
+    {
+        'nodes': ['pop', 'smtp', 'mail'],
         'class': dns.rdataclass.IN,
         'type': dns.rdatatype.AAAA,
-        'value': '2a00:b700:1::31',
+        'value': 'aa00:b00b:1::4',
     },
+
     {
-        'nodes': ['@'],
+        'nodes': ['ftp'],
         'class': dns.rdataclass.IN,
-        'type': dns.rdatatype.TXT,
-        'value': 'v=spf1 a mx ip4:46.29.160.31 ~all',
+        'type': dns.rdatatype.AAAA,
+        'value': 'aa00:b00b:1::5',
+    },
+
+    {
+        'nodes': ['ssh'],
+        'class': dns.rdataclass.IN,
+        'type': dns.rdatatype.AAAA,
+        'value': 'aa00:b00b:1::6',
     },
 ]
 
@@ -98,13 +135,13 @@ class BindDbFileUpdater:
         rdata_item = rdata_type(rdclass, rdtype, rdvalue)
 
         if len(zone_dataset) > 0:
-            zone_dataset.items[0] = rdata_item
+            if str(zone_dataset.items[0]) in subject_ips:
+                zone_dataset.items[0] = rdata_item
         else:
             zone_dataset.add(rdata_item, ttl=14400)
 
     def save(self):
-        self.dns_zone.to_file(self.db_file_path)
-
+        self.dns_zone.to_file(self.db_file_path, relativize=False)
 
 
 if len(sys.argv) < 2:

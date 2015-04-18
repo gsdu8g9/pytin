@@ -23,7 +23,7 @@ localhost	14400	IN	A	127.0.0.1
 mail	14400	IN	A	46.29.160.21
 testdomain.com.	14400	IN	A	46.29.160.21
 pop	14400	IN	A	46.29.160.21
-smtp	14400	IN	A	46.29.160.21
+smtp	14400	IN	A	46.29.160.23
 www	14400	IN	A	46.29.160.21
 
 testdomain.com.	14400	IN	MX	10 mail
@@ -32,12 +32,12 @@ testdomain.com.	14400	IN	MX	10 mail
 
 testdomain.com.	14400	IN	TXT	"v=spf1 a mx ip4:46.29.160.21 ~all"
 
-ftp	14400	IN	AAAA	2a00:b700:1:0:0:0:0:2
+ftp	14400	IN	AAAA	2a00:b700:1::2
 localhost	14400	IN	AAAA	::1
-mail	14400	IN	AAAA	2a00:b700:1:0:0:0:0:2
-testdomain.com.	14400	IN	AAAA	2a00:b700:1:0:0:0:0:2
-pop	14400	IN	AAAA	2a00:b700:1:0:0:0:0:2
-smtp	14400	IN	AAAA	2a00:b700:1:0:0:0:0:2
-www	14400	IN	AAAA	2a00:b700:1:0:0:0:0:2
+mail	14400	IN	AAAA	2a00:b700:1::2
+testdomain.com.	14400	IN	AAAA	2a00:b700:1::2
+pop	14400	IN	AAAA	2a00:b700:1::2
+smtp	14400	IN	AAAA	2a00:b700:1::2
+www	14400	IN	AAAA	2a00:b700:1::2
 
 

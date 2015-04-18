@@ -97,7 +97,7 @@ INCREMENT_FILE=${TARGET_PATH}/${BASE_NAME}.inc
 LOG_FILE=${TARGET_PATH}/${BASE_NAME}_backup.log
 LOCK_FILE=${TARGET_PATH}/${BASE_NAME}.lock
 
-echo $(date +"%d.%m.%Y %H:%M:%S") "Backup process started"
+echo "*** " $(date +"%d.%m.%Y %H:%M:%S") "BACKUP STARTED ${BASE_NAME} ***"
 echo "Using data:"
 echo "    iterations: ${ITERATIONS}"
 echo "    keep seq: ${KEEP_SEQUENCES}"
@@ -190,8 +190,13 @@ function removeExpiredBackups {
 
         for (( inc=start; inc<end; inc++ ))
         do
-            echo "! remove ${inc}"
-            rm -f ${TARGET_PATH}/${BASE_NAME}-${inc}.tar.gz
+            backup_file=${TARGET_PATH}/${BASE_NAME}-${inc}.tar.gz
+
+            if [[ -f ${backup_file} ]]
+            then
+                echo "! remove ${inc}"
+                rm -f ${TARGET_PATH}/${BASE_NAME}-${inc}.tar.gz
+            fi
         done
     fi
 }
@@ -199,5 +204,7 @@ function removeExpiredBackups {
 removeExpiredBackups
 createIncrementalBackup
 logBackup
+
+echo "*** " $(date +"%d.%m.%Y %H:%M:%S") "BACKUP ENDED ${BASE_NAME} ***"
 
 exit 0

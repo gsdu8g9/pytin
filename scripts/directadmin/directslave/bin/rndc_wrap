@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# Copyright (C) 2015 JustHost.ru, Dmitry Shilyaev
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Description:
+#   This is a wrapper around rndc. Because DirectSlave reloads named on EVERY
+#   zone update, we need to have some buffer to accumulate changes on massive updates.
+#
+#   New command smartreload, added in cron to apply accumulated changes.
+#
+#   Need to change rndc_path config parameter to use this wrapper.
+#
+# Usage:
+#   Just like rndc, but with extra command smartreload
+#
+
+
+SYS_RNDC=/usr/sbin/rndc
+CHECK_FILE=/usr/local/directslave/run/reload
+ZONE=
+
+if [ -z $1 ];
+then
+    echo "Command?"
+    exit 1
+fi
+
+if [ -n $2 ];
+then
+    ZONE=$2
+fi
+
+reload () {
+    if [ ! -e ${CHECK_FILE} ];
+    then
+	    touch ${CHECK_FILE}
+    fi
+}
+
+retransfer () {
+    if [ -n ${ZONE} ];
+    then
+	    echo ${ZONE} >> ${CHECK_FILE}
+    fi
+}
+
+smartreload () {
+    if [ -e ${CHECK_FILE} ];
+    then
+        ${SYS_RNDC} reload
+
+        sort ${CHECK_FILE} | uniq > ${CHECK_FILE}.1
+        rm ${CHECK_FILE}
+        mv ${CHECK_FILE}.1 ${CHECK_FILE}
+
+        while read zone; do
+            if [ ${zone} != "" ];
+            then
+                echo "Retransfer zone" ${zone}
+                ${SYS_RNDC} retransfer ${zone}
+            fi
+        done <${CHECK_FILE}
+
+        rm -f ${CHECK_FILE}
+    fi
+}
+
+case "$1" in
+    reload)
+	    reload
+    ;;
+
+    retransfer)
+	    retransfer
+    ;;
+    
+    smartreload)
+	    smartreload
+    ;;
+    
+    *)
+        echo "Usage: $0 {reload|retransfer <zone>|smartreload}"
+        exit 1
+    ;;
+esac
+
+
+exit 0

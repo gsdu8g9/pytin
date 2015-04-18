@@ -1,0 +1,15 @@
+VERSION 1.3: 
+============
+-> Minor error fixes. No need to update, if your current setup work well.
+- binary contains some fixes about 'line 109 bug' (see this thread 
+  http://forum.directadmin.com/showthread.php?t=43924)
+- lib/CGI.pm replaced with lib/DSGI.pm to prevent binary from use default 
+  (unpatched) version of CGI perl module from some linux distros
+- added etc/rc.d folder, which contains startup/shutdown scripts for 
+  various systems (now for *BSD only, sorry)
+- etc/directslave.conf unchanged
+
+VERSION 1.2
+===========
+-> Major error fixes. First stable version. You can use it, but 1.3 is 
+   preffered in case of following update to 2.0 / multiaccess setup.
