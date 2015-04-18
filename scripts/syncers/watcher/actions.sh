@@ -11,3 +11,4 @@ function logAction {
 
 
 ### Define actions here ###
+logAction 'Running cmd'

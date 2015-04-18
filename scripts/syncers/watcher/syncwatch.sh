@@ -31,7 +31,7 @@
 #
 
 # Monitor this directory and trigger on specific events
-WATCH_DIR=/path/to/some/dir
+WATCH_DIR=/path/to/watch/dir
 
 # Trigger if file with this pattern was created or written in WATCH_DIR
 PATTERN=*-sync.log
@@ -47,15 +47,12 @@ trap "{ echo '!!! Clean up'; rm -f ${LOCK_FILE} ; exit 0; }" EXIT
 echo "progress" > ${LOCK_FILE}
 
 while true; do
-    source ./actions.sh >sync-actions.log 2>sync-errors.log &
-
     inotifywait -e close_write --format "%w %f" ${WATCH_DIR} | while read dir file; do
-	filename=${dir}${file}
-	if [[ "${filename}" == ${PATTERN} ]]
-	then
-    	    source ./actions.sh >sync-actions.log 2>sync-errors.log &
-    	    sleep 1
-	fi
+        filename=${dir}${file}
+        if [[ "${filename}" == ${PATTERN} ]]
+        then
+            # note that actions.sh runs in the background
+            bash ./actions.sh >sync-actions.log 2>sync-errors.log &
+        fi
     done
 done
-

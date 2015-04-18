@@ -1,8 +1,5 @@
 #!/bin/bash
 
-set -e
-set -u
-
 # Copyright (C) 2015 JustHost.ru, Dmitry Shilyaev
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,15 +22,18 @@ set -u
 #
 #
 # Description:
-#   Run script manually or by cron to sync files, listed in sync_files.list.
-#   And if changed, perform some actions, like service restart.
+#   Run script manually or by cron to sync files listed in sync_files.list.
+#   If changed, perform some actions, like service restart.
 #   Must be run from inside the script dir.
 #
-#   You must exchange with ssh keys with SSH_MASTER_HOST.
+#   You must copy ssh public key to SSH_MASTER_HOST.
 #
 # Requirements:
 #   rsync
 #
+
+set -e
+set -u
 
 echo "*** BEGIN"
 
@@ -78,7 +78,7 @@ then
 fi
 
 last_run_time=$(stat -c "%Z" ${LAST_RUN_FILE})
-config_changed_time=$(stat -c "%Z" ${TMP_TARGET}/etc/nginx/maps.conf)
+config_changed_time=$(stat -c "%Z" ${TMP_TARGET}${FLAG_FILE})
 
 # update last run time as soon as possible!
 touch ${LAST_RUN_FILE}
