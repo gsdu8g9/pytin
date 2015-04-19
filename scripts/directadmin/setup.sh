@@ -14,26 +14,31 @@ yum -y install nano wget openssh-clients gcc gcc-c++ flex bison make bind bind-l
 
 bash <(curl http://www.directadmin.com/setup.sh)
 
-mkdir secdistr
-cd secdistr
-wget http://www.rfxn.com/downloads/bfd-current.tar.gz
-tar xzf bfd-current.tar.gz
-cd bfd-1.5-2
-./install.sh
 
-cd ..
-wget http://www.rfxn.com/downloads/apf-current.tar.gz
-tar xzf apf-current.tar.gz
-cd apf-9.7-2
+### Install BFD and APF
+
+mkdir secdistr && cd secdistr
+
+mkdir bfd && cd bfd
+wget http://www.rfxn.com/downloads/bfd-current.tar.gz
+tar --strip-components=1 -xzf bfd-current.tar.gz
 ./install.sh
+cd ..
+
+mkdir apf && cd apf
+wget http://www.rfxn.com/downloads/apf-current.tar.gz
+tar --strip-components=1 -xzf apf-current.tar.gz
+./install.sh
+cd ..
+
 cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
 perl -pi -e 's/IG_TCP_CPORTS="22"/IG_TCP_CPORTS="20,21,22,25,53,80,110,143,443,465,587,953,993,995,2222"/g' /etc/apf/conf.apf
 perl -pi -e 's/IG_UDP_CPORTS=""/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.apf
 perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
-cd ../..
 
 apf -r
 /etc/init.d/crond restart
+
 
 cat <<EOF > /etc/httpd/conf/extra/httpd-info.conf
 <Location /server-status>
