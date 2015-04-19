@@ -11,7 +11,15 @@
 
 yum clean all
 yum -y update
-yum -y install nano wget
+yum -y install nano wget ntp mc
+
+rm -f /etc/localtime
+ln -s /usr/share/zoneinfo/Europe/Moscow /etc/localtime
+
+/etc/init.d/ntpd stop
+ntpdate pool.ntp.org
+chkconfig ntpd on
+/etc/init.d/ntpd restart
 
 sed -e "s/\e\[5~/\e\[A/g" /etc/inputrc > /tmp/inputrc
 sed -e "s/\e\[6~/\e[B/g" /tmp/inputrc > /etc/inputrc

@@ -14,35 +14,26 @@ yum -y install nano wget openssh-clients gcc gcc-c++ flex bison make bind bind-l
 
 bash <(curl http://www.directadmin.com/setup.sh)
 
-cat <<EOF > /etc/sysconfig/iptables
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
--A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
--A INPUT -p icmp -j ACCEPT
--A INPUT -i lo -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 20 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 25 -j ACCEPT
--A INPUT -p tcp --dport 53 -j ACCEPT
--A INPUT -p udp --dport 53 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 110 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 143 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 465 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 587 -j ACCEPT
--A INPUT -p tcp --dport 953 -j ACCEPT
--A INPUT -p udp --dport 953 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 993 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 995 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 2222 -j ACCEPT
--A INPUT -j REJECT --reject-with icmp-host-prohibited
--A FORWARD -j REJECT --reject-with icmp-host-prohibited
-COMMIT
-EOF
+mkdir secdistr
+cd secdistr
+wget http://www.rfxn.com/downloads/bfd-current.tar.gz
+tar xzf bfd-current.tar.gz
+cd bfd-1.5-2
+./install.sh
+
+cd ..
+wget http://www.rfxn.com/downloads/apf-current.tar.gz
+tar xzf apf-current.tar.gz
+cd apf-9.7-2
+./install.sh
+cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
+perl -pi -e 's/IG_TCP_CPORTS="22"/IG_TCP_CPORTS="20,21,22,25,53,80,110,143,443,465,587,953,993,995,2222"/g' /etc/apf/conf.apf
+perl -pi -e 's/IG_UDP_CPORTS=""/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.apf
+perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
+cd ../..
+
+apf -r
+/etc/init.d/crond restart
 
 cat <<EOF > /etc/httpd/conf/extra/httpd-info.conf
 <Location /server-status>
