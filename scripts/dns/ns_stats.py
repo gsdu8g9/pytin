@@ -25,7 +25,6 @@
 #
 
 import os
-from random import choice
 import sys
 import re
 import operator
@@ -42,14 +41,9 @@ if not os.path.exists(domains_list_file):
     raise exceptions.OSError("domains_list_file")
 
 with open(domains_list_file, 'r') as f:
-
-
     ns_rating = {}
 
     for line in f:
-
-        choice()
-
         line = line.strip()
 
         print "Query domain: %s" % line

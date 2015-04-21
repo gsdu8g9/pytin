@@ -155,9 +155,9 @@ function createIncrementalBackup {
 
     if  [[ -f ${EXCLUDE_FILE} ]]
     then
-        gtar --listed-incremental=${SNAPSHOT_FILE} -X ${EXCLUDE_FILE} -czpf ${TARGET_PATH}/${BASE_NAME}-${increment}.tar.gz ${SOURCE_PATH}
+        gtar --no-check-device --listed-incremental=${SNAPSHOT_FILE} -X ${EXCLUDE_FILE} -czpf ${TARGET_PATH}/${BASE_NAME}-${increment}.tar.gz ${SOURCE_PATH}
     else
-        gtar --listed-incremental=${SNAPSHOT_FILE} -czpf ${TARGET_PATH}/${BASE_NAME}-${increment}.tar.gz ${SOURCE_PATH}
+        gtar --no-check-device --listed-incremental=${SNAPSHOT_FILE} -czpf ${TARGET_PATH}/${BASE_NAME}-${increment}.tar.gz ${SOURCE_PATH}
     fi
 
     echo ${increment} > ${INCREMENT_FILE}
