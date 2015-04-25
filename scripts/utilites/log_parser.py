@@ -156,7 +156,6 @@ with open(logfile, 'r') as f:
 			result.append(log_value)
 		if not stamp:
 			sys.exit(0)
-#		result.append(get_log_value(line))
 		i = i + 1
 		cli_progress_test(i, maxlim)
 		if i >= maxlim:
