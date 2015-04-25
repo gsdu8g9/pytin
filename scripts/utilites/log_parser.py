@@ -1,13 +1,48 @@
 #!/usr/bin/env python2
 # -*- coding: UTF-8 -*-
 
+# RemiZOffAlex
+#
+# Description:
+#	Парсинг журналов Apache и вывод статистики
+#
+# Requirements:
+#	CentOS 6
+
 import datetime, re, sys
 
+if len(sys.argv) <= 1:
+	print 'Использование:'
+	print '\t[--nginx] - парсинг Nginx файла журналирования'
+	sys.exit("Необходимы аргументы")
+
 # Описание переменных
-# Путь к лог файлу
-logfile = sys.argv[1]
-# Паттерны для парсинга
-patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)', # IP remote
+# Имя файла
+logfile = ''
+# Режим парсера
+modeParse = 'apache'
+# Паттерны парсера
+patterns = ''
+# Список исключённых IP
+excludeip = ''
+
+iplist = []
+hostlist = []
+
+"""
+Аргументы командной строки
+"""
+if sys.argv[1] == '--nginx':
+	modeParse = 'nginx'
+	logfile = sys.argv[2]
+else:
+	logfile = sys.argv[1]
+
+"""
+Паттерны для парсинга
+"""
+if modeParse == 'apache':
+	patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)', # IP remote
 	'^\-', # -
 	'^(\S+|"\S*")', # Remote user
 	'^\[\S*\s\S*\]', # Dateime
@@ -15,18 +50,45 @@ patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0
 	'^(\S+|"\S*")', # Status
 	'^(\d*|\S+|"\S*")', # URL
 	'^\".[^\"]*\"'] # '"$http_user_agent"
-iplist = []
-hostlist = []
+elif modeParse == 'nginx':
+	patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)', # IP remote
+	'^\-', # -
+	'^(\S+|"\S*")', # Remote user
+	'^\[\S*\s\S*\]', # Dateime
+	'^\"\S+[^\"]*\"', # Request
+	'^(\S+|"\S*")', # Status
+	'^(\S+|"\S*")', # Body bytes sent
+	'^\"\S*"', # URL
+	'^\".[^\"]*\"', # '"$http_user_agent"
+	'^\"(-|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)\"'] # X-Forwarded-For
 
-# Прогресс бар
+"""
+Проверка на совпадение с RFC
+"""
+def isRFC(ip):
+	result = False
+	if ip == "127.0.0.1":
+		result = True
+	patterns = ["192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}","172\.(3[01]|2[0-9]|1[6-9])"]
+	for pattern in patterns:
+		match = re.findall(pattern, ip)
+		if match:
+			result = True
+	return result
+
+"""
+Прогресс бар
+"""
 def cli_progress_test(cur, max, bar_length=60):
 	percent = cur / max
 	hashes = '#' * int(round(percent * bar_length))
 	spaces = ' ' * (bar_length - len(hashes))
-	sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+	sys.stdout.write("\rСостояние: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
 	sys.stdout.flush()
 
-# Парсинг строки на элементы
+"""
+Парсинг строки на элементы
+"""
 def get_log_value(line):
 	result = []
 	oldline = line
@@ -41,12 +103,15 @@ def get_log_value(line):
 				result.append(match[0][0])
 		else:
 			# Вывод отладочной информации по ошибке
-			print "Error"
+			print "Ошибка:"
 			print oldline
-			print(pattern)
+			print line
+			print pattern
 	return result
 
-# Получить штамп времени записи из лога
+"""
+Получить штамп времени записи из лога
+"""
 def get_date(line):
 	result = False
 	match = re.findall('(\d+)\/([A-Za-z]+)\/(\d+)\:(\d+)\:(\d+)\:(\d+)', line)
@@ -54,11 +119,16 @@ def get_date(line):
 		result=datetime.datetime.strptime(str(match[0][2])+" "+match[0][1]+" "+str(match[0][0])+" "+str(match[0][3])+" "+str(match[0][4]), '%Y %b %d %H %M')
 	return result
 
-# Получить разницу во времени
+"""
+Получить разницу во времени
+"""
 def get_time_diff(time1, time2):
 	result = time1 - time2
 	return result
 
+"""
+Вывод статистики
+"""
 def statistics():
 	print()
 	print("Всего уникальных IP: " + str(len(iplist)))
@@ -77,7 +147,9 @@ with open(logfile, 'r') as f:
 #			for pattern in patterns:
 #				result.append(get_log_value(line))
 		for pattern in patterns:
-			result.append(get_log_value(line))
+			ip=get_log_value(line)
+			if not isRFC(ip):
+				result.append(ip)
 		if not stamp:
 			sys.exit(0)
 #		result.append(get_log_value(line))
