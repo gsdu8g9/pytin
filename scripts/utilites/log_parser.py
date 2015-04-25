@@ -79,8 +79,8 @@ def isRFC(ip):
 """
 Прогресс бар
 """
-def cli_progress_test(cur, max, bar_length=60):
-	percent = cur / max
+def cli_progress_test(cur, maxlim, bar_length=60):
+	percent = cur / maxlim
 	hashes = '#' * int(round(percent * bar_length))
 	spaces = ' ' * (bar_length - len(hashes))
 	sys.stdout.write("\rСостояние: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
@@ -135,10 +135,14 @@ def statistics():
 	for ip in iplist:
 		print("IP: " + ip[0] + " обратился " + str(ip[1]) + " раз")
 
+"""
+Получить количество строк в файле
+"""
+maxlim=sum(1 for line in open(logfile))
 with open(logfile, 'r') as f:
 	result = []
 	i=0
-	max=10000
+#	maxlim=10000
 	for line in f:
 		line = line.replace("\n", "")
 		stamp = get_date(line)
@@ -146,16 +150,16 @@ with open(logfile, 'r') as f:
 #		if get_time_diff(controltime, stamp) < datetime.timedelta(minutes=60):
 #			for pattern in patterns:
 #				result.append(get_log_value(line))
-		for pattern in patterns:
-			ip=get_log_value(line)
-			if not isRFC(ip):
-				result.append(ip)
+#		for pattern in patterns:
+		log_value = get_log_value(line)
+		if not isRFC(log_value[0]):
+			result.append(log_value)
 		if not stamp:
 			sys.exit(0)
 #		result.append(get_log_value(line))
 		i = i + 1
-		cli_progress_test(i, max)
-		if i >= max:
+		cli_progress_test(i, maxlim)
+		if i >= maxlim:
 			i=0
 	# Подсчёт уникальных IP
 	print()
@@ -170,8 +174,8 @@ with open(logfile, 'r') as f:
 		if not flag:
 			iplist.append([line[0], 1])
 		i = i + 1
-		cli_progress_test(i, max)
-		if i >= max:
+		cli_progress_test(i, maxlim)
+		if i >= maxlim:
 			i=0
 	# Сортировка
 	iplist.sort(key=lambda tup: tup[1])

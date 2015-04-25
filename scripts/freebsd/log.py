@@ -24,7 +24,9 @@ listip = []
 whiteip = []
 blackip = []
 
-
+"""
+Проверка на совпадение с RFC
+"""
 def isRFC(ip):
 	result = False
 	if ip == "127.0.0.1":
@@ -37,7 +39,9 @@ def isRFC(ip):
 	return result
 
 
-# Загрузить список
+"""
+Загрузить список
+"""
 def downloadList(fileName):
 	result = []
 	with open(fileName, 'r') as f:
