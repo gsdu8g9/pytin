@@ -4,7 +4,7 @@
 # RemiZOffAlex
 #
 # Description:
-#	Парсинг журналов Apache и вывод статистики
+#	Парсинг журналов Apache и Nginx с выводом статистики
 #
 # Requirements:
 #	CentOS 6
