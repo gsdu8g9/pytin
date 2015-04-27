@@ -23,3 +23,18 @@ chkconfig ntpd on
 
 sed -e "s/\e\[5~/\e\[A/g" /etc/inputrc > /tmp/inputrc
 sed -e "s/\e\[6~/\e[B/g" /tmp/inputrc > /etc/inputrc
+
+### Install BFD and APF
+mkdir secdistr && cd secdistr
+
+mkdir bfd && cd bfd
+wget http://www.rfxn.com/downloads/bfd-current.tar.gz
+tar --strip-components=1 -xzf bfd-current.tar.gz
+./install.sh
+cd ..
+
+mkdir apf && cd apf
+wget http://www.rfxn.com/downloads/apf-current.tar.gz
+tar --strip-components=1 -xzf apf-current.tar.gz
+./install.sh
+cd ..

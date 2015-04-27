@@ -49,7 +49,6 @@ chvt 6
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
 
-yum clean all
-yum -y update
+bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
 
 %end
