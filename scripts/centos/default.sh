@@ -38,3 +38,6 @@ wget http://www.rfxn.com/downloads/apf-current.tar.gz
 tar --strip-components=1 -xzf apf-current.tar.gz
 ./install.sh
 cd ..
+
+cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
+perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
