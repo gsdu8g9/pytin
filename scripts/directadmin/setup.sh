@@ -17,21 +17,7 @@ bash <(curl http://www.directadmin.com/setup.sh)
 # /etc/sysconfig/iptables-config
 # IPTABLES_MODULES="ip_conntrack_ftp"
 
-### Install BFD and APF
-
-mkdir secdistr && cd secdistr
-
-mkdir bfd && cd bfd
-wget http://www.rfxn.com/downloads/bfd-current.tar.gz
-tar --strip-components=1 -xzf bfd-current.tar.gz
-./install.sh
-cd ..
-
-mkdir apf && cd apf
-wget http://www.rfxn.com/downloads/apf-current.tar.gz
-tar --strip-components=1 -xzf apf-current.tar.gz
-./install.sh
-cd ..
+### Configure BFD and APF
 
 cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
 perl -pi -e 's/IG_TCP_CPORTS="22"/IG_TCP_CPORTS="20,21,22,25,53,80,110,143,443,465,587,953,993,995,2222"/g' /etc/apf/conf.apf
