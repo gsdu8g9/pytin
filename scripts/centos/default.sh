@@ -17,7 +17,7 @@ rm -f /etc/localtime
 ln -s /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 
 /etc/init.d/ntpd stop
-ntpdate ntp1.vniiftri.ru
+ntpdate -d ntp1.vniiftri.ru
 chkconfig ntpd on
 /etc/init.d/ntpd restart
 
