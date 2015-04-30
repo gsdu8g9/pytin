@@ -223,6 +223,8 @@ def main():
                               help='Rebuild vhosts using DirectAdmin user configs for all users')
     mutual_group.add_argument('-r', '--rebuild', dest="rebuild_user",
                               help='Rebuild vhosts using DirectAdmin user configs for the specific user')
+    mutual_group.add_argument('-d', '--delete', dest="delete_user",
+                              help='Rebuild vhosts using DirectAdmin user configs for the specific user')
 
     args = parser.parse_args()
 
@@ -245,8 +247,11 @@ def main():
     if args.rebuild_all:
         conf_manager.rebuild_all()
     else:
-        conf_manager.delete_user(args.rebuild_user)
-        conf_manager.rebuild_user(args.rebuild_user)
+        if args.delete_user:
+            conf_manager.delete_user(args.delete_user)
+        else:
+            conf_manager.delete_user(args.rebuild_user)
+            conf_manager.rebuild_user(args.rebuild_user)
 
 
 if __name__ == "__main__":
