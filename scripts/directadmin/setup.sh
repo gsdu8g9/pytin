@@ -14,6 +14,8 @@ yum -y install nano wget openssh-clients gcc gcc-c++ flex bison make bind bind-l
 
 bash <(curl http://www.directadmin.com/setup.sh)
 
+# /etc/sysconfig/iptables-config
+# IPTABLES_MODULES="ip_conntrack_ftp"
 
 ### Configure BFD and APF
 
