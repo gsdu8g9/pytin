@@ -167,8 +167,10 @@ class NginxVhostsConfigManager:
             for domain in da_user_config.get_domains():
                 self._add_domain(domain.domain_name, da_user_config.user_name)
 
+                current_pointers = []
                 for domain_pointer in domain.get_pointers():
                     self._add_domain_alias(domain.domain_name, domain_pointer, da_user_config.user_name)
+                    current_pointers.append(domain_pointer)
 
                 for subdomain in domain.get_subdomains():
                     self._add_subdomain(domain.domain_name, subdomain)
@@ -182,8 +184,8 @@ class NginxVhostsConfigManager:
                         for tpl_line in file(self.tpl_ssl_vhost_file_name):
                             tpl_line = tpl_line.replace('{sslkey}', key_file)
                             tpl_line = tpl_line.replace('{sslcrt}', cert_file)
-                            tpl_line = tpl_line.replace('{user}', '"%s"' % user_name)
-                            tpl_line = tpl_line.replace('{domain}', '"%s"' % domain.domain_name)
+                            tpl_line = tpl_line.replace('{user}', user_name)
+                            tpl_line = tpl_line.replace('{domain}', domain.domain_name)
                             vhost_file.write(tpl_line)
 
             self._save()

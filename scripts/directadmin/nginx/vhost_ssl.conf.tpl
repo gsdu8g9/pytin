@@ -1,26 +1,20 @@
+#
+# Template parameters:
+# domain: domain name for this vhost
+# user: domain owner
+#
 server {
-    listen 443 default deferred rcvbuf=8192 sndbuf=16384 backlog=65536;
-    listen [::]:443 default deferred rcvbuf=8192 sndbuf=16384 backlog=65536;
+    listen 443;
 
-    server_name localhost;
+    server_name {domain};
 
     ssl on;
 
-    set $sslkey {sslkey};
-    set $sslcrt {sslcrt};
+    ssl_certificate		{sslcrt};
+    ssl_certificate_key	{sslkey};
 
-    if ( -f $sslkey ) {
-        ssl_certificate		{sslcrt};
-        ssl_certificate_key	{sslkey};
-    }
-
-    if ( !-f $sslkey ) {
-        ssl_certificate		/etc/httpd/conf/ssl.crt/server.crt;
-        ssl_certificate_key	/etc/httpd/conf/ssl.key/server.key;
-    }
-
-    set $user {user};
-    set $domain {domain};
+    set $user "{user}";
+    set $domain "{domain}";
 
     set $root  /home/$user/domains/$domain/public_html;
     set $domainlog  $domain;
