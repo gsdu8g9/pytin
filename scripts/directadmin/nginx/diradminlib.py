@@ -7,6 +7,9 @@ def uniq_list(list_obj):
 
 
 class DirectAdminUserDomain:
+    """
+    Configuration of DirectAdmin domain
+    """
     def __init__(self, user_config, domain_name):
         assert user_config, "DirectAdmin directory object must be specified"
         assert domain_name, "Domain name must be specified"
@@ -77,6 +80,9 @@ class DirectAdminUserDomain:
 
 
 class DirectAdminUserConfig:
+    """
+    DirectAdmin user config
+    """
     def __init__(self, user_dir):
         assert user_dir, "User dir must be specified"
         assert os.path.exists(user_dir), "User dir does not exists"

@@ -14,6 +14,11 @@ class NginxMap:
         self.map_key = map_key[1:] if map_key.startswith('$') else map_key
         self.map_variable = map_variable[1:] if map_variable.startswith('$') else map_variable
 
+    def find_keys_by_value(self, value):
+        for map_key in list(self.items):
+            if self.items[map_key] == value:
+                yield map_key
+
     def add_item(self, map_key, map_variable):
         assert map_key, "Map section key must be specified"
         assert map_variable, "Map section variable must be specified"
@@ -90,26 +95,4 @@ class NginxMap:
         assert os.path.exists(file_name), "Map file does not exists"
 
         section = NginxMap(map_key, map_variable)
-        if section.load(file_name):
-            return section
-
-        return False
-
-
-def main():
-    """
-    Only for the testing purposes
-    """
-    file_name = '/Users/dmitry/Work/pytin/scripts/directadmin/nginx/maps.conf'
-
-    section_user = NginxMap.from_file('http_host', 'user', file_name)
-    section_domain = NginxMap.from_file('http_host', 'domain', file_name)
-    section_subdomain = NginxMap.from_file('http_host', 'subdomain', file_name)
-
-    section_user.save('/Users/dmitry/Work/pytin/scripts/directadmin/nginx/map_users.conf')
-    section_domain.save('/Users/dmitry/Work/pytin/scripts/directadmin/nginx/map_domains.conf')
-    section_subdomain.save('/Users/dmitry/Work/pytin/scripts/directadmin/nginx/map_subdomain.conf')
-
-
-if __name__ == "__main__":
-    main()
+        return section.load(file_name)

@@ -19,13 +19,11 @@ server {
         ssl_certificate_key	/etc/httpd/conf/ssl.key/server.key;
     }
 
-    set $root  /home/$user/domains/$domain/public_html/$subdomain;
-    set $domainlog  $domain.$subdomain;
+    set $user {user};
+    set $domain {domain};
 
-    if ($subdomain = "") {
-        set $root  /home/$user/domains/$domain/public_html;
-        set $domainlog $domain;
-    }
+    set $root  /home/$user/domains/$domain/public_html;
+    set $domainlog  $domain;
 
     if ($user = "") {
         set $root /var/www/html;
