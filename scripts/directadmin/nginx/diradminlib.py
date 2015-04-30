@@ -1,4 +1,5 @@
 import os
+import fcntl
 
 
 def uniq_list(list_obj):
@@ -33,20 +34,27 @@ class DirectAdminUserDomain:
     def _load_config(self):
         domain_config_file = os.path.join(self.user_config.user_dir, 'domains', "%s.conf" % self.domain_name)
         if os.path.exists(domain_config_file):
-            for domain_config in file(domain_config_file):
-                domain_config = domain_config.strip()
-                conf_key, conf_value = domain_config.split('=')
+            with open(domain_config_file, 'r') as fd_domain_config_file:
+                fcntl.flock(fd_domain_config_file, fcntl.LOCK_EX)
 
-                self.config[conf_key] = conf_value
+                for domain_config in fd_domain_config_file:
+                    domain_config = domain_config.strip()
+                    conf_key, conf_value = domain_config.split('=')
+
+                    self.config[conf_key] = conf_value
 
     def _load_pointers(self):
         pointers_file = os.path.join(self.user_config.user_dir, 'domains', "%s.pointers" % self.domain_name)
         if os.path.exists(pointers_file):
             new_pointers = []
-            for domain_pointer_info in file(pointers_file):
-                domain_pointer_info = domain_pointer_info.strip()
-                domain_pointer, point_type = domain_pointer_info.split('=')
-                new_pointers.append(domain_pointer)
+
+            with open(pointers_file, 'r') as fd_pointers_file:
+                fcntl.flock(fd_pointers_file, fcntl.LOCK_EX)
+
+                for domain_pointer_info in fd_pointers_file:
+                    domain_pointer_info = domain_pointer_info.strip()
+                    domain_pointer, point_type = domain_pointer_info.split('=')
+                    new_pointers.append(domain_pointer)
 
             self.pointers = uniq_list(self.pointers + new_pointers)
 
@@ -54,9 +62,13 @@ class DirectAdminUserDomain:
         subdomains_file = os.path.join(self.user_config.user_dir, 'domains', "%s.subdomains" % self.domain_name)
         if os.path.exists(subdomains_file):
             new_subdomains = []
-            for subdomain in file(subdomains_file):
-                subdomain = subdomain.strip()
-                new_subdomains.append(subdomain)
+
+            with open(subdomains_file, 'r') as fd_subdomains_file:
+                fcntl.flock(fd_subdomains_file, fcntl.LOCK_EX)
+
+                for subdomain in fd_subdomains_file:
+                    subdomain = subdomain.strip()
+                    new_subdomains.append(subdomain)
 
             self.subdomains = uniq_list(self.subdomains + new_subdomains)
 
@@ -64,9 +76,13 @@ class DirectAdminUserDomain:
         ips_file = os.path.join(self.user_config.user_dir, 'domains', "%s.ip_list" % self.domain_name)
         if os.path.exists(ips_file):
             new_ips = []
-            for newip in file(ips_file):
-                newip = newip.strip()
-                new_ips.append(newip)
+
+            with open(ips_file, 'r') as fd_ips_file:
+                fcntl.flock(fd_ips_file, fcntl.LOCK_EX)
+
+                for newip in fd_ips_file:
+                    newip = newip.strip()
+                    new_ips.append(newip)
 
             self.ips = uniq_list(self.ips + new_ips)
 
@@ -101,9 +117,13 @@ class DirectAdminUserConfig:
     def _load(self):
         domains_list = os.path.join(self.user_dir, 'domains.list')
         if os.path.exists(domains_list):
-            for domain in file(domains_list):
-                domain = domain.strip()
-                self.domains[domain] = DirectAdminUserDomain(self, domain)
+
+            with open(domains_list, 'r') as fd_domains_list:
+                fcntl.flock(fd_domains_list, fcntl.LOCK_EX)
+
+                for domain in fd_domains_list:
+                    domain = domain.strip()
+                    self.domains[domain] = DirectAdminUserDomain(self, domain)
 
     def get_domains(self):
         return self.domains.values()

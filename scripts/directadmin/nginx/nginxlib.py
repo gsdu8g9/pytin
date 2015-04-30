@@ -1,5 +1,6 @@
 import os
 import re
+import fcntl
 
 
 class NginxMap:
@@ -54,6 +55,7 @@ class NginxMap:
 
         loading = False
         with open(file_name, 'r') as map_file:
+            fcntl.flock(map_file, fcntl.LOCK_EX)
             for line in map_file:
                 if loading:
                     if re.match(r'\s*map\s+', line):
@@ -71,6 +73,8 @@ class NginxMap:
         assert file_name, "File must be specified"
 
         with open(file_name, 'w') as map_file:
+            fcntl.flock(map_file, fcntl.LOCK_EX)
+
             map_file.write('map $%s $%s {\n' % (self.map_key, self.map_variable))
 
             if self.is_hostnames:

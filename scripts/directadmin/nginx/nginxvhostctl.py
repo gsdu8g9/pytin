@@ -2,6 +2,9 @@ import argparse
 import exceptions
 import errno
 import os
+import sys
+import traceback
+import fcntl
 
 from nginxlib import NginxMap
 from diradminlib import DirectAdminUserConfig
@@ -181,6 +184,7 @@ class NginxVhostsConfigManager:
                     key_file = config['SSLCertificateKeyFile']
 
                     with open(self._get_https_vhost_config(domain.domain_name), 'w') as vhost_file:
+                        fcntl.flock(vhost_file, fcntl.LOCK_EX)
                         for tpl_line in file(self.tpl_ssl_vhost_file_name):
                             tpl_line = tpl_line.replace('{sslkey}', key_file)
                             tpl_line = tpl_line.replace('{sslcrt}', cert_file)
@@ -210,7 +214,7 @@ def main():
 
     parser.add_argument("-o", "--out-dir", dest="out_config_dir", required=True,
                         help="Directory with generated Nginx config files")
-    parser.add_argument("-s", "--da-users-config", required=True, dest="da_users_config_dir",
+    parser.add_argument("-s", "--da-users-config", dest="da_users_config_dir",
                         default='/usr/local/directadmin/data/users',
                         help="DirectAdmin users config root")
 
@@ -246,4 +250,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception, ex:
+        traceback.print_exc(file=sys.stdout)
+        exit(1)
+
+    exit(0)
