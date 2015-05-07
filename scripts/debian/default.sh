@@ -17,5 +17,5 @@ ntpdate -d ntp1.vniiftri.ru
 
 apt-get -y install ntp
 
-sed -i 's/.*history-search-backward$/"\e[A": history-search-backward/g' /etc/inputrc
-sed -i 's/.*history-search-forward$/"\e[B": history-search-forward/g' /etc/inputrc
+sed -i 's/.*history-search-backward$/"\\e[A": history-search-backward/g' /etc/inputrc
+sed -i 's/.*history-search-forward$/"\\e[B": history-search-forward/g' /etc/inputrc
