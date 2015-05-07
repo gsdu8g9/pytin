@@ -20,8 +20,7 @@
 #
 #
 # Script is used for DirectAdmin and Nginx integration. It generates map files
-# for Nginx to parametrize virtual hosts. It supports SSL. You must include
-# OUT_CONFIG_DIR in nginx.conf file to activate maps and SSL virtual hosts.
+# for Nginx to parametrize virtual hosts. It supports
 #
 # usage: nginxvhostctl.py [-h] -o OUT_CONFIG_DIR [-s DA_USERS_CONFIG_DIR]
 # [--rebuild-all | -r REBUILD_USER | -d DELETE_USER]

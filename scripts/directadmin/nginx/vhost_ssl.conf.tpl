@@ -73,7 +73,7 @@ server {
     }
 
     location ~* ^.+\.(css|js|txt|xml)$ {
-        expires 24h;
+        expires max;
 
         root $root;
         if ( -f $deflate ) {
@@ -86,7 +86,7 @@ server {
     location ~* ^.+\.(jpg|jpeg|gif|png|ico|zip|tar|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|wav|bmp|rtf|wmv|avi|cur|swf|mp3|wma|htc|cur|3gp|mp4|jar|sis)$ {
         tcp_nodelay off;
 
-        expires     24h;
+        expires     max;
         root        $root;
 
         error_page	404 405	=	@back;

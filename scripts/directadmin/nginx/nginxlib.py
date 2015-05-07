@@ -99,4 +99,6 @@ class NginxMap:
         assert os.path.exists(file_name), "Map file does not exists"
 
         section = NginxMap(map_key, map_variable)
-        return section.load(file_name)
+        section.load(file_name)
+
+        return section
