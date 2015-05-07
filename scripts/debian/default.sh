@@ -11,7 +11,7 @@
 
 apt-get -y update
 apt-get -y upgrade
-apt-get -y install wget nano ntpdate
+apt-get -y install wget nano ntpdate ntp
 
 ntpdate -d ntp1.vniiftri.ru
 
