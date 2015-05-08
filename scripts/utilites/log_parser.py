@@ -12,58 +12,9 @@
 import datetime
 import re
 import sys
-
-if len(sys.argv) <= 1:
-    print 'Использование:'
-    print '\t[--nginx] - парсинг Nginx файла журналирования'
-    sys.exit("Необходимы аргументы")
-
-# Описание переменных
-# Имя файла
-logfile = ''
-# Режим парсера
-modeParse = 'apache'
-# Паттерны парсера
-patterns = ''
-# Список исключённых IP
-excludeip = ''
-
-iplist = []
-hostlist = []
-
-"""
-Аргументы командной строки
-"""
-if sys.argv[1] == '--nginx':
-    modeParse = 'nginx'
-    logfile = sys.argv[2]
-else:
-    logfile = sys.argv[1]
-
-"""
-Паттерны для парсинга
-"""
-if modeParse == 'apache':
-    patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)',  # IP remote
-                '^\-',  # -
-                '^(\S+|"\S*")',  # Remote user
-                '^\[\S*\s\S*\]',  # Dateime
-                '^\"\S+[^\"]*\"',  # , # Request
-                '^(\S+|"\S*")',  # Status
-                '^(\d*|\S+|"\S*")',  # URL
-                '^\".[^\"]*\"']  # '"$http_user_agent"
-elif modeParse == 'nginx':
-    patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)',  # IP remote
-                '^\-',  # -
-                '^(\S+|"\S*")',  # Remote user
-                '^\[\S*\s\S*\]',  # Dateime
-                '^\"\S+[^\"]*\"',  # Request
-                '^(\S+|"\S*")',  # Status
-                '^(\S+|"\S*")',  # Body bytes sent
-                '^\"\S*"',  # URL
-                '^\".[^\"]*\"',  # '"$http_user_agent"
-                '^\"(-|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)\"']  # X-Forwarded-For
-
+import argparse
+import traceback
+import os
 
 def isRFC(ip):
     """
@@ -91,7 +42,7 @@ def cli_progress_test(cur, maxlim, bar_length=60):
     sys.stdout.flush()
 
 
-def get_log_value(line):
+def get_log_value(line, patterns):
     """
     Парсинг строки на элементы
     """
@@ -136,7 +87,7 @@ def get_time_diff(time1, time2):
     return result
 
 
-def statistics():
+def statistics(iplist):
     """
     Вывод статистики
     """
@@ -145,49 +96,107 @@ def statistics():
     for ip in iplist:
         print("IP: " + ip[0] + " обратился " + str(ip[1]) + " раз")
 
+def main():
+    parser = argparse.ArgumentParser(description='DDoS log parser',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-"""
-Получить количество строк в файле
-"""
-maxlim = sum(1 for line in open(logfile))
-with open(logfile, 'r') as f:
-    result = []
-    i = 0
-    # maxlim=10000
-    for line in f:
-        line = line.replace("\n", "")
-        stamp = get_date(line)
-        #		controltime = datetime.datetime.now()
-        #		if get_time_diff(controltime, stamp) < datetime.timedelta(minutes=60):
-        #			for pattern in patterns:
-        #				result.append(get_log_value(line))
-        #		for pattern in patterns:
-        log_value = get_log_value(line)
-        if not isRFC(log_value[0]):
-            result.append(log_value)
-        if not stamp:
-            sys.exit(0)
-        i = i + 1
-        cli_progress_test(i, maxlim)
-        if i >= maxlim:
-            i = 0
-    # Подсчёт уникальных IP
-    print()
-    print("Stage II")
-    i = 0
-    for line in result:
-        flag = False
-        for ip in iplist:
-            if line[0] == ip[0]:
-                ip[1] += 1
-                flag = True
-        if not flag:
-            iplist.append([line[0], 1])
-        i = i + 1
-        cli_progress_test(i, maxlim)
-        if i >= maxlim:
-            i = 0
-    # Сортировка
-    iplist.sort(key=lambda tup: tup[1])
+    parser.add_argument("-l", "--log", dest="log_file", required=True,
+                        help="Log file")
+    parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
+                        required=True, help="Log file")
 
-statistics()
+    args = parser.parse_args()
+
+    # validate global args
+    if not os.path.exists(args.log_file):
+        raise Exception("File must exist: %s" % args.log_file)
+
+    # Описание переменных
+    # Имя файла
+    logfile = ''
+    # Паттерны парсера
+    patterns = ''
+    # Список исключённых IP
+    excludeip = ''
+
+    iplist = []
+    hostlist = []
+
+    """
+    Паттерны для парсинга
+    """
+    if args.type_file == 'apache':
+        patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)',  # IP remote
+                    '^\-',  # -
+                    '^(\S+|"\S*")',  # Remote user
+                    '^\[\S*\s\S*\]',  # Dateime
+                    '^\"\S+[^\"]*\"',  # , # Request
+                    '^(\S+|"\S*")',  # Status
+                    '^(\d*|\S+|"\S*")',  # URL
+                    '^\".[^\"]*\"']  # '"$http_user_agent"
+    elif args.type_file == 'nginx':
+        patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)',  # IP remote
+                    '^\-',  # -
+                    '^(\S+|"\S*")',  # Remote user
+                    '^\[\S*\s\S*\]',  # Dateime
+                    '^\"\S+[^\"]*\"',  # Request
+                    '^(\S+|"\S*")',  # Status
+                    '^(\S+|"\S*")',  # Body bytes sent
+                    '^\"\S*"',  # URL
+                    '^\".[^\"]*\"',  # '"$http_user_agent"
+                    '^\"(-|unknown|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)(, \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)*"']  # X-Forwarded-For
+
+    """
+    Получить количество строк в файле
+    """
+    maxlim = sum(1 for line in open(args.log_file))
+    with open(args.log_file, 'r') as f:
+        result = []
+        i = 0
+        # maxlim=10000
+        for line in f:
+            line = line.replace("\n", "")
+            stamp = get_date(line)
+            #		controltime = datetime.datetime.now()
+            #		if get_time_diff(controltime, stamp) < datetime.timedelta(minutes=60):
+            #			for pattern in patterns:
+            #				result.append(get_log_value(line))
+            #		for pattern in patterns:
+            log_value = get_log_value(line, patterns)
+            if not isRFC(log_value[0]):
+                result.append(log_value)
+            if not stamp:
+                sys.exit(0)
+            i = i + 1
+            cli_progress_test(i, maxlim)
+            if i >= maxlim:
+                i = 0
+        # Подсчёт уникальных IP
+        print()
+        print("Stage II")
+        i = 0
+        for line in result:
+            flag = False
+            for ip in iplist:
+                if line[0] == ip[0]:
+                    ip[1] += 1
+                    flag = True
+            if not flag:
+                iplist.append([line[0], 1])
+            i = i + 1
+            cli_progress_test(i, maxlim)
+            if i >= maxlim:
+                i = 0
+        # Сортировка
+        iplist.sort(key=lambda tup: tup[1])
+
+    statistics(iplist)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception, ex:
+        traceback.print_exc(file=sys.stdout)
+        exit(1)
+
+    exit(0)
