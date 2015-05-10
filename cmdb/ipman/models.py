@@ -3,10 +3,6 @@ import ipaddress
 from resources.models import Resource, ResourcePool
 
 
-VERSION_IPV4 = 4
-VERSION_IPV6 = 6
-
-
 class IPAddress(Resource):
     """
     IP address
@@ -44,7 +40,7 @@ class IPAddressPool(ResourcePool):
         return self.get_option_value('version')
 
     def __str__(self):
-        return self.name
+        return "%-5d%-5d%35s%25s" % (self.id, len(list(self.browse())), self.name, self.type)
 
     def __iter__(self):
         """
@@ -150,10 +146,8 @@ class IPNetworkPool(IPAddressPool):
         proxy = True
 
     def __str__(self):
-        return self.network
-
-    def _get_network_object(self):
-        return ipaddress.ip_network(unicode(self.network), strict=False)
+        self.name = str(self.network)
+        return super(IPNetworkPool, self).__str__()
 
     @property
     def network(self):
@@ -199,3 +193,6 @@ class IPNetworkPool(IPAddressPool):
                     continue
             else:
                 yield IPAddress.create(address=address, parent=self)
+
+    def _get_network_object(self):
+        return ipaddress.ip_network(unicode(self.network), strict=False)

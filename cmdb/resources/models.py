@@ -2,7 +2,6 @@ import json
 
 from django.db import models
 from django.core import exceptions as djexceptions
-from django.apps import apps
 
 
 class ModelFieldChecker:
@@ -263,7 +262,7 @@ class Resource(models.Model):
         return new_object
 
     # def get_proxy(self):
-    #     return apps.get_model(self._meta.app_label, self.type)
+    # return apps.get_model(self._meta.app_label, self.type)
 
     def lock(self):
         self.status = self.STATUS_LOCKED
@@ -355,9 +354,12 @@ class Resource(models.Model):
 
         return option_value
 
+    def get_type_name(self):
+        return self.__class__.__name__
+
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
-        self.type = self.__class__.__name__
+        self.type = self.get_type_name()
 
         return super(Resource, self).save(force_insert, force_update, using, update_fields)
 
@@ -375,6 +377,7 @@ class ResourcePool(Resource):
     """
     Resource grouping.
     """
+
     class Meta:
         proxy = True
 
