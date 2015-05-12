@@ -35,12 +35,52 @@ class IPAddressPool(ResourcePool):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return self.name
+
     @property
     def version(self):
         return self.get_option_value('version')
 
-    def __str__(self):
-        return "%-5d%-5d%35s%25s" % (self.id, len(list(self.browse())), self.name, self.type)
+    @property
+    def gateway(self):
+        return self.get_option_value('gateway')
+
+    @gateway.setter
+    def gateway(self, gateway):
+        assert gateway is not None, "Parameter 'gateway' must be defined."
+
+        self.set_option('gateway', gateway)
+
+    @property
+    def netmask(self):
+        return self.get_option_value('netmask')
+
+    @netmask.setter
+    def netmask(self, netmask):
+        assert netmask is not None, "Parameter 'netmask' must be defined."
+
+        self.set_option('netmask', netmask)
+
+    @property
+    def nameservers(self):
+        return self.get_option_value('nameservers')
+
+    @nameservers.setter
+    def nameservers(self, nameservers):
+        assert nameservers is not None, "Parameter 'nameservers' must be defined."
+
+        self.set_option('nameservers', nameservers)
+
+    @property
+    def prefixlen(self):
+        return self.get_option_value('prefixlen')
+
+    @prefixlen.setter
+    def prefixlen(self, prefixlen):
+        assert prefixlen is not None, "Parameter 'prefixlen' must be defined."
+
+        self.set_option('prefixlen', prefixlen)
 
     def __iter__(self):
         """
@@ -67,6 +107,9 @@ class IPAddressPool(ResourcePool):
 class IPAddressRangePool(IPAddressPool):
     class Meta:
         proxy = True
+
+    def __str__(self):
+        return "%s-%s" % (self.range_from, self.range_to)
 
     @property
     def range_from(self):
@@ -146,8 +189,7 @@ class IPNetworkPool(IPAddressPool):
         proxy = True
 
     def __str__(self):
-        self.name = str(self.network)
-        return super(IPNetworkPool, self).__str__()
+        return self.network
 
     @property
     def network(self):
@@ -160,6 +202,11 @@ class IPNetworkPool(IPAddressPool):
         parsed_net = ipaddress.ip_network(unicode(network), strict=False)
         self.set_option('network', parsed_net)
         self.set_option('version', parsed_net.version)
+
+        # populate network parameters
+        self.netmask = parsed_net.netmask
+        self.prefixlen = parsed_net.prefixlen
+        self.gateway = str(parsed_net[1]) if parsed_net.num_addresses > 0 else ''
 
     def can_add(self, address):
         """

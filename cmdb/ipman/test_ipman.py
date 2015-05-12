@@ -7,6 +7,11 @@ class IPmanTest(TestCase):
     def test_pool_add_sub(self):
         ipnet = IPNetworkPool.create(network='192.168.1.1/24')
 
+        self.assertEqual(24, ipnet.prefixlen)
+        self.assertEqual('255.255.255.0', ipnet.netmask)
+        self.assertEqual('192.168.1.1', ipnet.gateway)
+        self.assertEqual('', ipnet.nameservers)
+
         ip1 = ipnet.available().next()
         ip2 = IPAddress.create(address='192.168.1.2')
 

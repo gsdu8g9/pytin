@@ -93,18 +93,27 @@ class ResourceOption(models.Model):
         def __init__(self, value):
             self._value = str(value)
 
-        def get_value(self):
+        def __str__(self):
+            return "'%s'" % self._value
+
+        def typed_value(self):
             return self._value
 
-        def __str__(self):
+        def raw_value(self):
             return self._value
 
     class IntegerValue(StringValue):
-        def get_value(self):
+        def __str__(self):
+            return "%d" % self._value
+
+        def typed_value(self):
             return int(self._value)
 
     class FloatValue(StringValue):
-        def get_value(self):
+        def __str__(self):
+            return "%f" % self._value
+
+        def typed_value(self):
             return float(self._value)
 
     class DictionaryValue(StringValue):
@@ -114,7 +123,10 @@ class ResourceOption(models.Model):
             if isinstance(value, dict):
                 self._value = json.dumps(value)
 
-        def get_value(self):
+        def __str__(self):
+            return "'%s'" % self._value
+
+        def typed_value(self):
             return json.loads(self._value, encoding='utf-8', parse_float=True, parse_int=True, parse_constant=True)
 
     FORMAT_DICT = 'dict'
@@ -137,24 +149,33 @@ class ResourceOption(models.Model):
     resource = models.ForeignKey('Resource')
     name = models.CharField(max_length=155, db_index=True)
     namespace = models.CharField(max_length=155, db_index=True, default='')
-    value = models.TextField('Option value')
     updated_at = models.DateTimeField('Date updated', auto_now_add=True, db_index=True)
     format = models.CharField(max_length=25, db_index=True, choices=FORMAT_CHOICES, default=FORMAT_STRING)
+    value = models.TextField('Option value')
 
-    format_handler = None
+    value_format_handler = None
 
     class Meta:
         db_table = "resource_options"
 
     def __init__(self, *args, **kwargs):
         super(ResourceOption, self).__init__(*args, **kwargs)
-        self.format_handler = self.FORMAT_HANDLERS[self.format]
+        self.format = self.guess_format(self.value) if not self.format else self.format
+        self.value_format_handler = self.FORMAT_HANDLERS[self.format]
+        self.value = self._value_handler().raw_value()
 
-    @staticmethod
-    def save_value(value, format):
-        assert format is not None, "Parameter 'format' must be defined."
+    def __str__(self):
+        return "%s:%s = %s" % (self.namespace, self.name, self._value_handler())
 
-        return str(ResourceOption.FORMAT_HANDLERS[format](value))
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+
+        self.format = self.guess_format(self.value) if not self.format else self.format
+
+        super(ResourceOption, self).save(force_insert, force_update, using, update_fields)
+
+    def _value_handler(self):
+        return self.value_format_handler(self.value)
 
     @staticmethod
     def guess_format(value):
@@ -169,15 +190,8 @@ class ResourceOption(models.Model):
 
         return ret_format
 
-    def get_value(self, typed=True):
-        """
-        Returns stored option value.
-        If typed=True, then value is converted to object of specific format.
-        """
-        return self.format_handler(self.value).get_value() if typed else self.value
-
-    def __str__(self):
-        return "%s = '%s'..." % (self.name, self.value[:15])
+    def typed_value(self):
+        return self._value_handler().typed_value()
 
 
 class Resource(models.Model):
@@ -209,7 +223,7 @@ class Resource(models.Model):
         db_table = "resources"
 
     def __str__(self):
-        return "%d\t%s\t%s" % (self.id, self.type, self.status)
+        return "%d %s (%s)" % (self.id, self.type, self.status)
 
     def __add__(self, other):
         """
@@ -261,9 +275,6 @@ class Resource(models.Model):
 
         return new_object
 
-    # def get_proxy(self):
-    # return apps.get_model(self._meta.app_label, self.type)
-
     def lock(self):
         self.status = self.STATUS_LOCKED
 
@@ -301,9 +312,6 @@ class Resource(models.Model):
         assert self._is_saved(), "Resource must be saved before setting options"
         assert name is not None, "Parameter 'name' must be defined."
 
-        if not format:
-            format = ResourceOption.guess_format(value)
-
         if not namespace:
             namespace = self.type
 
@@ -311,13 +319,23 @@ class Resource(models.Model):
             name=name,
             namespace=namespace,
             defaults=dict(
+                value=value,
                 format=format,
-                value=ResourceOption.save_value(value, format),
                 namespace=namespace
             )
         )
 
         self.resourceoption_set.update_or_create(**query)
+
+    def get_options(self, namespace=''):
+        if not namespace:
+            namespace = self.type
+
+        query = dict(
+            namespace=namespace
+        )
+
+        return self.resourceoption_set.filter(**query)
 
     def get_option(self, name, namespace=''):
         assert name is not None, "Parameter 'name' must be defined."
@@ -348,7 +366,7 @@ class Resource(models.Model):
         option_value = default
         try:
             option = self.get_option(name, namespace=namespace)
-            option_value = option.get_value()
+            option_value = option.typed_value()
         except djexceptions.ObjectDoesNotExist:
             option_value = default
 
@@ -381,10 +399,16 @@ class ResourcePool(Resource):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return "%d %s %s (%s)" % (self.id, self.name, self.type, self.status)
+
     def __contains__(self, item):
         return Resource.objects.active(pk=item.id, parent=self).exists()
 
     def __iter__(self):
+        """
+        Iterate through resource childs
+        """
         for resource in Resource.objects.active(parent=self):
             yield resource
 
