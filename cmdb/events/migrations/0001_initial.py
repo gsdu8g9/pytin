@@ -23,6 +23,5 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'events',
             },
-            bases=(models.Model,),
         ),
     ]

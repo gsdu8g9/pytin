@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 
 from ipman.models import IPNetworkPool, IPAddressPool, IPAddressRangePool, IPAddress
-from resources.models import Resource
+from resources.models import Resource, ResourceOption
 
 
 class Command(BaseCommand):
@@ -65,6 +65,10 @@ class Command(BaseCommand):
         add_cidr_cmd.add_argument('pool-id', help="ID of the pool")
         add_cidr_cmd.add_argument('option-name', help="Name of the option")
         add_cidr_cmd.add_argument('option-value', help="Value of the option")
+        add_cidr_cmd.add_argument('option-format', help="Type of the value",
+                                  default=ResourceOption.FORMAT_STRING,
+                                  choices=[ResourceOption.FORMAT_STRING, ResourceOption.FORMAT_INT,
+                                           ResourceOption.FORMAT_FLOAT, ResourceOption.FORMAT_DICT])
         self._register_handler('set', self._handle_set_options)
 
     def handle(self, *args, **options):
@@ -85,6 +89,9 @@ class Command(BaseCommand):
         ip_pool = Resource.objects.get(pk=options['pool-id'])
 
         ip_pool.set_option(options['option-name'], options['option-value'])
+
+        for option in ip_pool.get_options():
+            print option
 
     def _handle_addip(self, *args, **options):
         ip_set = IPAddressPool.objects.get(pk=options['pool-id'])

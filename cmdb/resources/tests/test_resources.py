@@ -2,7 +2,7 @@
 
 from django.test import TestCase
 
-from resources.models import Resource, ResourceOption, ResourcePool
+from resources.models import Resource, ResourceOption
 
 
 class ResourceTest(TestCase):
@@ -13,11 +13,11 @@ class ResourceTest(TestCase):
         self.assertEqual('someval1', new_res.get_option_value('somekey1', namespace='Resource'))
         self.assertEqual('someval2', new_res.get_option_value('somekey2', namespace='Resource'))
 
-        new_res1 = ResourcePool.create(status=Resource.STATUS_LOCKED, somekey1='someval11', somekey2='someval21')
+        new_res1 = Resource.create(status=Resource.STATUS_LOCKED, somekey1='someval11', somekey2='someval21')
 
         self.assertEqual(Resource.STATUS_LOCKED, new_res1.status)
-        self.assertEqual('someval11', new_res1.get_option_value('somekey1', namespace='ResourcePool'))
-        self.assertEqual('someval21', new_res1.get_option_value('somekey2', namespace='ResourcePool'))
+        self.assertEqual('someval11', new_res1.get_option_value('somekey1', namespace='Resource'))
+        self.assertEqual('someval21', new_res1.get_option_value('somekey2', namespace='Resource'))
 
     def test_option_type(self):
         resource1 = Resource()
@@ -139,7 +139,7 @@ class ResourceTest(TestCase):
         resource1.status = Resource.STATUS_FREE
         resource1.save()
 
-        resource_pool1 = ResourcePool()
+        resource_pool1 = Resource()
         resource_pool1.status = Resource.STATUS_INUSE
         resource_pool1.save()
 
@@ -150,7 +150,7 @@ class ResourceTest(TestCase):
         resource_pool = Resource.objects.filter(status=Resource.STATUS_INUSE)[0]
 
         self.assertEqual('Resource', resource.type)
-        self.assertEqual('ResourcePool', resource_pool.type)
+        self.assertEqual('Resource', resource_pool.type)
 
     def test_find_objects(self):
         self._create_test_resources(50)

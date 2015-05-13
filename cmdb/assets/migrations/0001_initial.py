@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('resources', '0017_auto_20150410_1804'),
+        ('resources', '0001_initial'),
     ]
 
     operations = [
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
             options={
                 'proxy': True,
             },
-            bases=('resources.resourcepool',),
+            bases=('resources.resource',),
         ),
         migrations.CreateModel(
             name='RackResource',

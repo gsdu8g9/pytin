@@ -94,7 +94,7 @@ class ResourceOption(models.Model):
             self._value = str(value)
 
         def __str__(self):
-            return "'%s'" % self._value
+            return "'%s'" % self.typed_value()
 
         def typed_value(self):
             return self._value
@@ -104,14 +104,14 @@ class ResourceOption(models.Model):
 
     class IntegerValue(StringValue):
         def __str__(self):
-            return "%d" % self._value
+            return "%d" % self.typed_value()
 
         def typed_value(self):
             return int(self._value)
 
     class FloatValue(StringValue):
         def __str__(self):
-            return "%f" % self._value
+            return "%f" % self.typed_value()
 
         def typed_value(self):
             return float(self._value)
@@ -124,7 +124,7 @@ class ResourceOption(models.Model):
                 self._value = json.dumps(value)
 
         def __str__(self):
-            return "'%s'" % self._value
+            return "'%s'" % self.typed_value()
 
         def typed_value(self):
             return json.loads(self._value, encoding='utf-8', parse_float=True, parse_int=True, parse_constant=True)
@@ -212,6 +212,7 @@ class Resource(models.Model):
     )
 
     parent = models.ForeignKey("self", default=None, db_index=True, null=True)
+    name = models.CharField(max_length=155, db_index=True, default='Resource')
     type = models.CharField(max_length=155, db_index=True, default='Resource')
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
@@ -224,6 +225,9 @@ class Resource(models.Model):
 
     def __str__(self):
         return "%d %s (%s)" % (self.id, self.type, self.status)
+
+    def __contains__(self, item):
+        return Resource.objects.active(pk=item.id, parent=self).exists()
 
     def __add__(self, other):
         """
@@ -247,6 +251,13 @@ class Resource(models.Model):
         other.save()
 
         return self
+
+    def __iter__(self):
+        """
+        Iterate through resource childs
+        """
+        for resource in Resource.objects.active(parent=self):
+            yield resource
 
     @classmethod
     def create(cls, **kwargs):
@@ -387,43 +398,12 @@ class Resource(models.Model):
         """
         return True
 
-    def _is_saved(self):
-        return self.id is not None
-
-
-class ResourcePool(Resource):
-    """
-    Resource grouping.
-    """
-
-    class Meta:
-        proxy = True
-
-    def __str__(self):
-        return "%d %s %s (%s)" % (self.id, self.name, self.type, self.status)
-
-    def __contains__(self, item):
-        return Resource.objects.active(pk=item.id, parent=self).exists()
-
-    def __iter__(self):
-        """
-        Iterate through resource childs
-        """
-        for resource in Resource.objects.active(parent=self):
-            yield resource
-
-    @property
-    def name(self):
-        return self.get_option_value('name', default='')
-
-    @name.setter
-    def name(self, value):
-        self.set_option('name', value)
-
     def available(self):
         """
-        Iterate through available resources in the pool. Override this method in resource specific pools.
+        Iterate through available related resources. Override this method for custom behavior.
         """
         for res in Resource.objects.active(parent=self, status=Resource.STATUS_FREE):
             yield res
 
+    def _is_saved(self):
+        return self.id is not None

@@ -1,7 +1,7 @@
-from resources.models import ResourcePool, Resource
+from resources.models import Resource
 
 
-class RegionResource(ResourcePool):
+class RegionResource(Resource):
     """
     Resource grouping.
     """

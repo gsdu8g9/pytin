@@ -1,6 +1,6 @@
 import ipaddress
 
-from resources.models import Resource, ResourcePool
+from resources.models import Resource
 
 
 class IPAddress(Resource):
@@ -31,56 +31,12 @@ class IPAddress(Resource):
         return self.get_option_value('version')
 
 
-class IPAddressPool(ResourcePool):
+class IPAddressPool(Resource):
     class Meta:
         proxy = True
 
     def __str__(self):
         return self.name
-
-    @property
-    def version(self):
-        return self.get_option_value('version')
-
-    @property
-    def gateway(self):
-        return self.get_option_value('gateway')
-
-    @gateway.setter
-    def gateway(self, gateway):
-        assert gateway is not None, "Parameter 'gateway' must be defined."
-
-        self.set_option('gateway', gateway)
-
-    @property
-    def netmask(self):
-        return self.get_option_value('netmask')
-
-    @netmask.setter
-    def netmask(self, netmask):
-        assert netmask is not None, "Parameter 'netmask' must be defined."
-
-        self.set_option('netmask', netmask)
-
-    @property
-    def nameservers(self):
-        return self.get_option_value('nameservers')
-
-    @nameservers.setter
-    def nameservers(self, nameservers):
-        assert nameservers is not None, "Parameter 'nameservers' must be defined."
-
-        self.set_option('nameservers', nameservers)
-
-    @property
-    def prefixlen(self):
-        return self.get_option_value('prefixlen')
-
-    @prefixlen.setter
-    def prefixlen(self, prefixlen):
-        assert prefixlen is not None, "Parameter 'prefixlen' must be defined."
-
-        self.set_option('prefixlen', prefixlen)
 
     def __iter__(self):
         """
@@ -88,6 +44,28 @@ class IPAddressPool(ResourcePool):
         """
         for ipaddr in IPAddress.objects.active(parent=self):
             yield ipaddr
+
+    @property
+    def version(self):
+        return self.get_option_value('version')
+
+    @property
+    def usage(self):
+        return self.get_usage()
+
+    @property
+    def total_addresses(self):
+        return IPAddress.objects.active(parent=self).count()
+
+    @property
+    def used_addresses(self):
+        return IPAddress.objects.active(parent=self, status=Resource.STATUS_INUSE).count()
+
+    def get_usage(self):
+        total = float(self.total_addresses)
+        used = float(self.used_addresses)
+
+        return int(round((float(used) / total) * 100))
 
     def browse(self):
         """
@@ -134,6 +112,13 @@ class IPAddressRangePool(IPAddressPool):
         parsed_address = ipaddress.ip_address(unicode(ipaddr))
         self.set_option('range_to', parsed_address)
         self.set_option('version', parsed_address.version)
+
+    @property
+    def total_addresses(self):
+        ip_from = int(ipaddress.ip_address(unicode(self.range_from)))
+        ip_to = int(ipaddress.ip_address(unicode(self.range_to)))
+
+        return ip_to - ip_from + 1
 
     def can_add(self, address):
         """
@@ -204,9 +189,13 @@ class IPNetworkPool(IPAddressPool):
         self.set_option('version', parsed_net.version)
 
         # populate network parameters
-        self.netmask = parsed_net.netmask
-        self.prefixlen = parsed_net.prefixlen
-        self.gateway = str(parsed_net[1]) if parsed_net.num_addresses > 0 else ''
+        self.set_option('netmask', parsed_net.netmask)
+        self.set_option('prefixlen', parsed_net.prefixlen)
+        self.set_option('gateway', str(parsed_net[1]) if parsed_net.num_addresses > 0 else '')
+
+    @property
+    def total_addresses(self):
+        return self._get_network_object().num_addresses
 
     def can_add(self, address):
         """

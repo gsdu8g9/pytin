@@ -4,13 +4,64 @@ from ipman.models import IPAddress, IPNetworkPool, IPAddressPool, IPAddressRange
 
 
 class IPmanTest(TestCase):
+    def test_network_pool_usage(self):
+        ipnet = IPNetworkPool.create(network='192.168.1.1/24')
+
+        self.assertEqual(256, ipnet.total_addresses)
+        self.assertEqual(0, ipnet.used_addresses)
+        self.assertEqual(0, ipnet.usage)
+
+        for x in range(1, 50):
+            ipaddr = ipnet.available().next()
+            ipaddr.use()
+            ipaddr.save()
+
+        self.assertEqual(256, ipnet.total_addresses)
+        self.assertEqual(49, ipnet.used_addresses)
+        self.assertEqual(19, ipnet.usage)
+
+    def test_ip_range_usage(self):
+        iprange = IPAddressRangePool.create(name='IP range', range_from='172.1.1.1', range_to='172.1.2.1')
+
+        self.assertEqual(257, iprange.total_addresses)
+        self.assertEqual(0, iprange.used_addresses)
+        self.assertEqual(0, iprange.usage)
+
+        for x in range(1, 50):
+            ipaddr = iprange.available().next()
+            ipaddr.use()
+            ipaddr.save()
+
+        self.assertEqual(257, iprange.total_addresses)
+        self.assertEqual(49, iprange.used_addresses)
+        self.assertEqual(19, iprange.usage)
+
+    def test_ip_list_usage(self):
+        ipset = IPAddressPool.create(name='Test ip set')
+
+        for x in range(1, 100):
+            ipset += IPAddress.create(address='172.27.27.%s' % x)
+
+        self.assertEqual(99, ipset.total_addresses)
+        self.assertEqual(0, ipset.used_addresses)
+        self.assertEqual(0, ipset.usage)
+
+        for x in range(1, 50):
+            ipaddr = ipset.available().next()
+            ipaddr.use()
+            ipaddr.save()
+
+        self.assertEqual(99, ipset.total_addresses)
+        self.assertEqual(49, ipset.used_addresses)
+        self.assertEqual(49, ipset.usage)
+
     def test_pool_add_sub(self):
         ipnet = IPNetworkPool.create(network='192.168.1.1/24')
 
-        self.assertEqual(24, ipnet.prefixlen)
-        self.assertEqual('255.255.255.0', ipnet.netmask)
-        self.assertEqual('192.168.1.1', ipnet.gateway)
-        self.assertEqual('', ipnet.nameservers)
+        self.assertEqual(24, ipnet.get_option_value('prefixlen'))
+        self.assertEqual('255.255.255.0', ipnet.get_option_value('netmask'))
+        self.assertEqual('192.168.1.1', ipnet.get_option_value('gateway'))
+        self.assertEqual('', ipnet.get_option_value('nameservers'))
 
         ip1 = ipnet.available().next()
         ip2 = IPAddress.create(address='192.168.1.2')
