@@ -1,7 +1,10 @@
 import json
 
+from django.contrib.contenttypes.models import ContentType
+
 from django.db import models
 from django.core import exceptions as djexceptions
+from django.db.models.query import QuerySet
 
 
 class ModelFieldChecker:
@@ -30,10 +33,26 @@ class ModelFieldChecker:
             return False
 
 
+class SubclassingQuerySet(QuerySet):
+    def __getitem__(self, k):
+        result = super(SubclassingQuerySet, self).__getitem__(k)
+        if isinstance(result, models.Model):
+            return result.as_leaf_class()
+        else:
+            return result
+
+    def __iter__(self):
+        for item in super(SubclassingQuerySet, self).__iter__():
+            yield item.as_leaf_class()
+
+
 class ResourcesWithOptionsManager(models.Manager):
     """
-
+    Query manager with support for query by options.
     """
+
+    def get_query_set(self):
+        return SubclassingQuerySet(self.model)
 
     def active(self, *args, **kwargs):
         """
@@ -214,6 +233,7 @@ class Resource(models.Model):
     parent = models.ForeignKey("self", default=None, db_index=True, null=True)
     name = models.CharField(max_length=155, db_index=True, default='Resource')
     type = models.CharField(max_length=155, db_index=True, default='Resource')
+    content_type = models.ForeignKey(ContentType, editable=False, null=True)
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
@@ -224,7 +244,7 @@ class Resource(models.Model):
         db_table = "resources"
 
     def __str__(self):
-        return "%d %s (%s)" % (self.id, self.type, self.status)
+        return "%d %s (%s)" % (self.id, self.content_type, self.status)
 
     def __contains__(self, item):
         return Resource.objects.active(pk=item.id, parent=self).exists()
@@ -279,10 +299,12 @@ class Resource(models.Model):
         new_object = cls(**model_fields)
         new_object.save()
         for option_field in option_fields.keys():
+            # if model have property with the given name, then set it via setattr,
+            # because of possible custom behaviour
             if hasattr(new_object, option_field):
                 setattr(new_object, option_field, option_fields[option_field])
             else:
-                new_object.set_option(option_field, option_fields[option_field], namespace=new_object.type)
+                new_object.set_option(option_field, option_fields[option_field], namespace='')
 
         return new_object
 
@@ -317,14 +339,10 @@ class Resource(models.Model):
     def set_option(self, name, value, format=None, namespace=''):
         """
         Set resource option. If format is omitted, then format is guessed from value type.
-        If namespace is omitted, then namespace = calling class name
         """
 
         assert self._is_saved(), "Resource must be saved before setting options"
         assert name is not None, "Parameter 'name' must be defined."
-
-        if not namespace:
-            namespace = self.type
 
         query = dict(
             name=name,
@@ -339,9 +357,6 @@ class Resource(models.Model):
         self.resourceoption_set.update_or_create(**query)
 
     def get_options(self, namespace=''):
-        if not namespace:
-            namespace = self.type
-
         query = dict(
             namespace=namespace
         )
@@ -350,9 +365,6 @@ class Resource(models.Model):
 
     def get_option(self, name, namespace=''):
         assert name is not None, "Parameter 'name' must be defined."
-
-        if not namespace:
-            namespace = self.type
 
         query = dict(
             name=name,
@@ -386,11 +398,21 @@ class Resource(models.Model):
     def get_type_name(self):
         return self.__class__.__name__
 
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
+    def as_leaf_class(self):
+        content_type = self.content_type
+        model = content_type.model_class()
+        if model == Resource:
+            return self
+
+        return model.objects.get(id=self.id)
+
+    def save(self, *args, **kwargs):
+        if not self.content_type:
+            self.content_type = ContentType.objects.get_for_model(self.__class__)
+
         self.type = self.get_type_name()
 
-        return super(Resource, self).save(force_insert, force_update, using, update_fields)
+        super(Resource, self).save(*args, **kwargs)
 
     def can_add(self, child):
         """

@@ -1,9 +1,28 @@
 from django.test import TestCase
 
 from ipman.models import IPAddress, IPNetworkPool, IPAddressPool, IPAddressRangePool
+from resources.models import Resource
 
 
 class IPmanTest(TestCase):
+    def test_polymorfic_pool_list(self):
+        ip_pool_types = [
+            IPAddressPool.__name__,
+            IPAddressRangePool.__name__,
+            IPNetworkPool.__name__
+        ]
+
+        IPAddressPool.create(name='Test ip set')
+        IPAddressRangePool.create(name='IP range', range_from='172.1.1.1', range_to='172.1.2.1')
+        IPNetworkPool.create(network='192.168.1.1/24')
+
+        pools = Resource.objects.active(type__in=ip_pool_types)
+
+        self.assertEqual(3, len(pools))
+        self.assertEqual('IPAddressPool', pools[0].type)
+        self.assertEqual('IPAddressRangePool', pools[1].type)
+        self.assertEqual('IPNetworkPool', pools[2].type)
+
     def test_network_pool_usage(self):
         ipnet = IPNetworkPool.create(network='192.168.1.1/24')
 

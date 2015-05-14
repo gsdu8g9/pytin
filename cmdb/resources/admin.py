@@ -4,7 +4,7 @@ from resources.models import Resource, ResourceOption
 
 
 class ResourceAdmin(admin.ModelAdmin):
-    list_display = ['id', 'type', 'created_at', 'updated_at']
+    list_display = ['id', 'content_type', 'created_at', 'updated_at']
     search_fields = ['type']
 
 

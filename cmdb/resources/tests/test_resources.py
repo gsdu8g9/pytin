@@ -9,15 +9,24 @@ class ResourceTest(TestCase):
     def test_static_create(self):
         new_res = Resource.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
 
+        new_res.set_option('nsvalname1', 'nsval1', namespace='somens')
+        new_res.set_option('nsvalname2', 'nsval2', namespace='somens')
+
+        self.assertEqual('', new_res.get_option_value('nsvalname1'))
+        self.assertEqual('', new_res.get_option_value('nsvalname2'))
+
+        self.assertEqual('nsval1', new_res.get_option_value('nsvalname1', namespace='somens'))
+        self.assertEqual('nsval2', new_res.get_option_value('nsvalname2', namespace='somens'))
+
         self.assertEqual(Resource.STATUS_INUSE, new_res.status)
-        self.assertEqual('someval1', new_res.get_option_value('somekey1', namespace='Resource'))
-        self.assertEqual('someval2', new_res.get_option_value('somekey2', namespace='Resource'))
+        self.assertEqual('someval1', new_res.get_option_value('somekey1'))
+        self.assertEqual('someval2', new_res.get_option_value('somekey2'))
 
         new_res1 = Resource.create(status=Resource.STATUS_LOCKED, somekey1='someval11', somekey2='someval21')
 
         self.assertEqual(Resource.STATUS_LOCKED, new_res1.status)
-        self.assertEqual('someval11', new_res1.get_option_value('somekey1', namespace='Resource'))
-        self.assertEqual('someval21', new_res1.get_option_value('somekey2', namespace='Resource'))
+        self.assertEqual('someval11', new_res1.get_option_value('somekey1'))
+        self.assertEqual('someval21', new_res1.get_option_value('somekey2'))
 
     def test_option_type(self):
         resource1 = Resource()
