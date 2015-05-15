@@ -1,4 +1,5 @@
-#!/bin/sh -
+#!/usr/bin/env python2
+# -*- coding: UTF-8 -*-
 
 # RemiZOffAlex
 #
@@ -7,8 +8,6 @@
 #
 # Requirements:
 #	FreeBSD
-
-PATH=/etc:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/home/user
 
 silent=1
 if [ ${silent} != 1 ]
@@ -127,3 +126,35 @@ esac
 
 rm -rf ${tmpdialog}
 rm -rf ${tmpfile}
+
+def main():
+    parser = argparse.ArgumentParser(description='Скрипт добавления IP или подсети в блокировку на межсетевом экране',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument("-q", "--quiet", dest="quiet", required=True,
+        const='1', help="Тихий режим")
+    parser.add_argument("-a", "--add", dest="ip", required=True,
+        help="Добавить IP")
+    parser.add_argument("-c", "--clear", dest="fwclear", required=True,
+        help="Очистить правила")
+    parser.add_argument("-l", "--list", dest="listshow", required=True,
+        help="Очистить правила")
+    parser.add_argument("-s", "--sort", dest="listsort", required=True,
+        help="Сортировать список")
+
+    args = parser.parse_args()
+
+    # Проверка переданных параметров
+    if not os.path.exists(args.log_file):
+        raise Exception("Лог-файл не существует: %s" % args.log_file)
+    if os.path.exists(args.database):
+        raise Exception("Файл БД существует: %s" % args.database)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception, ex:
+        traceback.print_exc(file=sys.stdout)
+        exit(1)
+
+    exit(0)

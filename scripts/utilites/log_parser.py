@@ -15,12 +15,21 @@ import sys
 import argparse
 import traceback
 import os
+import sqlite3
+
+from ddos_stat import DDoSStat
+from api_sqlite import DDoSSQLite
 
 class DDoSAnalizer:
-    def __init__(self, filename, patterns):
+    def __init__(self, filename, patterns, type_file):
+        """
+        Инициализация класса парсера
+        """
         self.filename = filename
         self.patterns = patterns
-        self.iplist = []
+        self.stat = DDoSStat()
+        self.type_file = type_file
+        self.quiet = False
 
     def isRFC(self, ip):
         """
@@ -37,38 +46,55 @@ class DDoSAnalizer:
         return result
 
 
-    def cli_progress_test(self, cur, maxlim, bar_length=60):
+    def cli_progress_test(self, cur):
         """
         Прогресс бар
         """
-        percent = cur / maxlim
-        hashes = '#' * int(round(percent * bar_length))
-        spaces = ' ' * (bar_length - len(hashes))
-        sys.stdout.write("\rСостояние: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-        sys.stdout.flush()
+        if not self.quiet:
+            text = "\rОбработано " + str(cur) + " записей. В списке " + str(len(self.stat.IPs.iplist)) + " записей IP, "
+            text += str(len(self.stat.Domains.domainlist)) + " записей доменов и " + str(len(self.stat.loglist)) + " в общей таблице"
+            sys.stdout.write(text)
+            sys.stdout.flush()
 
-
-    def get_log_value(self, line, patterns):
+    def get_log_value(self, line):
         """
         Парсинг строки на элементы
         """
         result = []
-        oldline = line
-        for pattern in patterns:
-            match = re.findall(pattern, line)
-            if match:
-                if type(match[0]) is str:
-                    line = line[len(match[0]):].strip()
-                    result.append(match[0])
-                else:
-                    line = line[len(match[0][0]):].strip()
-                    result.append(match[0][0])
+        prevCh = ''
+        words = ['']
+        inQuote = False
+       
+        for Ch in line:
+            if(Ch==' ') and (prevCh!='\\') and (not inQuote):
+                if(len(words[len(words)-1])!=0):
+                    words.append('')
             else:
-                # Вывод отладочной информации по ошибке
-                print "Ошибка:"
-                print oldline
-                print line
-                print pattern
+                if(Ch=='"') and (prevCh!='\\') and (not inQuote):
+                    if(len(words[len(words)-1])!=0):
+                        words.append('')
+                    words[len(words)-1] += Ch
+                    inQuote = True
+                elif(Ch=='"') and (prevCh!='\\') and (inQuote):
+                    words[len(words)-1] += Ch
+                    words.append('')
+                    inQuote = False
+                elif(Ch=='[') and (prevCh!='\\') and (not inQuote):
+                    if(len(words[len(words)-1])!=0):
+                        words.append('')
+                    words[len(words)-1] += Ch
+                    inQuote = True
+                elif(Ch==']') and (prevCh!='\\') and (inQuote):
+                    words[len(words)-1] += Ch
+                    words.append('')
+                    inQuote = False
+                else:
+                    words[len(words)-1] += Ch
+            prevCh = Ch
+            
+        if(len(words[-1:][0])==0):
+            words.pop()
+        result = words
         return result
 
     def get_date(self, line):
@@ -90,16 +116,25 @@ class DDoSAnalizer:
         result = time1 - time2
         return result
 
+    def get_domain(self, url):
+        """
+        Получить имя домена из url
+        """
+        result = ''
+        match = re.findall('^"(http:\/\/|https:\/\/)', url)
+        if match:
+            url = url[len(match[0]):].strip()
+        match = re.findall('([^\/?#]+)(?:[\/?#]|$)', url)
+        if match:
+            result = match[0]
+        return result
+
     def start(self):
         """
-        Получить количество строк в файле
+        Обработка записей
         """
-        print self.filename
-        maxlim = sum(1 for line in open(self.filename))
         with open(self.filename, 'r') as f:
-            result = []
             i = 0
-            # maxlim=10000
             for line in f:
                 line = line.replace("\n", "")
                 stamp = self.get_date(line)
@@ -108,33 +143,34 @@ class DDoSAnalizer:
                 #			for pattern in patterns:
                 #				result.append(get_log_value(line))
                 #		for pattern in patterns:
-                log_value = self.get_log_value(line, self.patterns)
+                log_value = self.get_log_value(line)
+                i += 1
                 if not self.isRFC(log_value[0]):
-                    result.append(log_value)
+#                    self.stat.addIP(log_value[0])
+                    if self.type_file == 'nginx':
+                        if log_value[7] != '"-"':
+                            domain = self.get_domain(log_value[7])
+                        else:
+                            domain = "-"
+                        self.stat.addLogLine(stamp, log_value[0], domain)
+                    elif self.type_file == 'apache':
+                        if len(log_value)<11:
+                            print "Ошибка при разборе строки"
+                            print line
+                            print ''
+                        else:
+                            if log_value[10] != '"-"':
+                                domain = self.get_domain(log_value[10])
+                            else:
+                                domain = "-"
+                            self.stat.addLogLine(stamp, log_value[0], domain)
+#                    result.append(log_value[0])
                 if not stamp:
                     sys.exit(0)
-                i = i + 1
-                self.cli_progress_test(i, maxlim)
-                if i >= maxlim:
-                    i = 0
-            # Подсчёт уникальных IP
-            print()
-            print("Stage II")
-            i = 0
-            for line in result:
-                flag = False
-                for ip in self.iplist:
-                    if line[0] == ip[0]:
-                        ip[1] += 1
-                        flag = True
-                if not flag:
-                    self.iplist.append([line[0], 1])
-                i = i + 1
-                self.cli_progress_test(i, maxlim)
-                if i >= maxlim:
-                    i = 0
-            # Сортировка
-            self.iplist.sort(key=lambda tup: tup[1])
+#                if self.quiet:
+                if i%1000 == 0:
+                    self.cli_progress_test(i)
+#            self.iplist.sort(key=lambda tup: tup[1])
 
 def statistics(iplist):
     """
@@ -149,16 +185,23 @@ def main():
     parser = argparse.ArgumentParser(description='DDoS log parser',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    parser.add_argument("-o", "--outfile", dest="outfile", help="Файл для вывода")
     parser.add_argument("-l", "--log", dest="log_file", required=True,
-                        help="Log file")
+        help="Лог-файл для анализа")
     parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
-                        required=True, help="Log file")
+        required=True, help="Тип парсера")
+    parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
 
     args = parser.parse_args()
 
-    # validate global args
+    # Проверка переданных параметров
     if not os.path.exists(args.log_file):
-        raise Exception("File must exist: %s" % args.log_file)
+        raise Exception("Лог-файл не существует: %s" % args.log_file)
+    if args.database:
+        if os.path.exists(args.database):
+            raise Exception("Файл БД существует: %s" % args.database)
+
+#    tmp = DDoSSQLite(args.database)
 
     # Описание переменных
     # Паттерны парсера
@@ -179,8 +222,13 @@ def main():
                     '^\[\S*\s\S*\]',  # Dateime
                     '^\"\S+[^\"]*\"',  # , # Request
                     '^(\S+|"\S*")',  # Status
-                    '^(\d*|\S+|"\S*")',  # URL
-                    '^\".[^\"]*\"']  # '"$http_user_agent"
+                    '^(\S+|"\S*")',  # Body bytes sent
+                    '^(""|"(.*?)"|\S*\s\S*")', # '^(\d*|\S+|"\S*")',  # URL
+                    '^(""|"(.*?)"|\(null\)|\S*\s\S*")', # '^\".[^\"]*\"',  # '"$http_user_agent"
+                    '^".*"/U', # X-Forwarded-For
+#                    '^(""|-|unknown|\(null\)|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)(,\s*(unknown|\(null\)|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*))*"',  # X-Forwarded-For
+                    '^\"*\S*\"*']
+#                    '^\(\S+|"\S*")']  # Domain
     elif args.type_file == 'nginx':
         patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)',  # IP remote
                     '^\-',  # -
@@ -193,10 +241,12 @@ def main():
                     '^\".[^\"]*\"',  # '"$http_user_agent"
                     '^\"(-|unknown|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)(, \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)*"']  # X-Forwarded-For
 
-    ddos_analizer = DDoSAnalizer(args.log_file, patterns)
+    ddos_analizer = DDoSAnalizer(args.log_file, patterns, args.type_file)
     ddos_analizer.start()
+#    for ip in ddos_analizer.iplist:
+#        tmp.addIP(ip[0])
 
-    statistics(ddos_analizer.iplist)
+    ddos_analizer.stat.statistics(args.outfile)
 
 if __name__ == "__main__":
     try:
