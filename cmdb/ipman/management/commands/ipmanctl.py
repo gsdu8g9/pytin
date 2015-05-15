@@ -125,7 +125,7 @@ class Command(BaseCommand):
         self._list_addresses(options['pool_id'], **query)
 
     def _handle_address_add(self, *args, **options):
-        ip_set = IPAddressPool.objects.get(pk=options['pool-id'])
+        ip_set = Resource.objects.get(pk=options['pool-id'])
 
         for ip_address in options['ip']:
             ip_set += IPAddress.create(address=ip_address)
@@ -178,7 +178,7 @@ class Command(BaseCommand):
 
         query.update(kwargs)
 
-        for ip_address in IPAddress.objects.active(query):
+        for ip_address in IPAddress.objects.active(**query):
             print "%d\t%d\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
 
     def _list_pools(self):

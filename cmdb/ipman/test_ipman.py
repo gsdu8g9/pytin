@@ -174,3 +174,22 @@ class IPmanTest(TestCase):
 
         self.assertEqual('192.168.1.2', str(ip2))
         self.assertEqual(4, ip2.version)
+
+    def test_pool_network_polymorphic(self):
+        ipnet = IPNetworkPool.create(network='192.168.1.1/24')
+
+        ip1 = ipnet.available().next()
+        ip2 = IPAddress.create(address='172.1.1.5')
+
+        self.assertTrue(ipnet.can_add(ip1))
+        self.assertFalse(ipnet.can_add(ip2))
+
+        # polymorphic
+        polipnet = Resource.objects.get(pk=ipnet.id)
+        self.assertTrue(polipnet.can_add(ip1))
+        self.assertFalse(polipnet.can_add(ip2))
+
+        polipnets = Resource.objects.filter(network='192.168.1.0/24')
+        self.assertEqual(1, len(polipnets))
+        self.assertTrue(polipnets[0].can_add(ip1))
+        self.assertFalse(polipnets[0].can_add(ip2))

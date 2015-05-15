@@ -45,25 +45,6 @@ class SubclassingQuerySet(QuerySet):
         for item in super(SubclassingQuerySet, self).__iter__():
             yield item.as_leaf_class()
 
-
-class ResourcesWithOptionsManager(models.Manager):
-    """
-    Query manager with support for query by options.
-    """
-
-    def get_queryset(self):
-        return SubclassingQuerySet(self.model)
-
-    def active(self, *args, **kwargs):
-        """
-        Search for Resources with Options (only on active resources)
-        search_fields keys can be specified with lookups:
-        https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
-
-        Resource fields has higher priority than ResourceOption fields
-        """
-        return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
-
     def filter(self, *args, **kwargs):
         """
         Search for Resources using Options
@@ -97,8 +78,67 @@ class ResourcesWithOptionsManager(models.Manager):
                     query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
                         search_fields[field_name_with_lookup]
 
-        # return super(ResourcesWithOptionsManager, self).get_queryset().filter(*args, **query).distinct()
-        return self.get_queryset().filter(*args, **query).distinct()
+        return super(SubclassingQuerySet, self).filter(*args, **query).distinct()
+
+    def get(self, *args, **kwargs):
+        return super(SubclassingQuerySet, self).get(*args, **kwargs).as_leaf_class()
+
+
+class ResourcesWithOptionsManager(models.Manager):
+    """
+    Query manager with support for query by options.
+    """
+
+    def get_queryset(self):
+        return SubclassingQuerySet(self.model)
+
+    def active(self, *args, **kwargs):
+        """
+        Search for Resources with Options (only on active resources)
+        search_fields keys can be specified with lookups:
+        https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
+
+        Resource fields has higher priority than ResourceOption fields
+        """
+        return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
+
+        # def filter(self, *args, **kwargs):
+        # # """
+        #     # Search for Resources using Options
+        #     # search_fields keys can be specified with lookups:
+        #     # https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
+        #     #
+        #     # Resource fields has higher priority than ResourceOption fields
+        #     # """
+        #     #
+        #     # search_fields = kwargs
+        #     #
+        #     # # if filter is called for proxy model, filter by proxy type
+        #     # if self.model != Resource:
+        #     #     search_fields['type'] = self.model.__name__
+        #     #
+        #     # query = {}
+        #     #
+        #     # for field_name_with_lookup in search_fields.keys():
+        #     #     field_name = field_name_with_lookup.split('__')[0]
+        #     #
+        #     #     if ModelFieldChecker.is_model_field(Resource, field_name):
+        #     #         query[field_name_with_lookup] = search_fields[field_name_with_lookup]
+        #     #     else:
+        #     #         if ModelFieldChecker.is_model_field(ResourceOption, field_name):
+        #     #             query['resourceoption__%s' % field_name_with_lookup] = search_fields[field_name_with_lookup]
+        #     #         else:
+        #     #             # convert field__lookup = value to:
+        #     #             # resourceoption__name__exact = field
+        #     #             # resourceoption__value__lookup = value
+        #     #             query['resourceoption__name__exact'] = field_name
+        #     #             query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
+        #     #                 search_fields[field_name_with_lookup]
+        #
+        #     return self.get_queryset().filter(*args, **kwargs).distinct()
+
+        # def get(self, *args, **kwargs):
+        #     return self.get_queryset().get(*args, **kwargs)
 
 
 class ResourceOption(models.Model):
@@ -402,7 +442,7 @@ class Resource(models.Model):
     def as_leaf_class(self):
         content_type = self.content_type
         model = content_type.model_class()
-        if model == Resource:
+        if model == Resource or self.__class__ == model:
             return self
 
         return model.objects.get(id=self.id)
