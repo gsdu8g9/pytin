@@ -51,7 +51,7 @@ class ResourcesWithOptionsManager(models.Manager):
     Query manager with support for query by options.
     """
 
-    def get_query_set(self):
+    def get_queryset(self):
         return SubclassingQuerySet(self.model)
 
     def active(self, *args, **kwargs):
@@ -76,7 +76,7 @@ class ResourcesWithOptionsManager(models.Manager):
         search_fields = kwargs
 
         # if filter is called for proxy model, filter by proxy type
-        if self.model.__name__ != Resource.__name__:
+        if self.model != Resource:
             search_fields['type'] = self.model.__name__
 
         query = {}
@@ -97,7 +97,8 @@ class ResourcesWithOptionsManager(models.Manager):
                     query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
                         search_fields[field_name_with_lookup]
 
-        return super(ResourcesWithOptionsManager, self).get_queryset().filter(*args, **query).distinct()
+        # return super(ResourcesWithOptionsManager, self).get_queryset().filter(*args, **query).distinct()
+        return self.get_queryset().filter(*args, **query).distinct()
 
 
 class ResourceOption(models.Model):
@@ -408,7 +409,8 @@ class Resource(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.content_type:
-            self.content_type = ContentType.objects.get_for_model(self.__class__)
+            self.content_type = ContentType.objects.get_for_model(self.__class__,
+                                                                  for_concrete_model=not self._meta.proxy)
 
         self.type = self.get_type_name()
 

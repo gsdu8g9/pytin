@@ -20,8 +20,11 @@ class IPmanTest(TestCase):
 
         self.assertEqual(3, len(pools))
         self.assertEqual('IPAddressPool', pools[0].type)
+        self.assertEqual(IPAddressPool, pools[0].__class__)
         self.assertEqual('IPAddressRangePool', pools[1].type)
+        self.assertEqual(IPAddressRangePool, pools[1].__class__)
         self.assertEqual('IPNetworkPool', pools[2].type)
+        self.assertEqual(IPNetworkPool, pools[2].__class__)
 
     def test_network_pool_usage(self):
         ipnet = IPNetworkPool.create(network='192.168.1.1/24')

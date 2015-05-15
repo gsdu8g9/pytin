@@ -111,8 +111,14 @@ class Command(BaseCommand):
     def _handle_address_list(self, *args, **options):
         supported_fields = ['status', 'address']
 
+        query_fields = []
+        for option_name in options:
+            for supported_field in supported_fields:
+                if option_name.startswith(supported_field):
+                    query_fields.append(option_name)
+
         query = {}
-        for field in supported_fields:
+        for field in query_fields:
             if options[field] is not None:
                 query[field] = options[field]
 
@@ -172,7 +178,7 @@ class Command(BaseCommand):
 
         query.update(kwargs)
 
-        for ip_address in IPAddress.objects.active():
+        for ip_address in IPAddress.objects.active(query):
             print "%d\t%d\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
 
     def _list_pools(self):

@@ -31,6 +31,24 @@ Resources API
         Method is overrided in a relative classes to check is specific resource can be added as a child.
 
 
+2.1. Query resources
+
+    Resource.objects.filter(**kwargs)
+
+    It supports all field lookups and methods, as described here:
+    https://docs.djangoproject.com/en/1.7/ref/models/querysets/
+
+    Resource.objects manager also supports search by options. Resource options can be specified in
+    Resource.objects.filter() as a regular Resource fields. Field lookups are also supported.
+
+    Resource.objects manager supports the shortcut Resource.objects.active(), that is equivalent for filter()
+    but it ignores status=deleted resources.
+
+
+    Example:
+        Resource.objects.filter(status__in=[free, inuse], someopt__contains='value', someopt2='exactval')
+
+
 3. IP address pools
 
     IPAddressPool
