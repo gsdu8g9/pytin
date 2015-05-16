@@ -14,6 +14,7 @@ import argparse
 import traceback
 import sys
 import os
+import datetime
 
 class IPList:
     def __init__(self):
@@ -78,76 +79,83 @@ class FW():
         """
         self.args = args
         self.iplist = IPList()
-
-    def add(self):
+        if self.args.verbose:
+            t1 = datetime.now()
         if os.path.exists(self.args.filename):
             with open(self.args.filename, 'r') as f:
                 for ip in f:
                     ip = ip.replace("\n", "")
                     self.iplist.Add(ip)
+        if self.args.verbose:
+            print 'Время чтения файла: ' + str(datetime.now() - t1).seconds + ' секунд'
+
+    def save(self):
+        if self.args.verbose:
+            t1 = datetime.now()
+        with open(self.args.filename, 'w+') as f:
+            for ip in self.iplist.iplist:
+                f.write(ip + "\n")
+        if self.args.verbose:
+            print 'Время записи в файл: ' + str(datetime.now() - t1).seconds + ' секунд'
+        self.iplist = []
+        
+    def add(self):
         for ip in self.args.addip:
             self.iplist.Add(ip)
-        with open(self.args.filename, 'w+') as f:
-            for ip in self.iplist.iplist:
-                f.write(ip + "\n")
-        self.reload()
+        self.refresh()
 
     def delete(self):
-        if os.path.exists(self.args.filename):
-            with open(self.args.filename, 'r') as f:
-                for ip in f:
-                    ip = ip.replace("\n", "")
-                    self.iplist.Add(ip)
         for ip in self.args.delip:
             self.iplist.Delete(ip)
-        with open(self.args.filename, 'w+') as f:
-            for ip in self.iplist.iplist:
-                f.write(ip + "\n")
-        self.reload()
+        self.refresh()
 
     def flush(self):
-        fw_cmd()
+        fw_cmd('flush')
 
-    def reload(self):
+    def refresh(self):
         if not self.args.quiet:
             print "Очистка таблицы межсетевого экрана"
-#        subprocess.call("ipfw table " + str(self.args.table) + " flush")
-        self.fw_cmd(fwclear = True)
+        self.fw_cmd('flush')
 
         if not self.args.quiet:
             print "Загрузка списка IP в таблицу межсетевого экрана"
-        if os.path.exists(self.args.filename):
-            with open(self.args.filename, 'r') as f:
-                for ip in f:
-                    ip = ip.replace("\n", "")
-#                    subprocess.call("ipfw table " + str(self.args.table) + " add " + line)
-                    if self.args.verbose:
-                        self.fw_cmd(ip)
+        if self.args.verbose:
+            t1 = datetime.datetime.now()
+        for ip in self.iplist.iplist:
+            self.fw_cmd('add', ip)
+        if self.args.verbose:
+            print "Время выполнения: " + str((datetime.datetime.now() - t1).seconds) + " секунд"
 
     # Показ списка IP адресов
     def showlist(self):
-        with open(args.filename, 'r') as f:
-            for ip in f:
-                fw_cmd()
+        if self.args.listshow == 'file':
+            for ip in self.iplist.iplist:
+                print ip
+        elif self.args.listshow == 'firewall':
+            self.fw_cmd(operation = 'list')
 
-    def fw_cmd(self, IP = None, fwclear = False):
+    def fw_cmd(self, operation, IP = None):
         if self.args.firewall == 'ipfw':
-            if self.args.fwclear or fwclear:
-                cmd = "ipfw table " + str(self.args.table) + " flush"
+            if operation == 'flush':
+                cmd = "/sbin/ipfw table " + str(self.args.table) + " flush"
                 if self.args.verbose:
                     print cmd
-            elif self.args.addip:
-                cmd = "ipfw table " + str(self.args.table) + " add " + IP
+                subprocess.call(cmd, shell=True)
+            elif operation == 'add':
+                cmd = "/sbin/ipfw table " + str(self.args.table) + " add " + IP
                 if self.args.verbose:
                     print cmd
-            elif self.args.delip:
-                cmd = "ipfw table " + str(self.args.table) + " del " + IP
+                subprocess.call(cmd, shell=True)
+            elif operation == 'del':
+                cmd = "/sbin/ipfw table " + str(self.args.table) + " del " + IP
                 if self.args.verbose:
                     print cmd
-            elif self.args.listshow:
-                cmd = "ipfw table " + str(self.args.table) + " list"
+                subprocess.call(cmd, shell=True)
+            elif operation == 'list':
+                cmd = "/sbin/ipfw table " + str(self.args.table) + " list"
                 if self.args.verbose:
                     print cmd
+                subprocess.call(cmd, shell=True)
         elif self.args.firewall == 'iptables':
             cmd = 'Правила для iptables'
             if self.args.verbose:
@@ -172,8 +180,8 @@ def main():
     mutex_group1.add_argument("-a", "--add", nargs='+', dest="addip", help="Добавить IP")
     mutex_group1.add_argument("-d", "--delete", nargs='+', dest="delip", help="Удалить IP")
     mutex_group1.add_argument("-c", "--clear", action='store_true', dest="fwclear", help="Очистить правила")
-    mutex_group1.add_argument("-l", "--list", action='store_true', dest="listshow", help="Показать список IP")
-    mutex_group1.add_argument("-r", "--reload", action='store_true', dest="reload", help="Перезагрузить правила")
+    mutex_group1.add_argument("-l", "--list", default='firewall', dest="listshow", choices=['firewall', 'file'], help="Показать список IP")
+    mutex_group1.add_argument("-r", "--reload", action='store_true', dest="refresh", help="Перезагрузить правила")
 
     args = parser.parse_args()
 
@@ -187,8 +195,10 @@ def main():
         fw.delete()
     elif args.listshow:
         fw.showlist()
-    elif args.reload:
-        fw.reload()
+    elif args.refresh:
+        fw.refresh()
+
+    fw.save()
 
 if __name__ == "__main__":
     try:
