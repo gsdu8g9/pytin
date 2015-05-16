@@ -7,7 +7,7 @@
 #	Скрипт загрузки таблицы чёрного списка заблокированных IP
 #
 # Requirements:
-#	FreeBSD
+#	FreeBSD/Linux
 
 import subprocess
 import argparse
@@ -45,7 +45,7 @@ class IPList:
 
     def Delete(self, IP):
         """
-        Вставка в отсортированный массив
+        Удаление из массива
         """
         item = self.Search(IP)
         if item:
@@ -106,23 +106,23 @@ class FW():
         self.reload()
 
     def flush(self):
-        print "ipfw table " + str(self.args.table) + " flush"
+        fw_cmd()
 
     def reload(self):
-        if self.args.quiet:
-            print "Очистка таблицы файервола"
+        if not self.args.quiet:
+            print "Очистка таблицы межсетевого экрана"
 #        subprocess.call("ipfw table " + str(self.args.table) + " flush")
-        exec()
+        self.fw_cmd(fwclear = True)
 
-        if self.args.quiet:
-            print "Загрузка списка IP в таблицу файервола"
+        if not self.args.quiet:
+            print "Загрузка списка IP в таблицу межсетевого экрана"
         if os.path.exists(self.args.filename):
             with open(self.args.filename, 'r') as f:
                 for ip in f:
                     ip = ip.replace("\n", "")
 #                    subprocess.call("ipfw table " + str(self.args.table) + " add " + line)
                     if self.args.verbose:
-                        fw_cmd(ip)
+                        self.fw_cmd(ip)
 
     # Показ списка IP адресов
     def showlist(self):
@@ -130,36 +130,42 @@ class FW():
             for ip in f:
                 fw_cmd()
 
-    def fw_cmd(self, IP = None):
+    def fw_cmd(self, IP = None, fwclear = False):
         if self.args.firewall == 'ipfw':
-            if args.addip:
-                cmd = "ipfw table " + str(self.args.table) + " add " + IP
-                if self.args.verbose:
-                    print cmd
-            elif args.fwclear:
+            if self.args.fwclear or fwclear:
                 cmd = "ipfw table " + str(self.args.table) + " flush"
                 if self.args.verbose:
                     print cmd
-            elif args.delip:
+            elif self.args.addip:
+                cmd = "ipfw table " + str(self.args.table) + " add " + IP
+                if self.args.verbose:
+                    print cmd
+            elif self.args.delip:
                 cmd = "ipfw table " + str(self.args.table) + " del " + IP
                 if self.args.verbose:
                     print cmd
-            elif args.listshow:
+            elif self.args.listshow:
                 cmd = "ipfw table " + str(self.args.table) + " list"
                 if self.args.verbose:
                     print cmd
         elif self.args.firewall == 'iptables':
+            cmd = 'Правила для iptables'
+            if self.args.verbose:
+                print cmd
         elif self.args.firewall == 'pf':
+            cmd = 'Правила для pf'
+            if self.args.verbose:
+                print cmd
 
 def main():
     parser = argparse.ArgumentParser(description='Скрипт добавления IP или подсети в блокировку на межсетевом экране',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser._optionals.title = "Необязательные аргументы"
 
-    parser.add_argument("-q", "--quiet", dest="quiet", action='store_false', help="Тихий режим")
+    parser.add_argument("-q", "--quiet", dest="quiet", action='store_true', help="Тихий режим")
     parser.add_argument("-f", "--filename", dest="filename", default="/etc/badguys.list", help="Имя файла")
     parser.add_argument("-t", "--table", dest="table", default=2, help="Номер таблицы")
-    parser.add_argument("-v", "--verbose", dest="verbose", action='store_false', help="Отладка")
+    parser.add_argument("-v", "--verbose", dest="verbose", action='store_true', help="Отладка")
     parser.add_argument("-fw", "--firewall", dest="firewall", default='ipfw', choices=['ipfw', 'iptables', 'pf'], help="Тип межсетевого экрана")
     group1 = parser.add_argument_group('Команды')
     mutex_group1 = group1.add_mutually_exclusive_group()
