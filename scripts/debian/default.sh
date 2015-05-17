@@ -13,10 +13,10 @@
 case $(head -n1 /etc/issue | cut -f 1 -d ' ') in
 Debian)     typeos="debian" ;;
 Ubuntu)
-    case $(head -n1 /etc/issue | grep -o '14.04') in
-    14.04)
+    if $(head -n1 /etc/issue | grep -o '14.04') == "14.04"; then
         sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 40976EAF437D05B5
         sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 3B4FE6ACC0B21F32
+    fi
     ;;
     esac
     *)          typeos="rhel" ;;
