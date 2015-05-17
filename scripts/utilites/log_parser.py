@@ -30,6 +30,7 @@ class DDoSAnalizer:
         self.stat = DDoSStat()
         self.type_file = type_file
         self.quiet = False
+        self.patterns = ["192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
 
     def isRFC(self, ip):
         """
@@ -38,8 +39,7 @@ class DDoSAnalizer:
         result = False
         if ip == "127.0.0.1":
             result = True
-        patterns = ["192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
-        for pattern in patterns:
+        for pattern in self.ippatterns:
             match = re.findall(pattern, ip)
             if match:
                 result = True
