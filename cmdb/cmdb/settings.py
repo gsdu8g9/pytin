@@ -41,7 +41,8 @@ INSTALLED_APPS = (
     'resources',
     'events',
     'ipman',
-    'assets'
+    'assets',
+    'importer'
 )
 
 MIDDLEWARE_CLASSES = (

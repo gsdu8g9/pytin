@@ -1,7 +1,6 @@
 import json
 
 from django.contrib.contenttypes.models import ContentType
-
 from django.db import models
 from django.core import exceptions as djexceptions
 from django.db.models.query import QuerySet
@@ -101,44 +100,6 @@ class ResourcesWithOptionsManager(models.Manager):
         Resource fields has higher priority than ResourceOption fields
         """
         return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
-
-        # def filter(self, *args, **kwargs):
-        # # """
-        #     # Search for Resources using Options
-        #     # search_fields keys can be specified with lookups:
-        #     # https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
-        #     #
-        #     # Resource fields has higher priority than ResourceOption fields
-        #     # """
-        #     #
-        #     # search_fields = kwargs
-        #     #
-        #     # # if filter is called for proxy model, filter by proxy type
-        #     # if self.model != Resource:
-        #     #     search_fields['type'] = self.model.__name__
-        #     #
-        #     # query = {}
-        #     #
-        #     # for field_name_with_lookup in search_fields.keys():
-        #     #     field_name = field_name_with_lookup.split('__')[0]
-        #     #
-        #     #     if ModelFieldChecker.is_model_field(Resource, field_name):
-        #     #         query[field_name_with_lookup] = search_fields[field_name_with_lookup]
-        #     #     else:
-        #     #         if ModelFieldChecker.is_model_field(ResourceOption, field_name):
-        #     #             query['resourceoption__%s' % field_name_with_lookup] = search_fields[field_name_with_lookup]
-        #     #         else:
-        #     #             # convert field__lookup = value to:
-        #     #             # resourceoption__name__exact = field
-        #     #             # resourceoption__value__lookup = value
-        #     #             query['resourceoption__name__exact'] = field_name
-        #     #             query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
-        #     #                 search_fields[field_name_with_lookup]
-        #
-        #     return self.get_queryset().filter(*args, **kwargs).distinct()
-
-        # def get(self, *args, **kwargs):
-        #     return self.get_queryset().get(*args, **kwargs)
 
 
 class ResourceOption(models.Model):
@@ -350,16 +311,23 @@ class Resource(models.Model):
         return new_object
 
     def lock(self):
-        self.status = self.STATUS_LOCKED
+        self._change_status(self.STATUS_LOCKED, 'lock')
 
     def use(self):
-        self.status = self.STATUS_INUSE
+        self._change_status(self.STATUS_INUSE, 'use')
 
     def fail(self):
-        self.status = self.STATUS_FAILED
+        self._change_status(self.STATUS_FAILED, 'fail')
 
     def free(self):
-        self.status = self.STATUS_FREE
+        self._change_status(self.STATUS_FREE, 'free')
+
+    def delete(self):
+        """
+        Override Model .delete() method. Instead of actual deleting object from the DB
+        set status Deleted.
+        """
+        self._change_status(self.STATUS_DELETED, 'delete')
 
     @property
     def is_locked(self):
@@ -382,7 +350,7 @@ class Resource(models.Model):
         Set resource option. If format is omitted, then format is guessed from value type.
         """
 
-        assert self._is_saved(), "Resource must be saved before setting options"
+        assert self.is_saved(), "Resource must be saved before setting options"
         assert name is not None, "Parameter 'name' must be defined."
 
         query = dict(
@@ -469,5 +437,15 @@ class Resource(models.Model):
         for res in Resource.objects.active(parent=self, status=Resource.STATUS_FREE):
             yield res
 
-    def _is_saved(self):
+    def _change_status(self, new_status, method_name):
+        assert new_status, "new_status must be defined."
+        assert method_name, "method_name must be defined."
+
+        for child in self:
+            getattr(child, method_name)()
+
+        self.status = new_status
+        self.save()
+
+    def is_saved(self):
         return self.id is not None

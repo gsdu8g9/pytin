@@ -6,6 +6,23 @@ from resources.models import Resource, ResourceOption
 
 
 class ResourceTest(TestCase):
+    def test_delete(self):
+        resource1 = Resource()
+        resource1.save()
+
+        resource2 = Resource()
+        resource2.save()
+
+        resource3 = Resource(parent=resource2)
+        resource3.save()
+
+        self.assertEqual(3, len(Resource.objects.all()))
+
+        resource2.delete()
+
+        self.assertEqual(3, len(Resource.objects.all()))
+        self.assertEqual(1, len(Resource.objects.active()))
+
     def test_static_create(self):
         new_res = Resource.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
 

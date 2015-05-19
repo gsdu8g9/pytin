@@ -1,3 +1,5 @@
+import netaddr
+
 from resources.models import Resource
 
 
@@ -10,7 +12,65 @@ class RegionResource(Resource):
         proxy = True
 
 
-class PortResource(Resource):
+class PortConnection(Resource):
+    """
+    Connection between the ports in the network
+    """
+
+    class Meta:
+        proxy = True
+
+    @property
+    def device1(self):
+        return self.get_option_value('device1', default=0)
+
+    @device1.setter
+    def device1(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('device1', value)
+
+    @property
+    def device2(self):
+        return self.get_option_value('device2', default=0)
+
+    @device2.setter
+    def device2(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('device2', value)
+
+    @property
+    def link_speed_mbit(self):
+        return self.get_option_value('link_speed_mbit', default=1000)
+
+    @link_speed_mbit.setter
+    def link_speed_mbit(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('link_speed_mbit', value)
+
+
+class SwitchPort(Resource):
+    """
+    Network switch port
+    """
+
+    class Meta:
+        proxy = True
+
+    @property
+    def number(self):
+        return self.get_option_value('number', default=0)
+
+    @number.setter
+    def number(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('number', value)
+
+
+class ServerPort(Resource):
     """
     Network port
     """
@@ -20,17 +80,19 @@ class PortResource(Resource):
 
     @property
     def mac(self):
-        return self.get_option_value('mac', default="00:00:00:00:00:00")
+        return self.get_option_value('mac', default="000000000000")
 
     @mac.setter
     def mac(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('mac', value)
+        _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
+
+        self.set_option('mac', str(_mac))
 
     @property
     def number(self):
-        return self.get_option_value('number', default="0")
+        return self.get_option_value('number', default=0)
 
     @number.setter
     def number(self, value):
@@ -75,6 +137,15 @@ class InventoryResource(Resource):
 
 
 class ServerResource(InventoryResource):
+    """
+    Server object
+    """
+
+    class Meta:
+        proxy = True
+
+
+class VirtualServerResource(InventoryResource):
     """
     Server object
     """
