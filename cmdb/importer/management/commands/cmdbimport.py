@@ -2,10 +2,8 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
-from assets.models import ServerPort, Server, VirtualServer, SwitchPort, PortConnection
 from importer.importlib import CmdbImporter
-from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump
-from ipman.models import IPAddress, IPAddressPool
+from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump, QSW8300ArpTableSnmp
 from resources.models import Resource
 
 
@@ -15,6 +13,10 @@ class Command(BaseCommand):
     registered_handlers = {}
     registered_arp_providers = {
         'QSW8300': QSW8300ArpTableFileDump
+    }
+
+    registered_arp_providers_snmp = {
+        'QSW8300': QSW8300ArpTableSnmp
     }
 
     registered_mac_providers = {
@@ -28,19 +30,37 @@ class Command(BaseCommand):
                                            parser_class=ArgumentParser)
 
         # IP address commands
-        registered_providers = dict(self.registered_arp_providers)
-        registered_providers.update(self.registered_mac_providers)
+        registered_providers_file = dict(self.registered_arp_providers)
+        registered_providers_file.update(self.registered_mac_providers)
 
         file_cmd_parser = subparsers.add_parser('fromfile', help='Import data from dump files')
         file_cmd_parser.add_argument('device-id', help="Resource ID of the device used to take the dump.")
-        file_cmd_parser.add_argument('provider', choices=registered_providers.keys(),
+        file_cmd_parser.add_argument('provider', choices=registered_providers_file.keys(),
                                      help="Type of the device (or dump file format).")
-
         file_types_group = file_cmd_parser.add_mutually_exclusive_group()
         file_types_group.add_argument('--arpdump', help="Path to the ARP dump.")
         file_types_group.add_argument('--macdump', help="Path to the MAC dump.")
-
         self._register_handler('fromfile', self._handle_file_dumps)
+
+        snmp_cmd_parser = subparsers.add_parser('snmp', help='Import data from SNMP')
+        snmp_cmd_parser.add_argument('device-id', help="Resource ID of the device used to take the dump.")
+        snmp_cmd_parser.add_argument('provider', choices=self.registered_arp_providers_snmp.keys(),
+                                     help="Type of the device (or dump file format).")
+        snmp_cmd_parser.add_argument('hostname', help="Hostname or IP address.")
+        snmp_cmd_parser.add_argument('community', help="SNMP community string.")
+        self._register_handler('snmp', self._handle_snmp)
+
+    def _handle_snmp(self, *args, **options):
+        device_id = options['device-id']
+        provider_key = options['provider']
+        hostname = options['hostname']
+        community = options['community']
+
+        source_switch = Resource.objects.get(pk=device_id)
+
+        arp_provider = self.registered_arp_providers_snmp[provider_key](device_id, hostname, community)
+        for arp_record in arp_provider:
+            self.cmdb_importer.add_arp_record(source_switch, arp_record)
 
     def _handle_file_dumps(self, *args, **options):
         device_id = options['device-id']

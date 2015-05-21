@@ -1,7 +1,89 @@
 import os
 import re
 
+from pysnmp.entity.rfc3413.oneliner import cmdgen
+
 from importer.providers.base_providers import ArpTable, ArpTableRecord, MacTableRecord, MacTable
+
+
+class QSW8300ArpTableSnmp(ArpTable):
+    arp_table = None
+
+    def __init__(self, device_id, host, community):
+        assert host, "host must be defined."
+        assert device_id, "device_id must be defined."
+        assert community, "community must be defined."
+
+        self.device_id = device_id
+        self.host = host
+        self.community = community
+
+    def _snmp_walk(self, oid):
+        cmdGen = cmdgen.CommandGenerator()
+
+        errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(
+            cmdgen.CommunityData(self.community),
+            cmdgen.UdpTransportTarget((self.host, 161)),
+            oid
+        )
+
+        if errorIndication:
+            print(errorIndication)
+        else:
+            if errorStatus:
+                raise Exception('%s at %s' % (
+                    errorStatus.prettyPrint(),
+                    errorIndex and varBindTable[-1][int(errorIndex) - 1] or '?'))
+            else:
+                for varBindTableRow in varBindTable:
+                    for name, val in varBindTableRow:
+                        yield name.prettyPrint(), val.prettyPrint()
+
+    def __iter__(self):
+        if not self.arp_table:
+            port_name_map = {}
+            oid = '.1.3.6.1.2.1.31.1.1.1.1'
+            for name, value in self._snmp_walk(oid):
+                port_name_map[name[len(oid):]] = value
+
+            ip_mac_map = {}
+            oid = '.1.3.6.1.2.1.4.22.1.2'
+            for name, value in self._snmp_walk(oid):
+                name_parts = name.split('.')
+                ip_address = ".".join([name_parts[x] for x in range(len(name_parts) - 4, len(name_parts))])
+                ip_mac_map[ip_address] = value[2:].upper()
+
+            mac_port_map = {}
+            oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'
+            for name, value in self._snmp_walk(oid):
+                name_parts = name.split('.')
+                mac_address = "".join(
+                    ["%02x" % int(name_parts[x]) for x in range(len(name_parts) - 6, len(name_parts))]).upper()
+                mac_port_map[mac_address] = value
+
+            self.arp_table = []
+            for ip_addr in ip_mac_map:
+                mac_addr = ip_mac_map[ip_addr]
+
+                if mac_addr in mac_port_map:
+                    port_number = mac_port_map[mac_addr]
+                else:
+                    print "ERROR: MAC address %s is missing from mac_port_map." % mac_addr
+                    continue
+
+                if port_number in port_name_map:
+                    port_name = port_name_map[port_number]
+                else:
+                    print "ERROR: Port number %s is missing from port_name_map." % port_number
+                    continue
+
+                self.arp_table.append(dict(ip=ip_addr, mac=mac_addr, port_name=port_name, port_num=port_number))
+
+        for arp_rec in self.arp_table:
+            yield ArpTableRecord(source_device_id=self.device_id,
+                                 ip=arp_rec.ip,
+                                 mac=arp_rec.mac,
+                                 port=arp_rec.port_num)
 
 
 class QSW8300ArpTableFileDump(ArpTable):

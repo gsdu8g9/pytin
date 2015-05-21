@@ -1,6 +1,5 @@
 import netaddr
 
-
 class MacTable(object):
     def __init__(self):
         pass
