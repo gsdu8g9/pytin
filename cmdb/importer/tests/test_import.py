@@ -2,7 +2,7 @@ import os
 
 from django.test import TestCase
 
-from assets.models import RegionResource, ServerPort, ServerResource, VirtualServerResource
+from assets.models import RegionResource, ServerPort, Server, VirtualServer
 
 from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump
 from ipman.models import IPNetworkPool, IPAddress
@@ -54,7 +54,7 @@ class QSW8300ImportDataTest(TestCase):
                         if len(ips) > 1:
                             print "ERROR: Duplicate IP %s!" % arp_record.ip
                     else:
-                        print "Add %s to %s" % (arp_record.ip, ip_pool)
+                        # print "Add %s to %s" % (arp_record.ip, ip_pool)
                         IPAddress.create(address=arp_record.ip, status=Resource.STATUS_INUSE, parent=ip_pool)
 
                     added = True
@@ -77,9 +77,9 @@ class QSW8300ImportDataTest(TestCase):
                 # create server and port
                 server = None
                 if arp_record.vendor:
-                    server = ServerResource.create(label='Server', vendor=arp_record.vendor)
+                    server = Server.create(label='Server', vendor=arp_record.vendor)
                 else:
-                    server = VirtualServerResource.create(label='VPS')
+                    server = VirtualServer.create(label='VPS')
 
                 server_port = ServerPort.create(mac=arp_record.mac, parent=server)
             else:
@@ -98,6 +98,6 @@ class QSW8300ImportDataTest(TestCase):
                 IPAddress.create(address=arp_record.ip, status=Resource.STATUS_INUSE, parent=server_port)
 
         # count servers
-        self.assertEqual(72, len(ServerResource.objects.active()))
-        self.assertEqual(43, len(VirtualServerResource.objects.active()))
+        self.assertEqual(72, len(Server.objects.active()))
+        self.assertEqual(43, len(VirtualServer.objects.active()))
         self.assertEqual(115, len(ServerPort.objects.active()))

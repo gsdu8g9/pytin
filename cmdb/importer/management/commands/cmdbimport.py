@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
-from assets.models import ServerPort, ServerResource, VirtualServerResource
+from assets.models import ServerPort, Server, VirtualServer
 
 from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump
 from ipman.models import IPAddress, IPAddressPool
@@ -31,7 +31,7 @@ class Command(BaseCommand):
         for registered_provider in registered_providers:
             registered_providers_map[registered_provider[0]] = 1
 
-        file_cmd_parser = subparsers.add_parser('file', help='Import data from dump files')
+        file_cmd_parser = subparsers.add_parser('fromfile', help='Import data from dump files')
         file_cmd_parser.add_argument('device-id', help="Resource ID of the device used to take the dump.")
         file_cmd_parser.add_argument('provider', choices=registered_providers_map.keys(),
                                      help="Type of the device (or dump file format).")
@@ -40,7 +40,7 @@ class Command(BaseCommand):
         file_types_group.add_argument('--arpdump', help="Path to the ARP dump.")
         file_types_group.add_argument('--macdump', help="Path to the MAC dump.")
 
-        self._register_handler('file', self._handle_file_dumps)
+        self._register_handler('fromfile', self._handle_file_dumps)
 
     def _handle_file_dumps(self, *args, **options):
         device_id = options['device-id']
@@ -101,9 +101,9 @@ class Command(BaseCommand):
             # create server and port
             server = None
             if arp_record.vendor:
-                server = ServerResource.create(label='Server', vendor=arp_record.vendor)
+                server = Server.create(label='Server', vendor=arp_record.vendor)
             else:
-                server = VirtualServerResource.create(label='VPS')
+                server = VirtualServer.create(label='VPS')
 
             server_port = ServerPort.create(mac=arp_record.mac, parent=server)
         else:

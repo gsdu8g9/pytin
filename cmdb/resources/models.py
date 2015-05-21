@@ -16,6 +16,16 @@ class ModelFieldChecker:
         pass
 
     @staticmethod
+    def is_field_or_property(class_type, name):
+        """
+        Check if field name belongs to model fields or properties
+        """
+        assert name is not None, "Parameter 'name' must be defined."
+        assert issubclass(class_type, models.Model), "Class 'class_type' must be the subclass of models.Model."
+
+        return ModelFieldChecker.is_model_field(class_type, name) and hasattr(class_type, name)
+
+    @staticmethod
     def is_model_field(class_type, name):
         """
         Check if field name belongs to model fields
@@ -246,7 +256,7 @@ class Resource(models.Model):
         db_table = "resources"
 
     def __str__(self):
-        return "%d %s (%s)" % (self.id, self.content_type, self.status)
+        return self.name
 
     def __contains__(self, item):
         return Resource.objects.active(pk=item.id, parent=self).exists()
@@ -300,13 +310,19 @@ class Resource(models.Model):
 
         new_object = cls(**model_fields)
         new_object.save()
+
+        need_save = False
         for option_field in option_fields.keys():
             # if model have property with the given name, then set it via setattr,
             # because of possible custom behaviour
             if hasattr(new_object, option_field):
                 setattr(new_object, option_field, option_fields[option_field])
+                need_save = True
             else:
                 new_object.set_option(option_field, option_fields[option_field], namespace='')
+
+        if need_save:
+            new_object.save()
 
         return new_object
 

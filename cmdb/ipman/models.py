@@ -59,13 +59,6 @@ class IPAddressPool(Resource):
     def __str__(self):
         return self.name
 
-    def __iter__(self):
-        """
-        Iterates by all related IP addresses.
-        """
-        for ipaddr in IPAddress.objects.active(ipman_pool_id=self.id):
-            yield ipaddr
-
     @staticmethod
     def get_all_pools():
         return Resource.objects.active(type__in=IPAddressPool.ip_pool_types)

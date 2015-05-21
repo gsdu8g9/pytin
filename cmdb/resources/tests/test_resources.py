@@ -23,6 +23,16 @@ class ResourceTest(TestCase):
         self.assertEqual(3, len(Resource.objects.all()))
         self.assertEqual(1, len(Resource.objects.active()))
 
+    def test_static_create_with_fields(self):
+        """
+        Bug fixed: when creating models with model fields in create() call - they are not saved
+        """
+        new_res1 = Resource.create(somekey1='someval1', somekey2='someval2')
+        new_res2 = Resource.create(somekey3='someval3', somekey4='someval4', parent_id=new_res1.id)
+        new_res2.refresh_from_db()
+
+        self.assertEqual(new_res1.id, new_res2.parent_id)
+
     def test_static_create(self):
         new_res = Resource.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
 

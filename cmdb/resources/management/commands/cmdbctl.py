@@ -2,8 +2,9 @@ from argparse import ArgumentParser
 import argparse
 
 from django.core.management.base import BaseCommand
+from django.apps import apps
 
-from resources.models import Resource, ResourceOption
+from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
 class Command(BaseCommand):
@@ -20,26 +21,40 @@ class Command(BaseCommand):
                                            parser_class=ArgumentParser)
 
         # Common operatoins
-        res_get_cmd = subparsers.add_parser('get', help="Get resource options")
-        res_get_cmd.add_argument('resource-id', nargs='+', help="ID of the resource")
+        res_get_cmd = subparsers.add_parser('get', help="Get resource options.")
+        res_get_cmd.add_argument('resource-id', nargs='+', help="ID of the resource.")
         self._register_handler('get', self._handle_res_get_options)
 
-        res_set_cmd = subparsers.add_parser('set', help="Set resource options")
-        res_set_cmd.add_argument('resource-id', nargs='+', help="ID of the resource")
-        res_set_cmd.add_argument('-n', '--option-name', help="Name of the option")
-        res_set_cmd.add_argument('-v', '--option-value', help="Value of the option")
-        res_set_cmd.add_argument('--format', '--option-format', help="Type of the value",
+        res_set_cmd = subparsers.add_parser('set', help="Set resource options.")
+        res_set_cmd.add_argument('resource-id', nargs='+', help="ID of the resource.")
+        res_set_cmd.add_argument('-n', '--option-name', help="Name of the option.")
+        res_set_cmd.add_argument('-v', '--option-value', help="Value of the option.")
+        res_set_cmd.add_argument('--format', '--option-format', help="Type of the value.",
                                  default=ResourceOption.FORMAT_STRING,
                                  choices=[choice[0] for choice in ResourceOption.FORMAT_CHOICES])
         stat_group = res_set_cmd.add_mutually_exclusive_group()
-        stat_group.add_argument('--use', action='store_true', help="Mark resource and its childs as used")
-        stat_group.add_argument('--free', action='store_true', help="Mark resource and its childs as free")
-        stat_group.add_argument('--lock', action='store_true', help="Mark resource and its childs as locked")
+        stat_group.add_argument('--use', action='store_true', help="Mark resource and its childs as used.")
+        stat_group.add_argument('--free', action='store_true', help="Mark resource and its childs as free.")
+        stat_group.add_argument('--lock', action='store_true', help="Mark resource and its childs as locked.")
         self._register_handler('set', self._handle_res_set_options)
 
-        res_list_cmd = subparsers.add_parser('list', help="Get resource list")
-        res_list_cmd.add_argument('filter', nargs=argparse.REMAINDER)
+        res_list_cmd = subparsers.add_parser('list', help="Get resource list.")
+        res_list_cmd.add_argument('--limit', type=int, default=100, help="Limit the resources output.")
+        res_list_cmd.add_argument('--page', type=int, default=1, help="Page number to paginate resource list (from 1).")
+        res_list_cmd.add_argument('--status', help="Status of the IP",
+                                  choices=[choice[0] for choice in Resource.STATUS_CHOICES])
+        res_list_cmd.add_argument('filter', nargs=argparse.REMAINDER, help="Key=Value pairs.")
         self._register_handler('list', self._handle_res_list)
+
+        res_add_cmd = subparsers.add_parser('add', help="Add the new resource.")
+        res_add_cmd.add_argument('--type', default='resources.Resource',
+                                 help="Type of the resource in format 'app.model'.")
+        res_add_cmd.add_argument('fields', nargs=argparse.REMAINDER, help="Key=Value pairs.")
+        self._register_handler('add', self._handle_res_add)
+
+        res_delete_cmd = subparsers.add_parser('delete', help="Delete resource objects.")
+        res_delete_cmd.add_argument('resource-id', nargs='+', help="IDs of the resources to delete.")
+        self._register_handler('delete', self._handle_res_delete)
 
     def handle(self, *args, **options):
         if 'subcommand_name' in options:
@@ -50,9 +65,78 @@ class Command(BaseCommand):
         # call handler
         self.registered_handlers[subcommand](*args, **options)
 
+    def _handle_res_delete(self, *args, **options):
+        for res_id in options['resource-id']:
+            resource = Resource.objects.get(pk=res_id)
+            resource.delete()
+
+    def _handle_res_add(self, *args, **options):
+        parsed_data = self._parse_reminder_arg(options['fields'])
+
+        requested_model = Resource
+        if options['type']:
+            requested_model = apps.get_model(options['type'])
+
+        resource = requested_model.create(**parsed_data)
+
+        self._print_resource_data(resource)
+
     def _handle_res_list(self, *args, **options):
+        query = self._parse_reminder_arg(options['filter'])
+
+        limit = options['limit']
+        offset = (options['page'] - 1) * limit
+
+        if not options['status']:
+            resource_set = Resource.objects.active(**query)[offset:limit]
+        else:
+            query['status'] = options['status']
+            resource_set = Resource.objects.filter(**query)[offset:limit]
+
+        for resource in resource_set:
+            print "%5d\t%5s\t%30s\t%10s\t%10s" % ('ID', 'parent_id', 'name', 'type', 'status')
+            print "-".format("-60")
+            print "%5d\t%5s\t%30s\t%10s\t%10s" % (
+                resource.id, resource.parent_id, resource, resource.type, resource.status)
+
+    def _handle_res_get_options(self, *args, **options):
+        for res_id in options['resource-id']:
+            resource = Resource.objects.get(pk=res_id)
+
+            self._print_resource_data(resource)
+
+    def _handle_res_set_options(self, *args, **options):
+        for res_id in options['resource-id']:
+            resource = Resource.objects.get(pk=res_id)
+
+            if options['option_name'] and options['option_value']:
+                if ModelFieldChecker.is_field_or_property(resource.__class__, options['option_name']):
+                    resource.set_option(name=options['option_name'],
+                                        value=options['option_value'],
+                                        format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
+                else:
+                    setattr(resource, options['option_name'], options['option_value'])
+                    resource.save()
+            elif options['use']:
+                resource.use()
+            elif options['free']:
+                resource.free()
+            elif options['lock']:
+                resource.lock()
+
+            self._print_resource_data(resource)
+
+    def _print_resource_data(self, resource):
+        print "%d\t%s\t%s\t%s\t%s" % (resource.id, resource.parent_id, resource.type, resource.name, resource.status)
+        print "\t:created_at = %s" % resource.created_at
+        print "\t:updated_at = %s" % resource.updated_at
+
+        for option in resource.get_options():
+            print "\t%s" % option
+
+    def _parse_reminder_arg(self, reminder_args):
         query = {}
-        for filter_item in options['filter']:
+        for filter_item in reminder_args:
             field_name, field_value = filter_item.split('=')
             field_name = field_name.strip()
             field_value = field_value.strip()
@@ -65,35 +149,7 @@ class Command(BaseCommand):
             else:
                 query[field_name] = field_value
 
-        for resource in Resource.objects.filter(**query):
-            print "%d\t%s\t%s\t%s\t%s" % (
-                resource.id, resource.parent_id, resource.name, resource.type, resource.status)
-
-    def _handle_res_get_options(self, *args, **options):
-        for res_id in options['resource-id']:
-            ip_pool = Resource.objects.get(pk=res_id)
-
-            for option in ip_pool.get_options():
-                print option
-
-    def _handle_res_set_options(self, *args, **options):
-        for res_id in options['resource-id']:
-            ip_resource = Resource.objects.get(pk=res_id)
-
-            if options['option_name'] and options['option_value']:
-                ip_resource.set_option(name=options['option_name'],
-                                       value=options['option_value'],
-                                       format=options['option_format'] if options[
-                                           'option_format'] else ResourceOption.FORMAT_STRING)
-            elif options['use']:
-                ip_resource.use()
-            elif options['free']:
-                ip_resource.free()
-            elif options['lock']:
-                ip_resource.lock()
-
-            for option in ip_resource.get_options():
-                print option
+        return query
 
     def _register_handler(self, command_name, handler):
         assert command_name, "command_name must be defined."

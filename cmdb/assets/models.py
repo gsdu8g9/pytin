@@ -1,11 +1,11 @@
 import netaddr
 
-from resources.models import Resource
+from resources.models import Resource, ResourceOption
 
 
 class RegionResource(Resource):
     """
-    Resource grouping.
+    Resource grouping by region.
     """
 
     class Meta:
@@ -28,7 +28,7 @@ class PortConnection(Resource):
     def device1(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('device1', value)
+        self.set_option('device1', value, format=ResourceOption.FORMAT_INT)
 
     @property
     def device2(self):
@@ -38,7 +38,7 @@ class PortConnection(Resource):
     def device2(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('device2', value)
+        self.set_option('device2', value, format=ResourceOption.FORMAT_INT)
 
     @property
     def link_speed_mbit(self):
@@ -48,7 +48,7 @@ class PortConnection(Resource):
     def link_speed_mbit(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('link_speed_mbit', value)
+        self.set_option('link_speed_mbit', value, format=ResourceOption.FORMAT_INT)
 
 
 class SwitchPort(Resource):
@@ -67,7 +67,7 @@ class SwitchPort(Resource):
     def number(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('number', value)
+        self.set_option('number', value, format=ResourceOption.FORMAT_INT)
 
 
 class ServerPort(Resource):
@@ -98,7 +98,7 @@ class ServerPort(Resource):
     def number(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('number', value)
+        self.set_option('number', value, format=ResourceOption.FORMAT_INT)
 
 
 class InventoryResource(Resource):
@@ -109,6 +109,9 @@ class InventoryResource(Resource):
 
     class Meta:
         proxy = True
+
+    def __str__(self):
+        return self.label
 
     @property
     def label(self):
@@ -130,13 +133,26 @@ class InventoryResource(Resource):
 
         self.set_option('serial', value)
 
-    @property
-    def is_failed(self):
-        return super(Resource, self).is_failed or \
-               Resource.objects.active(status=Resource.STATUS_FAILED, parent=self).exists()
+
+class Switch(InventoryResource):
+    """
+    Switch object
+    """
+
+    class Meta:
+        proxy = True
 
 
-class ServerResource(InventoryResource):
+class GatewaySwitch(InventoryResource):
+    """
+    Gateway device (BGP, announce networks)
+    """
+
+    class Meta:
+        proxy = True
+
+
+class Server(InventoryResource):
     """
     Server object
     """
@@ -145,7 +161,7 @@ class ServerResource(InventoryResource):
         proxy = True
 
 
-class VirtualServerResource(InventoryResource):
+class VirtualServer(InventoryResource):
     """
     Server object
     """
@@ -154,7 +170,7 @@ class VirtualServerResource(InventoryResource):
         proxy = True
 
 
-class RackResource(InventoryResource):
+class Rack(InventoryResource):
     """
     Rack mount object
     """
