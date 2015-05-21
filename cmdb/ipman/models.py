@@ -33,16 +33,19 @@ class IPAddress(Resource):
         return self.get_option_value('version')
 
     def save(self, *args, **kwargs):
-        is_saved = False
+        need_save = True
 
         if not self.is_saved():
+            if self.parent and not isinstance(self.parent, IPAddressPool):
+                raise Exception("IP address must be added to the pool for the first time.")
+
             super(IPAddress, self).save(*args, **kwargs)
-            is_saved = True
+            need_save = False
 
         if self.parent and isinstance(self.parent, IPAddressPool):
             self.set_option('ipman_pool_id', self.parent.id)
 
-        if not is_saved:
+        if need_save:
             super(IPAddress, self).save(*args, **kwargs)
 
 

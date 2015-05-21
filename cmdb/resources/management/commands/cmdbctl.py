@@ -93,10 +93,10 @@ class Command(BaseCommand):
             query['status'] = options['status']
             resource_set = Resource.objects.filter(**query)[offset:limit]
 
+        row_format = '%5s%11s%30s%20s%10s'
+        print row_format % ('ID', 'parent_id', 'name', 'type', 'status')
         for resource in resource_set:
-            print "%5d\t%5s\t%30s\t%10s\t%10s" % ('ID', 'parent_id', 'name', 'type', 'status')
-            print "-".format("-60")
-            print "%5d\t%5s\t%30s\t%10s\t%10s" % (
+            print row_format % (
                 resource.id, resource.parent_id, resource, resource.type, resource.status)
 
     def _handle_res_get_options(self, *args, **options):

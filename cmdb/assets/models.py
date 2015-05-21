@@ -21,24 +21,24 @@ class PortConnection(Resource):
         proxy = True
 
     @property
-    def device1(self):
-        return self.get_option_value('device1', default=0)
+    def port1(self):
+        return self.get_option_value('port1', default=0)
 
-    @device1.setter
-    def device1(self, value):
+    @port1.setter
+    def port1(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('device1', value, format=ResourceOption.FORMAT_INT)
+        self.set_option('port1', value, format=ResourceOption.FORMAT_INT)
 
     @property
-    def device2(self):
-        return self.get_option_value('device2', default=0)
+    def port2(self):
+        return self.get_option_value('port2', default=0)
 
-    @device2.setter
-    def device2(self, value):
+    @port2.setter
+    def port2(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('device2', value, format=ResourceOption.FORMAT_INT)
+        self.set_option('port2', value, format=ResourceOption.FORMAT_INT)
 
     @property
     def link_speed_mbit(self):
@@ -58,6 +58,9 @@ class SwitchPort(Resource):
 
     class Meta:
         proxy = True
+
+    def __str__(self):
+        return "%s:%d" % (self.parent.as_leaf_class(), self.number)
 
     @property
     def number(self):
