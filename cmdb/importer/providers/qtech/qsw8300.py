@@ -81,9 +81,9 @@ class QSW8300ArpTableSnmp(ArpTable):
 
         for arp_rec in self.arp_table:
             yield ArpTableRecord(source_device_id=self.device_id,
-                                 ip=arp_rec.ip,
-                                 mac=arp_rec.mac,
-                                 port=arp_rec.port_num)
+                                 ip=arp_rec['ip'],
+                                 mac=arp_rec['mac'],
+                                 port=arp_rec['port_num'])
 
 
 class QSW8300ArpTableFileDump(ArpTable):

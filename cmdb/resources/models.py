@@ -452,10 +452,6 @@ class Resource(models.Model):
 
         super(Resource, self).save(*args, **kwargs)
 
-        if self.last_seen < self.updated_at:
-            self.last_seen = self.updated_at
-            super(Resource, self).save(*args, **kwargs)
-
     def can_add(self, child):
         """
         Test if child can be added to this resource.
