@@ -42,4 +42,6 @@ echo "*** Done ***"
 
 cd ${OLD_ROOT}
 
+rm -rf ${SOURCES}
+
 exit 0

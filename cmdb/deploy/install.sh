@@ -54,4 +54,8 @@ ln -s ${APPROOT}/logs ${DJANGOROOT}/
 echo "Setting file righs"
 chown -R ${USER}:${USER} ${APPROOT}
 
+cd ${DJANGOROOT}
+python2.7 manage.py makemigrations
+python2.7 manage.py migrate
+
 echo "DONE Deployment to ${APPROOT} for ${APPNAME} (${USER})"
