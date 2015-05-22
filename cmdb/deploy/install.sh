@@ -50,11 +50,12 @@ secret=$(date +%s | md5sum | base64)
 cp -f ${APPCONFIG}/settings.distr.py ${DJANGOROOT}/${APPNAME}/settings.py
 perl -pi -e "s/SECRET_KEY = ''/SECRET_KEY = '${secret}'/g" ${DJANGOROOT}/${APPNAME}/settings.py
 
+
 echo "    create backlinks"
 ln -s ${APPROOT}/logs ${DJANGOROOT}/
 
 echo "Setting file righs"
-chmod ug=rwX ${APPROOT}
+chmod -R ug=rwX ${APPROOT}
 chown -R ${USER}:${USER} ${APPROOT}
 
 cd ${DJANGOROOT}
