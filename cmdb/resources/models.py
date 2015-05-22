@@ -4,6 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.core import exceptions as djexceptions
 from django.db.models.query import QuerySet
+from django.utils import timezone
 
 
 class ModelFieldChecker:
@@ -249,6 +250,7 @@ class Resource(models.Model):
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
+    last_seen = models.DateTimeField('Date last seen', db_index=True, default=timezone.now)
 
     objects = ResourcesWithOptionsManager()
 
@@ -325,6 +327,13 @@ class Resource(models.Model):
             new_object.save()
 
         return new_object
+
+    def touch(self):
+        """
+        Update last_seen date of the resource
+        """
+        self.last_seen = timezone.now()
+        self.save()
 
     def lock(self):
         self._change_status(self.STATUS_LOCKED, 'lock')
@@ -436,9 +445,16 @@ class Resource(models.Model):
             self.content_type = ContentType.objects.get_for_model(self.__class__,
                                                                   for_concrete_model=not self._meta.proxy)
 
+        if not self.last_seen:
+            self.last_seen = timezone.now()
+
         self.type = self.get_type_name()
 
         super(Resource, self).save(*args, **kwargs)
+
+        if self.last_seen < self.updated_at:
+            self.last_seen = self.updated_at
+            super(Resource, self).save(*args, **kwargs)
 
     def can_add(self, child):
         """

@@ -21,6 +21,7 @@ def _get_or_create_object(klass, query, creational=None):
         created = True
     else:
         ret_object = found_objects[0]
+        ret_object.touch()  # update last_seen date
 
         if len(found_objects) > 1:
             print "ERROR: duplicate objects %s for the query: %s" % (klass.__name__, query)
@@ -81,7 +82,6 @@ class CmdbImporter(object):
                                                                  dict(port1=switch_port.id, port2=server_port.id),
                                                                  dict(port1=switch_port.id, port2=server_port.id,
                                                                       link_speed_mbit=1000,
-                                                                      parent=server_port,
                                                                       port1_device=linked_switch,
                                                                       port2_device=linked_server))
                 port_connection.use()

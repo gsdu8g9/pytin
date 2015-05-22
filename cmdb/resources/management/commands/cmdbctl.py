@@ -93,7 +93,7 @@ class Command(BaseCommand):
             query['status'] = options['status']
             resource_set = Resource.objects.filter(**query)[offset:limit]
 
-        row_format = '%5s%11s%30s%20s%10s'
+        row_format = '%5s%11s%35s%20s%10s'
         print row_format % ('ID', 'parent_id', 'name', 'type', 'status')
         for resource in resource_set:
             print row_format % (
@@ -130,6 +130,7 @@ class Command(BaseCommand):
         print "%d\t%s\t%s\t%s\t%s" % (resource.id, resource.parent_id, resource.type, resource.name, resource.status)
         print "\t:created_at = %s" % resource.created_at
         print "\t:updated_at = %s" % resource.updated_at
+        print "\t:last_seen = %s" % resource.last_seen
 
         for option in resource.get_options():
             print "\t%s" % option

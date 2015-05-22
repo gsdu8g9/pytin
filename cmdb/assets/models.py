@@ -20,6 +20,12 @@ class PortConnection(Resource):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        port1 = Resource.objects.get(pk=self.port1)
+        port2 = Resource.objects.get(pk=self.port2)
+
+        return "%s:%d<->%s:%d" % (port1.parent.id, port1.number, port2.parent.id, port2.number)
+
     @property
     def port1(self):
         return self.get_option_value('port1', default=0)
@@ -73,7 +79,7 @@ class SwitchPort(Resource):
         self.set_option('number', value, format=ResourceOption.FORMAT_INT)
 
 
-class ServerPort(Resource):
+class ServerPort(SwitchPort):
     """
     Network port
     """
@@ -92,16 +98,6 @@ class ServerPort(Resource):
         _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
 
         self.set_option('mac', str(_mac))
-
-    @property
-    def number(self):
-        return self.get_option_value('number', default=0)
-
-    @number.setter
-    def number(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('number', value, format=ResourceOption.FORMAT_INT)
 
 
 class InventoryResource(Resource):

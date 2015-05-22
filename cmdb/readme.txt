@@ -46,6 +46,8 @@ Resources API
     Resource.objects manager supports the shortcut Resource.objects.active(), that is equivalent for filter()
     but it ignores status=deleted resources.
 
+    Standard query fields:
+        parent, name, type, status, created_at, updated_at
 
     Example:
 
@@ -60,8 +62,11 @@ Resources API
             The result may contain: [IPAddress, Resource, ResourcePool,...]
 
 
-3. IP address pools
+3. IP address
 -------------------
+
+    IPAddress
+        query: address, version
 
     IPAddressPool
         List of IP addresses. Addresses can be from different networks. This type of pool is used to
@@ -69,14 +74,16 @@ Resources API
 
     IPAddressRangePool
         Pool formed from IP range, such as 192.168.1.1-192.168.1.10. Can only contain IPs from this range.
+        query: range_from, range_to, version
 
     IPNetworkPool
         Pool formed from IP network, such as 192.168.1.1/23. Can only contain IPs from this network.
+        query: network, version
 
-    Extra parameters
-        netmask: network mask for the IPs in the pool
-        prefixlen: CIDR prefix (can be omitted)
-        gateway: gateway for the IPs in the pool
+        Extra query parameters
+            netmask: network mask for the IPs in the pool
+            prefixlen: CIDR prefix (can be omitted)
+            gateway: gateway for the IPs in the pool
 
     IP address is hard linked to its pool by using option field ipman_pool_id. Parent_id is used to
     store the hierarchy of the resources.
@@ -86,18 +93,34 @@ Resources API
 ---------
 
     RegionResource
+        query:
+
     PortConnection
+        query: port1, port2, link_speed_mbit
+
     SwitchPort
+        query: number
+
     ServerPort
+        query: number, mac
+
     Switch
+        query: label, serial
+
     GatewaySwitch
+        query: label, serial
 
     InventoryResource
         Physical resource, that have serial number to track it.
         Such is server, rack, network card, etc.
+        query: label, serial
 
     Server
+        query: label, serial
+
     VirtualServer
+        query: label, serial
+
 
 5. CMDB init script (example)
 -----------------------------
