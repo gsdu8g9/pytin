@@ -52,6 +52,7 @@ echo "    create backlinks"
 ln -s ${APPROOT}/logs ${DJANGOROOT}/
 
 echo "Setting file righs"
+chmod ug=rwX ${APPROOT}
 chown -R ${USER}:${USER} ${APPROOT}
 
 cd ${DJANGOROOT}
