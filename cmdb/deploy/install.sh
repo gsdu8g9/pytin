@@ -56,6 +56,7 @@ ln -s ${APPROOT}/logs ${DJANGOROOT}/
 
 echo "Setting file righs"
 chmod -R ug=rwX ${APPROOT}
+chmod -R o-rwxX ${APPROOT}
 chown -R ${USER}:${USER} ${APPROOT}
 
 cd ${DJANGOROOT}
