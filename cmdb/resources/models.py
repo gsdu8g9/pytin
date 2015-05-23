@@ -436,7 +436,7 @@ class Resource(models.Model):
         return option_value
 
     def get_type_name(self):
-        return self.__class__.__name__
+        return self.__class__.__name__ if not self.content_type else self.content_type.model_class().__name__
 
     def as_leaf_class(self):
         content_type = self.content_type
@@ -444,7 +444,7 @@ class Resource(models.Model):
         if model == Resource or self.__class__ == model:
             return self
 
-        return model.objects.get(id=self.id)
+        return model.objects.get(pk=self.id)
 
     def save(self, *args, **kwargs):
         if not self.content_type:

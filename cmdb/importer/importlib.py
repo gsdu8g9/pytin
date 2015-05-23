@@ -82,7 +82,7 @@ class CmdbImporter(object):
                                                                  dict(port1=switch_port.id, port2=server_port.id,
                                                                       link_speed_mbit=1000,
                                                                       port1_device=str(source_switch),
-                                                                      port2_device=str(server)))
+                                                                      port2_device=str(server_port.parent)))
                 port_connection.use()
 
                 if created:
