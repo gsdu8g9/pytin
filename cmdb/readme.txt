@@ -150,4 +150,6 @@ Resources API
 
 
     # Import ARP table data
-    python manage.py cmdbimport fromfile --arpdump /path/to/file/arp-table.txt
+    # python manage.py cmdbimport fromfile --arpdump /path/to/file/arp-table.txt <gateway_id> QSW8300.arp
+    python manage.py cmdbimport snmp <gateway_id> QSW8300.arp <IP> <community string>
+

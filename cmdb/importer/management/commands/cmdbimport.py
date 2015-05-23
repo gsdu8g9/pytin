@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
+from assets.models import GatewaySwitch, Switch
 from importer.importlib import CmdbImporter
 from importer.providers.base_providers import ArpTableRecord
 from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump, QSW8300ArpTableSnmp, \
@@ -52,6 +53,23 @@ class Command(BaseCommand):
         snmp_cmd_parser.add_argument('community', help="SNMP community string.")
         self._register_handler('snmp', self._handle_snmp)
 
+        auto_cmd_parser = subparsers.add_parser('auto', help='Import and update CMDB data based on resources.')
+        self._register_handler('auto', self._handle_auto)
+
+    def _handle_auto(self):
+        # update via snmp
+        for switch in Resource.objects.active(type__in=[GatewaySwitch.__name__, Switch.__name__]):
+            print "Found switch: %s" % switch
+            if switch.has_option('snmp_provider_key'):
+                snmp_provider_key = switch.get_option_value('snmp_provider_key')
+                if snmp_provider_key in self.registered_providers_snmp:
+                    hostname = switch.get_option_value('snmp_host')
+                    community = switch.get_option_value('snmp_community')
+
+                    print "\tdata: ID:%d\t%s\t%s" % (switch.id, hostname, community)
+                    provider = self.registered_providers_snmp[snmp_provider_key](switch.id, hostname, community)
+                    self._import_record(switch, provider)
+
     def _handle_snmp(self, *args, **options):
         device_id = options['device-id']
         provider_key = options['provider']
@@ -61,15 +79,21 @@ class Command(BaseCommand):
         source_switch = Resource.objects.get(pk=device_id)
 
         provider = self.registered_providers_snmp[provider_key](device_id, hostname, community)
-        for record in provider:
-            if record == ArpTableRecord:
-                self.cmdb_importer.add_arp_record(source_switch, record)
-            else:
-                self.cmdb_importer.add_mac_record(source_switch, record)
+        self._import_record(source_switch, provider)
 
         source_switch.set_option('snmp_host', hostname)
         source_switch.set_option('snmp_community', community)
         source_switch.set_option('snmp_provider_key', provider_key)
+
+    def _import_record(self, gw_switch, provider):
+        assert gw_switch, "gw_switch must be defined."
+        assert provider, "provider must be defined."
+
+        for record in provider:
+            if record == ArpTableRecord:
+                self.cmdb_importer.add_arp_record(gw_switch, record)
+            else:
+                self.cmdb_importer.add_mac_record(gw_switch, record)
 
     def _handle_file_dumps(self, *args, **options):
         device_id = options['device-id']

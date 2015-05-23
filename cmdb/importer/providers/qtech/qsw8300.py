@@ -58,10 +58,10 @@ class QSW8300MacTableSnmp(MacTable):
                     [("%02x" % int(name_parts[x])).upper() for x in
                      range(len(name_parts) - 6, len(name_parts))]).upper()
 
-                port_name = port_name_map[value]
-
-                if port_name.lower().startswith('ethernet'):
-                    mac_port_map[mac_address] = value
+                if value in port_name_map:
+                    port_name = port_name_map[value]
+                    if port_name.lower().startswith('ethernet'):
+                        mac_port_map[mac_address] = value
 
         for mac_addr in mac_port_map:
             yield MacTableRecord(source_device_id=self.device_id,
@@ -102,7 +102,12 @@ class QSW8300ArpTableSnmp(ArpTable):
                 mac_address = "".join(
                     [("%02x" % int(name_parts[x])).upper() for x in
                      range(len(name_parts) - 6, len(name_parts))]).upper()
-                mac_port_map[mac_address] = value
+
+                if value in port_name_map:
+                    port_name = port_name_map[value]
+                    if port_name.lower().startswith('ethernet'):
+                        mac_port_map[mac_address] = value
+
 
             self.arp_table = []
             for ip_addr in ip_mac_map:
