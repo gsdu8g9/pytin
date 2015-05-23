@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 
 from importer.importlib import CmdbImporter
+from importer.providers.base_providers import ArpTableRecord
 from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump, QSW8300ArpTableSnmp, \
     QSW8300MacTableSnmp
 from resources.models import Resource
@@ -59,9 +60,12 @@ class Command(BaseCommand):
 
         source_switch = Resource.objects.get(pk=device_id)
 
-        arp_provider = self.registered_providers_snmp[provider_key](device_id, hostname, community)
-        for arp_record in arp_provider:
-            self.cmdb_importer.add_arp_record(source_switch, arp_record)
+        provider = self.registered_providers_snmp[provider_key](device_id, hostname, community)
+        for record in provider:
+            if record == ArpTableRecord:
+                self.cmdb_importer.add_arp_record(source_switch, record)
+            else:
+                self.cmdb_importer.add_mac_record(source_switch, record)
 
     def _handle_file_dumps(self, *args, **options):
         device_id = options['device-id']
