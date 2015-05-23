@@ -6,12 +6,16 @@ from pysnmp.entity.rfc3413.oneliner import cmdgen
 from importer.providers.base_providers import ArpTable, ArpTableRecord, MacTableRecord, MacTable
 
 
-def _snmp_walk(self, oid):
+def _snmp_walk(host, community, oid):
+    assert host, "host must be defined."
+    assert community, "community must be defined."
+    assert oid, "oid must be defined."
+
     cmdGen = cmdgen.CommandGenerator()
 
     errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(
-        cmdgen.CommunityData(self.community),
-        cmdgen.UdpTransportTarget((self.host, 161)),
+        cmdgen.CommunityData(community),
+        cmdgen.UdpTransportTarget((host, 161)),
         oid
     )
 
@@ -43,12 +47,12 @@ class QSW8300MacTableSnmp(MacTable):
         if not self.mac_port_map:
             port_name_map = {}
             oid = '.1.3.6.1.2.1.31.1.1.1.1'
-            for name, value in _snmp_walk(oid):
+            for name, value in _snmp_walk(self.host, self.community, oid):
                 port_name_map[name[len(oid):]] = value
 
             mac_port_map = {}
             oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'
-            for name, value in _snmp_walk(oid):
+            for name, value in _snmp_walk(self.host, self.community, oid):
                 name_parts = name.split('.')
                 mac_address = "".join(
                     [("%02x" % int(name_parts[x])).upper() for x in
@@ -77,19 +81,19 @@ class QSW8300ArpTableSnmp(ArpTable):
         if not self.arp_table:
             port_name_map = {}
             oid = '.1.3.6.1.2.1.31.1.1.1.1'
-            for name, value in _snmp_walk(oid):
+            for name, value in _snmp_walk(self.host, self.community, oid):
                 port_name_map[name[len(oid):]] = value
 
             ip_mac_map = {}
             oid = '.1.3.6.1.2.1.4.22.1.2'
-            for name, value in _snmp_walk(oid):
+            for name, value in _snmp_walk(self.host, self.community, oid):
                 name_parts = name.split('.')
                 ip_address = ".".join([name_parts[x] for x in range(len(name_parts) - 4, len(name_parts))])
                 ip_mac_map[ip_address] = value[2:].upper()
 
             mac_port_map = {}
             oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'
-            for name, value in _snmp_walk(oid):
+            for name, value in _snmp_walk(self.host, self.community, oid):
                 name_parts = name.split('.')
                 mac_address = "".join(
                     [("%02x" % int(name_parts[x])).upper() for x in
