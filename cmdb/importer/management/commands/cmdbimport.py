@@ -59,7 +59,7 @@ class Command(BaseCommand):
 
         source_switch = Resource.objects.get(pk=device_id)
 
-        arp_provider = self.registered_arp_providers_snmp[provider_key](device_id, hostname, community)
+        arp_provider = self.registered_providers_snmp[provider_key](device_id, hostname, community)
         for arp_record in arp_provider:
             self.cmdb_importer.add_arp_record(source_switch, arp_record)
 
@@ -68,11 +68,11 @@ class Command(BaseCommand):
         provider_key = options['provider']
 
         if options['arpdump']:
-            provider = self.registered_arp_providers[provider_key]
+            provider = self.registered_providers_file[provider_key]
             file_name = options['arpdump']
             self._import_from_arp(provider(file_name, device_id))
         elif options['macdump']:
-            provider = self.registered_mac_providers[provider_key]
+            provider = self.registered_providers_file[provider_key]
             file_name = options['macdump']
             self._import_from_mac(provider(file_name, device_id))
         else:
