@@ -3,7 +3,8 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 
 from importer.importlib import CmdbImporter
-from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump, QSW8300ArpTableSnmp
+from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump, QSW8300ArpTableSnmp, \
+    QSW8300MacTableSnmp
 from resources.models import Resource
 
 
@@ -11,16 +12,19 @@ class Command(BaseCommand):
     cmdb_importer = CmdbImporter()
 
     registered_handlers = {}
-    registered_arp_providers = {
-        'QSW8300': QSW8300ArpTableFileDump
+
+    registered_providers_file = {
+        'QSW8300.arp': QSW8300ArpTableFileDump,
+        'QSW3400.arp': QSW8300ArpTableFileDump,
+        'QSW8300.mac': QSW8300MacTableFileDump,
+        'QSW3400.mac': QSW8300MacTableFileDump,
     }
 
-    registered_arp_providers_snmp = {
-        'QSW8300': QSW8300ArpTableSnmp
-    }
-
-    registered_mac_providers = {
-        'QSW8300': QSW8300MacTableFileDump
+    registered_providers_snmp = {
+        'QSW8300.arp': QSW8300ArpTableSnmp,
+        'QSW3400.arp': QSW8300ArpTableSnmp,
+        'QSW8300.mac': QSW8300MacTableSnmp,
+        'QSW3400.mac': QSW8300MacTableSnmp,
     }
 
     def add_arguments(self, parser):
@@ -30,12 +34,9 @@ class Command(BaseCommand):
                                            parser_class=ArgumentParser)
 
         # IP address commands
-        registered_providers_file = dict(self.registered_arp_providers)
-        registered_providers_file.update(self.registered_mac_providers)
-
         file_cmd_parser = subparsers.add_parser('fromfile', help='Import data from dump files')
         file_cmd_parser.add_argument('device-id', help="Resource ID of the device used to take the dump.")
-        file_cmd_parser.add_argument('provider', choices=registered_providers_file.keys(),
+        file_cmd_parser.add_argument('provider', choices=self.registered_providers_file.keys(),
                                      help="Type of the device (or dump file format).")
         file_types_group = file_cmd_parser.add_mutually_exclusive_group()
         file_types_group.add_argument('--arpdump', help="Path to the ARP dump.")
@@ -44,7 +45,7 @@ class Command(BaseCommand):
 
         snmp_cmd_parser = subparsers.add_parser('snmp', help='Import data from SNMP')
         snmp_cmd_parser.add_argument('device-id', help="Resource ID of the device used to take the dump.")
-        snmp_cmd_parser.add_argument('provider', choices=self.registered_arp_providers_snmp.keys(),
+        snmp_cmd_parser.add_argument('provider', choices=self.registered_providers_snmp.keys(),
                                      help="Type of the device (or dump file format).")
         snmp_cmd_parser.add_argument('hostname', help="Hostname or IP address.")
         snmp_cmd_parser.add_argument('community', help="SNMP community string.")

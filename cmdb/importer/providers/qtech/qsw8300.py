@@ -6,6 +6,61 @@ from pysnmp.entity.rfc3413.oneliner import cmdgen
 from importer.providers.base_providers import ArpTable, ArpTableRecord, MacTableRecord, MacTable
 
 
+def _snmp_walk(self, oid):
+    cmdGen = cmdgen.CommandGenerator()
+
+    errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(
+        cmdgen.CommunityData(self.community),
+        cmdgen.UdpTransportTarget((self.host, 161)),
+        oid
+    )
+
+    if errorIndication:
+        print(errorIndication)
+    else:
+        if errorStatus:
+            raise Exception('%s at %s' % (
+                errorStatus.prettyPrint(),
+                errorIndex and varBindTable[-1][int(errorIndex) - 1] or '?'))
+        else:
+            for varBindTableRow in varBindTable:
+                for name, val in varBindTableRow:
+                    yield name.prettyPrint(), val.prettyPrint()
+
+
+class QSW8300MacTableSnmp(MacTable):
+    def __init__(self, device_id, host, community):
+        assert host, "host must be defined."
+        assert device_id, "device_id must be defined."
+        assert community, "community must be defined."
+
+        self.device_id = device_id
+        self.host = host
+        self.community = community
+        self.mac_port_map = None
+
+    def __iter__(self):
+        if not self.mac_port_map:
+            port_name_map = {}
+            oid = '.1.3.6.1.2.1.31.1.1.1.1'
+            for name, value in _snmp_walk(oid):
+                port_name_map[name[len(oid):]] = value
+
+            mac_port_map = {}
+            oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'
+            for name, value in _snmp_walk(oid):
+                name_parts = name.split('.')
+                mac_address = "".join(
+                    [("%02x" % int(name_parts[x])).upper() for x in
+                     range(len(name_parts) - 6, len(name_parts))]).upper()
+                mac_port_map[mac_address] = value
+
+        for mac_addr in mac_port_map:
+            yield MacTableRecord(source_device_id=self.device_id,
+                                 mac=mac_addr,
+                                 port=mac_port_map[mac_addr])
+
+
 class QSW8300ArpTableSnmp(ArpTable):
     arp_table = None
 
@@ -18,47 +73,27 @@ class QSW8300ArpTableSnmp(ArpTable):
         self.host = host
         self.community = community
 
-    def _snmp_walk(self, oid):
-        cmdGen = cmdgen.CommandGenerator()
-
-        errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(
-            cmdgen.CommunityData(self.community),
-            cmdgen.UdpTransportTarget((self.host, 161)),
-            oid
-        )
-
-        if errorIndication:
-            print(errorIndication)
-        else:
-            if errorStatus:
-                raise Exception('%s at %s' % (
-                    errorStatus.prettyPrint(),
-                    errorIndex and varBindTable[-1][int(errorIndex) - 1] or '?'))
-            else:
-                for varBindTableRow in varBindTable:
-                    for name, val in varBindTableRow:
-                        yield name.prettyPrint(), val.prettyPrint()
-
     def __iter__(self):
         if not self.arp_table:
             port_name_map = {}
             oid = '.1.3.6.1.2.1.31.1.1.1.1'
-            for name, value in self._snmp_walk(oid):
+            for name, value in _snmp_walk(oid):
                 port_name_map[name[len(oid):]] = value
 
             ip_mac_map = {}
             oid = '.1.3.6.1.2.1.4.22.1.2'
-            for name, value in self._snmp_walk(oid):
+            for name, value in _snmp_walk(oid):
                 name_parts = name.split('.')
                 ip_address = ".".join([name_parts[x] for x in range(len(name_parts) - 4, len(name_parts))])
                 ip_mac_map[ip_address] = value[2:].upper()
 
             mac_port_map = {}
             oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'
-            for name, value in self._snmp_walk(oid):
+            for name, value in _snmp_walk(oid):
                 name_parts = name.split('.')
                 mac_address = "".join(
-                    ["%02x" % int(name_parts[x]) for x in range(len(name_parts) - 6, len(name_parts))]).upper()
+                    [("%02x" % int(name_parts[x])).upper() for x in
+                     range(len(name_parts) - 6, len(name_parts))]).upper()
                 mac_port_map[mac_address] = value
 
             self.arp_table = []
