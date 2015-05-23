@@ -55,9 +55,9 @@ echo "    create backlinks"
 ln -s ${APPROOT}/logs ${DJANGOROOT}/
 
 echo "Setting file righs"
-chmod -R ug=rwX ${APPROOT}
-chmod -R o-rwxX ${APPROOT}
-chown -R ${USER}:${USER} ${APPROOT}
+chmod -R u=rwX ${APPROOT}
+chmod -R go-rwxX ${APPROOT}
+chown -R root:root ${APPROOT}
 
 cd ${DJANGOROOT}
 python2.7 manage.py makemigrations

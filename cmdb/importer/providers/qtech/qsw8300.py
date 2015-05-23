@@ -3,7 +3,7 @@ import re
 
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
-from importer.providers.base_providers import ArpTable, ArpTableRecord, MacTableRecord, MacTable
+from importer.providers.providers import ArpTable, ArpTableRecord, MacTableRecord, MacTable
 
 
 def _snmp_walk(host, community, oid):
@@ -108,7 +108,6 @@ class QSW8300ArpTableSnmp(ArpTable):
                     if port_name.lower().startswith('ethernet'):
                         mac_port_map[mac_address] = value
 
-
             self.arp_table = []
             for ip_addr in ip_mac_map:
                 mac_addr = ip_mac_map[ip_addr]
@@ -116,7 +115,7 @@ class QSW8300ArpTableSnmp(ArpTable):
                 if mac_addr in mac_port_map:
                     port_number = mac_port_map[mac_addr]
                 else:
-                    print "ERROR: MAC address %s is missing from mac_port_map." % mac_addr
+                    print "NOTICE: MAC address %s is missing from mac_port_map. No direct connection to switch." % mac_addr
                     continue
 
                 if port_number in port_name_map:

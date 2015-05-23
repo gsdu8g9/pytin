@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 
 from assets.models import GatewaySwitch, Switch
 from importer.importlib import CmdbImporter
-from importer.providers.base_providers import ArpTableRecord
+from importer.providers.providers import ArpTableRecord
 from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump, QSW8300ArpTableSnmp, \
     QSW8300MacTableSnmp
 from resources.models import Resource
@@ -56,7 +56,7 @@ class Command(BaseCommand):
         auto_cmd_parser = subparsers.add_parser('auto', help='Import and update CMDB data based on resources.')
         self._register_handler('auto', self._handle_auto)
 
-    def _handle_auto(self):
+    def _handle_auto(self, *args, **options):
         # update via snmp
         for switch in Resource.objects.active(type__in=[GatewaySwitch.__name__, Switch.__name__]):
             print "Found switch: %s" % switch
