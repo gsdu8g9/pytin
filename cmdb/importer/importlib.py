@@ -59,7 +59,7 @@ class CmdbImporter(object):
             server_port.use()
 
         if not created:
-            server.touch()
+            server_port.parent.touch()
             server_port.touch()
 
         # try add switch port and connection object
