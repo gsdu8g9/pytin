@@ -67,6 +67,10 @@ class Command(BaseCommand):
             else:
                 self.cmdb_importer.add_mac_record(source_switch, record)
 
+        source_switch.set_option('snmp_host', hostname)
+        source_switch.set_option('snmp_community', community)
+        source_switch.set_option('snmp_provider_key', provider_key)
+
     def _handle_file_dumps(self, *args, **options):
         device_id = options['device-id']
         provider_key = options['provider']

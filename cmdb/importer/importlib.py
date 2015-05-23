@@ -47,7 +47,6 @@ class CmdbImporter(object):
         assert source_switch, "source_switch must be defined."
 
         # create server port and server itself
-        linked_server = ''
         server_port, created = _get_or_create_object(ServerPort, dict(mac=record.mac))
         if not server_port.parent:
             # create server and port
@@ -59,7 +58,9 @@ class CmdbImporter(object):
             server_port.parent = server
             server_port.use()
 
-            linked_server = "%d-%s" % (server.id, server)
+        if not created:
+            server.touch()
+            server_port.touch()
 
         # try add switch port and connection object
         try:
@@ -69,26 +70,26 @@ class CmdbImporter(object):
             switch_port, created = _get_or_create_object(SwitchPort,
                                                          dict(number=port_number, parent=source_switch),
                                                          dict(number=port_number, parent=source_switch,
-                                                              server_name=linked_server))
+                                                              server_name=str(server_port.parent.as_leaf_class())))
             switch_port.use()
 
             if created:
                 print "Added switch port: %d:%d" % (source_switch.id, port_number)
-
-            linked_switch = "%d-%s" % (source_switch.id, source_switch)
 
             if record.vendor:
                 port_connection, created = _get_or_create_object(PortConnection,
                                                                  dict(port1=switch_port.id, port2=server_port.id),
                                                                  dict(port1=switch_port.id, port2=server_port.id,
                                                                       link_speed_mbit=1000,
-                                                                      port1_device=linked_switch,
-                                                                      port2_device=linked_server))
+                                                                      port1_device=str(source_switch),
+                                                                      port2_device=str(server)))
                 port_connection.use()
 
                 if created:
                     print "Added %d Mbit connection %d <-> %d" % (
                         port_connection.link_speed_mbit, switch_port.id, server_port.id)
+                else:
+                    port_connection.touch()
 
         except ValueError:
             print "Port %s has no direct connection to the device %d" % (record.mac, source_switch.id)
@@ -106,6 +107,8 @@ class CmdbImporter(object):
 
                 if created:
                     print "Added %s to %s" % (ip_address, ip_pool)
+                else:
+                    added_ip.touch()
 
                 if parent:
                     added_ip.parent = parent

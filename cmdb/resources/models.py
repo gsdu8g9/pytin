@@ -328,10 +328,16 @@ class Resource(models.Model):
 
         return new_object
 
-    def touch(self):
+    def touch(self, recursive=False):
         """
         Update last_seen date of the resource
         """
+
+        if recursive:
+            for child in self:
+                child.last_seen = timezone.now()
+                child.save()
+
         self.last_seen = timezone.now()
         self.save()
 
