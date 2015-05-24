@@ -107,24 +107,18 @@ class QSW8300ArpTableSnmp(ArpTable):
                     port_name = port_name_map[value]
                     if port_name.lower().startswith('ethernet'):
                         mac_port_map[mac_address] = value
+                    else:
+                        mac_port_map[mac_address] = port_name
 
             self.arp_table = []
             for ip_addr in ip_mac_map:
                 mac_addr = ip_mac_map[ip_addr]
 
+                port_number = None
                 if mac_addr in mac_port_map:
                     port_number = mac_port_map[mac_addr]
-                else:
-                    print "NOTICE: MAC address %s is missing from mac_port_map. No direct connection to switch." % mac_addr
-                    continue
 
-                if port_number in port_name_map:
-                    port_name = port_name_map[port_number]
-                else:
-                    print "ERROR: Port number %s is missing from port_name_map." % port_number
-                    continue
-
-                self.arp_table.append(dict(ip=ip_addr, mac=mac_addr, port_name=port_name, port_num=port_number))
+                self.arp_table.append(dict(ip=ip_addr, mac=mac_addr, port_num=port_number))
 
         for arp_rec in self.arp_table:
             yield ArpTableRecord(source_device_id=self.device_id,

@@ -31,6 +31,16 @@ Resources API
     Resource.can_add(resource)
         Method is overrided in a relative classes to check is specific resource can be added as a child.
 
+    Usage Scenarios
+    ---------------
+
+    # List free IP pools
+    $ cmdbctl list type=IPNetworkPool status=free
+
+    # Get next available IPs from pools 3 and 4 (2 IPs from each pool)
+    ipmanctl pool get 3 4 -c 2
+    cmdbctl set <list_of_ids> --use
+
 
 2.1. Query resources
 --------------------
