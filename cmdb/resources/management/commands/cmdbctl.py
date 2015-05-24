@@ -110,7 +110,7 @@ class Command(BaseCommand):
                 indent = 0
                 for inner_resource in ParentsIterator(resource):
                     self._print_resource_data(inner_resource, indent)
-                    indent += 4
+                    indent += 8
             else:
                 self._print_resource_data(resource)
 

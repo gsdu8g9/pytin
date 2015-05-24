@@ -1,6 +1,6 @@
 import ipaddress
 
-from resources.models import Resource
+from resources.models import Resource, ResourceOption
 
 
 class IPAddress(Resource):
@@ -16,6 +16,17 @@ class IPAddress(Resource):
     def __str__(self):
         return self.address
 
+    def _get_beauty(self, address):
+        assert address, "address must be defined."
+        """
+        Count beauty factor: 1 - 10
+        """
+        diff_map = {}
+        for ch in address:
+            diff_map[ch] = 1
+
+        return (12 if self.version == 4 else 17) - len(diff_map)
+
     @property
     def address(self):
         return unicode(self.get_option_value('address'))
@@ -27,10 +38,15 @@ class IPAddress(Resource):
         parsed_addr = ipaddress.ip_address(unicode(address))
         self.set_option('address', parsed_addr)
         self.set_option('version', parsed_addr.version)
+        self.set_option('beauty', self._get_beauty(unicode(address)), format=ResourceOption.FORMAT_INT)
 
     @property
     def version(self):
         return self.get_option_value('version')
+
+    @property
+    def beauty(self):
+        return self.get_option_value('beauty', default=self._get_beauty(self.address))
 
     def save(self, *args, **kwargs):
         need_save = True
@@ -100,6 +116,7 @@ class IPAddressPool(Resource):
         Check availability of the specific IP and return IPAddress that can be used.
         """
         for address in self.browse():
+            # search in the current pool
             ips = IPAddress.objects.active(address=address, ipman_pool_id=self.id)
             if len(ips) > 0:
                 for ip in ips:
@@ -108,7 +125,13 @@ class IPAddressPool(Resource):
                     else:
                         continue
             else:
-                yield IPAddress.create(address=address, parent=self)
+                # guarantee the uniq IPs, search in other pools
+                existing_ips = IPAddress.objects.active(address=address)
+                if len(existing_ips) <= 0:
+                    yield IPAddress.create(address=address, parent=self)
+                else:
+                    # IP from this pool is used elsewhere
+                    continue
 
 
 class IPAddressRangePool(IPAddressPool):

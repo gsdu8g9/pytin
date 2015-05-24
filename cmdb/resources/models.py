@@ -71,6 +71,7 @@ class SubclassingQuerySet(QuerySet):
             search_fields['type'] = self.model.__name__
 
         query = {}
+        related_query = []
 
         for field_name_with_lookup in search_fields.keys():
             field_name = field_name_with_lookup.split('__')[0]
@@ -84,11 +85,18 @@ class SubclassingQuerySet(QuerySet):
                     # convert field__lookup = value to:
                     # resourceoption__name__exact = field
                     # resourceoption__value__lookup = value
-                    query['resourceoption__name__exact'] = field_name
-                    query[field_name_with_lookup.replace(field_name, 'resourceoption__value')] = \
-                        search_fields[field_name_with_lookup]
+                    field_related_value = field_name_with_lookup.replace(field_name, 'resourceoption__value')
+                    related_query.append(
+                        {'resourceoption__name__exact': field_name,
+                         field_related_value: search_fields[field_name_with_lookup]}
+                    )
 
-        return super(SubclassingQuerySet, self).filter(*args, **query).distinct()
+        # Chaining queries
+        query_set = super(SubclassingQuerySet, self).filter(*args, **query)
+        for related_query_item in related_query:
+            query_set = super(SubclassingQuerySet, query_set).filter(*args, **related_query_item)
+
+        return query_set.distinct()
 
     def get(self, *args, **kwargs):
         return super(SubclassingQuerySet, self).get(*args, **kwargs).as_leaf_class()

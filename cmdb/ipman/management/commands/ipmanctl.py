@@ -73,6 +73,8 @@ class Command(BaseCommand):
         pool_get_next_cmd = pool_subparsers.add_parser('get', help="Get next available addresses from the pool")
         pool_get_next_cmd.add_argument('pool-id', nargs='+', help="ID of the pool")
         pool_get_next_cmd.add_argument('-c', '--count', type=int, default=1, help="Number of addresses to acquire")
+        pool_get_next_cmd.add_argument('-b', '--beauty', type=int, default=5,
+                                       help="Return IPs with beauty greater or equal.")
         self._register_handler('pool.get', self._handle_pool_get_next)
 
     def handle(self, *args, **options):
@@ -88,13 +90,15 @@ class Command(BaseCommand):
         for pool_id in options['pool-id']:
             ip_set = Resource.objects.get(pk=pool_id)
             ip_count = options['count']
+            beauty_idx = options['beauty']
 
             for ip_address in ip_set.available():
                 if not ip_count:
                     break
 
-                print "%d\t%s\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
-                ip_count -= 1
+                if ip_address.beauty >= beauty_idx:
+                    print "%d\t%s\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
+                    ip_count -= 1
 
             if ip_count > 0:
                 print "Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1)
@@ -165,11 +169,13 @@ class Command(BaseCommand):
 
     def _list_addresses(self, **kwargs):
         for ip_address in IPAddress.objects.active(**kwargs):
-            print "%d\t%s\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
+            print "%d\t%s\t%s\t%s\t%d" % (
+                ip_address.id, ip_address.parent_id, ip_address, ip_address.status, ip_address.beauty)
 
     def _list_pools(self):
         for address_pool in IPAddressPool.get_all_pools():
-            print "%d\t%s\t%s\t%s" % (address_pool.id, address_pool, address_pool.usage, address_pool.type)
+            print "%d\t%s\t%s\t%s\t%s" % (
+                address_pool.id, address_pool.parent_id, address_pool, address_pool.usage, address_pool.type)
 
     def _register_handler(self, command_name, handler):
         assert command_name, "command_name must be defined."

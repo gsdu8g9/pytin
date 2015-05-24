@@ -6,6 +6,29 @@ from resources.models import Resource, ResourceOption
 
 
 class ResourceTest(TestCase):
+    def test_find_by_many_options(self):
+        """
+        Bug fixed: when searching for Resources by many options, only searched by the last option
+        """
+
+        # differs only by one option
+        new_res1 = Resource.create(somekey1='someval1', somekey='someval')
+        new_res2 = Resource.create(somekey1='someval2', somekey='someval')
+
+        found1 = Resource.objects.active(somekey1='someval1', somekey='someval')
+        self.assertEqual(1, len(found1))
+        self.assertEqual(new_res1.id, found1[0].id)
+
+        found2 = Resource.objects.active(somekey1='someval2', somekey='someval')
+        self.assertEqual(1, len(found2))
+        self.assertEqual(new_res2.id, found2[0].id)
+
+        found3 = Resource.objects.active(somekey1='someval3', somekey='someval')
+        self.assertEqual(0, len(found3))
+
+        found4 = Resource.objects.active(somekey='someval')
+        self.assertEqual(2, len(found4))
+
     def test_delete(self):
         resource1 = Resource()
         resource1.save()
