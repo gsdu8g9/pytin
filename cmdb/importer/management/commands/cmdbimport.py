@@ -90,7 +90,7 @@ class Command(BaseCommand):
         assert provider, "provider must be defined."
 
         for record in provider:
-            if record == ArpTableRecord:
+            if record.__class__ == ArpTableRecord:
                 self.cmdb_importer.add_arp_record(gw_switch, record)
             else:
                 self.cmdb_importer.add_mac_record(gw_switch, record)

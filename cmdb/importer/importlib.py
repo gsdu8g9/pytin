@@ -65,6 +65,9 @@ class CmdbImporter(object):
         # try add switch port and connection object
         try:
             # switch port
+            if not record.port:
+                raise ValueError()
+
             port_number = int(record.port)
 
             switch_port, created = _get_or_create_object(SwitchPort,
@@ -92,7 +95,8 @@ class CmdbImporter(object):
                     port_connection.touch()
 
         except ValueError:
-            print "Port %s has no direct connection to the device %d" % (record.mac, source_switch.id)
+            print "Port %s has no direct connection to the device %d. Port: %s." % (
+                record.mac, source_switch.id, record.port)
 
     def add_ip(self, ip_address, parent=None):
         assert ip_address, "ip_address must be defined."
