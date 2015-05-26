@@ -9,6 +9,31 @@ from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 class QSW8300ProvidersTest(TestCase):
     DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
+    def test_Qtech3400Switch_switch(self):
+        switch = Qtech3400Switch()
+        switch._add_switch_port(None, 'sdfjskdfhsdkfh')
+        switch._add_switch_port(5, 'Ethernet1/5')
+
+        swports = list(switch.ports)
+
+        self.assertEqual(None, swports[0].number)
+        self.assertEqual(False, swports[0].is_local)
+
+        self.assertEqual(5, swports[1].number)
+        self.assertEqual(True, swports[1].is_local)
+
+    def test_QtechL3Switch_switch(self):
+        switch = QtechL3Switch()
+        switch._add_switch_port(None, 'sdfjskdfhsdkfh')
+        switch._add_switch_port(5, 'Ethernet1/0/5')
+
+        swports = list(switch.ports)
+        self.assertEqual(5, swports[0].number)
+        self.assertEqual(True, swports[0].is_local)
+
+        self.assertEqual(None, swports[1].number)
+        self.assertEqual(False, swports[1].is_local)
+
     def test_l3_hp_switch(self):
         switch = HP1910Switch()
         switch._add_switch_port(None, 'sdfjskdfhsdkfh')

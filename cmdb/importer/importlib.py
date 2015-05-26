@@ -84,7 +84,7 @@ class CmdbImporter(object):
                     server_port.save()
                 else:
                     # existing VPS port on local switch port and with existing physical server
-                    # then update parent of the VPS
+                    # then update parent of the VPS (link to physical server)
                     if not connected_mac.vendor and l3port.is_local and physical_server:
                         if not server_port.parent.parent:
                             server_port.parent.parent = physical_server
@@ -98,6 +98,11 @@ class CmdbImporter(object):
 
                         physical_server.set_option('guessed_role', 'hypervisor')
                         server_port.parent.save()
+                    elif connected_mac.vendor and server_port.parent:
+                        if server_port.parent.name == 'Server':
+                            # update standard server name to platform name
+                            server_port.parent.name = connected_mac.vendor
+                            server_port.parent.save()
 
                     server_port.touch()
 
@@ -158,6 +163,9 @@ class CmdbImporter(object):
                     added_ip.touch()
 
                 if parent:
+                    if added_ip.parent and added_ip.parent.id != parent.id:
+                        print "IP %s moved from %s to %s" % (ip_address, added_ip.parent, parent)
+
                     added_ip.parent = parent
                     added_ip.save()
 

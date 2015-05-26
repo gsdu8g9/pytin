@@ -72,6 +72,9 @@ class ServerPort(SwitchPort):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return self.mac
+
     @property
     def mac(self):
         return self.get_option_value('mac', default="000000000000")

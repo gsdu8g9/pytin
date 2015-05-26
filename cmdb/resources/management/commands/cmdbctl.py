@@ -52,6 +52,7 @@ class Command(BaseCommand):
         res_add_cmd = subparsers.add_parser('add', help="Add the new resource.")
         res_add_cmd.add_argument('--type', default='resources.Resource',
                                  help="Type of the resource in format 'app.model'.")
+        res_add_cmd.add_argument('--outid', action='store_true', help="Print only new resource ID.")
         res_add_cmd.add_argument('fields', nargs=argparse.REMAINDER, help="Key=Value pairs.")
         self._register_handler('add', self._handle_res_add)
 
@@ -80,9 +81,16 @@ class Command(BaseCommand):
         if options['type']:
             requested_model = apps.get_model(options['type'])
 
-        resource = requested_model.create(**parsed_data)
+        if 'id' in parsed_data and Resource.objects.active(pk=parsed_data['id']).exists():
+            raise Exception("Item with ID %s is already exists." % parsed_data['id'])
 
-        self._print_resource_data(resource)
+        resource = requested_model.create(**parsed_data)
+        resource.refresh_from_db()
+
+        if options['outid']:
+            print resource.id
+        else:
+            self._print_resource_data(resource)
 
     def _handle_res_list(self, *args, **options):
         query = self._parse_reminder_arg(options['filter'])
@@ -120,12 +128,12 @@ class Command(BaseCommand):
 
             if options['option_name'] and options['option_value']:
                 if ModelFieldChecker.is_field_or_property(resource.__class__, options['option_name']):
+                    setattr(resource, options['option_name'], options['option_value'])
+                    resource.save()
+                else:
                     resource.set_option(name=options['option_name'],
                                         value=options['option_value'],
                                         format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
-                else:
-                    setattr(resource, options['option_name'], options['option_value'])
-                    resource.save()
             elif options['use']:
                 resource.use()
             elif options['free']:
