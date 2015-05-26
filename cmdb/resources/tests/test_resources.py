@@ -41,7 +41,7 @@ class ResourceTest(TestCase):
 
         self.assertEqual(3, len(Resource.objects.all()))
 
-        resource2.delete()
+        resource2.delete(cascade=True)
 
         self.assertEqual(3, len(Resource.objects.all()))
         self.assertEqual(1, len(Resource.objects.active()))

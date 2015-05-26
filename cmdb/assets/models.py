@@ -50,8 +50,8 @@ class SwitchPort(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
-        return "%s:%d" % (self.parent.as_leaf_class(), self.number)
+    # def __str__(self):
+    #     return "%s:%d" % (self.parent.as_leaf_class(), self.number)
 
     @property
     def number(self):
@@ -82,7 +82,7 @@ class ServerPort(SwitchPort):
 
         _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
 
-        self.set_option('mac', str(_mac))
+        self.set_option('mac', str(_mac).upper())
 
 
 class InventoryResource(Resource):
@@ -115,7 +115,7 @@ class InventoryResource(Resource):
     def serial(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('serial', value)
+        self.set_option('serial', value.lower())
 
 
 class Switch(InventoryResource):

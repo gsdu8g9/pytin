@@ -49,36 +49,56 @@ class CmdbImporter(object):
                                                                    dict(number=l3port.number, parent=source_switch))
                 if created:
                     print "Added switch port: %d:%d (cmdbid:%s)" % (
-                    source_switch.id, l3port.number, switch_local_port.id)
+                        source_switch.id, l3port.number, switch_local_port.id)
 
             # add server ports and the servers
+            physical_server = self._get_physical_server(l3port.macs)
             for connected_mac in l3port.macs:
-                physical_server = None
-
                 server_port, created = _get_or_create_object(ServerPort, dict(mac=connected_mac.interface))
-
                 if created:
                     print "Added server port %s (%s)" % (server_port.id, connected_mac.interface)
 
-                    # add server
-                    if connected_mac.vendor:
-                        if not physical_server:
-                            server = Server.create(label='Server', vendor=connected_mac.vendor)
-                            print "Added server i-%d %s (%s)" % (server.id, server, connected_mac)
+                    # this is a local switch port
+                    if l3port.is_local:
+                        if not connected_mac.vendor:
+                            server = VirtualServer.create(label='VPS', parent=physical_server)
+                            print "Added VPS i-%d %s (%s) on local port %s" % (
+                                server.id, server, connected_mac, l3port.number)
+                            if physical_server:
+                                print "    with parent metal server i-%s" % physical_server.id
                         else:
-                            server = physical_server
-                            print "Reused server i-%d %s (%s)" % (server.id, server, connected_mac)
-
-                        if l3port.is_local:
-                            if len(l3port.macs) > 1:
-                                print "    possibly hypervisor"
-                                server.set_option('role_discovered', 'hypervisor')
+                            server = Server.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
+                            print "Added metal server i-%d %s (%s) on local port %s" % (
+                                server.id, server, connected_mac, l3port.number)
                     else:
-                        server = VirtualServer.create(label='VPS', parent=physical_server)
-                        print "Added VPS i-%d %s (%s)" % (server.id, server, connected_mac)
+                        # this is an aggregation port
+                        if not connected_mac.vendor:
+                            server = VirtualServer.create(label='VPS')
+                            print "Added VPS i-%d %s (%s)" % (server.id, server, connected_mac)
+                        else:
+                            server = Server.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
+                            print "Added metal server i-%d %s (%s)" % (server.id, server, connected_mac)
 
+                    # set parent for the port
                     server_port.parent = server
+                    server_port.save()
                 else:
+                    # existing VPS port on local switch port and with existing physical server
+                    # then update parent of the VPS
+                    if not connected_mac.vendor and l3port.is_local and physical_server:
+                        if not server_port.parent.parent:
+                            server_port.parent.parent = physical_server
+                            print "Vps i-%s linked to parent metal server i-%s" % (
+                                server_port.parent.id, physical_server.id)
+                        elif server_port.parent.parent.id != physical_server.id:
+                            old_parent_id = server_port.parent.parent.id
+                            server_port.parent.parent = physical_server
+                            print "Vps i-%s moved from i-%s to parent metal server i-%s" % (
+                                server_port.parent.id, old_parent_id, physical_server.id)
+
+                        physical_server.set_option('guessed_role', 'hypervisor')
+                        server_port.parent.save()
+
                     server_port.touch()
 
                 # add PortConnection only to physical servers
@@ -97,6 +117,29 @@ class CmdbImporter(object):
                 # adding IP
                 for ip_address in l3switch.get_mac_ips(str(connected_mac)):
                     self._add_ip(ip_address, parent=server_port)
+
+    def _get_physical_server(self, mac_list):
+        if len(mac_list) <= 0:
+            return None
+
+        phyz_server = None
+        for connected_mac in mac_list:
+            if connected_mac.vendor:
+                if phyz_server:
+                    # if more then one physical server on port, return None
+                    # possibly L2 switching
+                    return None
+
+                server_port, created = _get_or_create_object(ServerPort, dict(mac=connected_mac.interface))
+
+                if created:
+                    phyz_server = Server.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
+                    server_port.parent = phyz_server
+                    server_port.save()
+                else:
+                    phyz_server = server_port.parent
+
+        return phyz_server
 
     def _add_ip(self, ip_address, parent=None):
         assert ip_address, "ip_address must be defined."

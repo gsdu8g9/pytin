@@ -30,7 +30,7 @@ def _snmp_walk(host, community, oid):
 
 def _normalize_mac(mac_address):
     assert mac_address
-    return str(netaddr.EUI(mac_address, dialect=netaddr.mac_bare)).lower()
+    return str(netaddr.EUI(mac_address, dialect=netaddr.mac_bare)).upper()
 
 
 def _normalize_port_name(port_name):
@@ -123,7 +123,11 @@ class L3Switch(object):
             yield port_object
 
     def get_mac_ips(self, mac_address):
-        return self.server_port__ips__map[_normalize_mac(mac_address)]
+        mac_address = _normalize_mac(mac_address)
+        if mac_address in self.server_port__ips__map:
+            return self.server_port__ips__map[mac_address]
+
+        return []
 
     def from_mac_dump(self, file_name):
         raise NotImplementedError()

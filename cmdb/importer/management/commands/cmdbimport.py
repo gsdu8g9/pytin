@@ -6,7 +6,7 @@ from assets.models import GatewaySwitch, Switch
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
 from importer.providers.vendors.hp import HP1910Switch
-from importer.providers.vendors.qtech import QtechL3Switch
+from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from resources.models import Resource
 
 
@@ -17,6 +17,7 @@ class Command(BaseCommand):
 
     registered_providers = {
         'qtech': QtechL3Switch,
+        'qtech3400': Qtech3400Switch,
         'hp': HP1910Switch,
         '3com': HP1910Switch,
         'generic': L3Switch
@@ -64,6 +65,8 @@ class Command(BaseCommand):
                     provider.from_snmp(hostname, community)
 
                     self.cmdb_importer.import_switch(switch.id, provider)
+                else:
+                    print "WARNING: Unknown SNMP data provider: %s" % snmp_provider_key
 
     def _handle_snmp(self, *args, **options):
         device_id = options['device-id']

@@ -2,9 +2,8 @@ import os
 
 from django.test import TestCase
 
-from assets.models import Switch
 from importer.providers.vendors.hp import HP1910Switch
-from importer.providers.vendors.qtech import QtechL3Switch
+from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 
 
 class QSW8300ProvidersTest(TestCase):
@@ -23,7 +22,7 @@ class QSW8300ProvidersTest(TestCase):
         self.assertEqual(False, swports[1].is_local)
 
     def test_l3_qtech_switch(self):
-        switch = QtechL3Switch()
+        switch = Qtech3400Switch()
 
         file_path = os.path.join(self.DATA_DIR, 'mac-table.txt')
         switch.from_mac_dump(file_path)
@@ -37,13 +36,13 @@ class QSW8300ProvidersTest(TestCase):
                 'macs': switch_port.macs
             }
 
-        self.assertEqual(13, len(test_data))
+        self.assertEqual(34, len(test_data))
 
-        self.assertEqual(15, test_data['ethernet1/0/15']['num'])
-        self.assertEqual(True, test_data['ethernet1/0/15']['islocal'])
-        self.assertEqual(2, len(test_data['ethernet1/0/15']['macs']))
+        self.assertEqual(15, test_data['ethernet1/15']['num'])
+        self.assertEqual(True, test_data['ethernet1/15']['islocal'])
+        self.assertEqual(1, len(test_data['ethernet1/15']['macs']))
 
-        self.assertEqual(None, test_data['port-channel2']['num'])
-        self.assertEqual(False, test_data['port-channel2']['islocal'])
-        self.assertEqual(48, len(test_data['port-channel2']['macs']))
-        self.assertEqual('Intel Corporate', test_data['port-channel2']['macs'][0].vendor)
+        self.assertEqual(None, test_data['port-channel1']['num'])
+        self.assertEqual(False, test_data['port-channel1']['islocal'])
+        self.assertEqual(37, len(test_data['port-channel1']['macs']))
+        self.assertEqual('Intel Corporate', test_data['port-channel1']['macs'][0].vendor)
