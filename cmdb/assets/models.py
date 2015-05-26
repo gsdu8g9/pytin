@@ -21,30 +21,15 @@ class PortConnection(Resource):
         proxy = True
 
     def __str__(self):
-        port1 = Resource.objects.get(pk=self.port1)
-        port2 = Resource.objects.get(pk=self.port2)
-
-        return "%s:%d<->%s:%d" % (port1.parent.id, port1.number, port2.parent.id, port2.number)
+        return "%s %s<->%s (%s Mbit)" % (self.name, self.id, self.linked_port_id, self.link_speed_mbit)
 
     @property
-    def port1(self):
-        return self.get_option_value('port1', default=0)
+    def linked_port_id(self):
+        return self.get_option_value('linked_port_id', default=0)
 
-    @port1.setter
-    def port1(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('port1', value, format=ResourceOption.FORMAT_INT)
-
-    @property
-    def port2(self):
-        return self.get_option_value('port2', default=0)
-
-    @port2.setter
-    def port2(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('port2', value, format=ResourceOption.FORMAT_INT)
+    @linked_port_id.setter
+    def linked_port_id(self, value):
+        self.set_option('linked_port_id', value, format=ResourceOption.FORMAT_INT)
 
     @property
     def link_speed_mbit(self):

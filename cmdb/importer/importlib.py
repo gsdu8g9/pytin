@@ -1,5 +1,6 @@
 from assets.models import SwitchPort, PortConnection, ServerPort, Server, VirtualServer
 from ipman.models import IPAddress, IPAddressPool
+from resources.models import Resource
 
 
 def _get_or_create_object(klass, query, creational=None):
@@ -33,72 +34,71 @@ class CmdbImporter(object):
     def __init__(self):
         self.available_ip_pools = IPAddressPool.get_all_pools()
 
-    def add_arp_record(self, source_switch, record):
-        # add port and server
-        self.add_mac_record(source_switch, record)
+    def import_switch(self, switch_cmdb_id, l3switch):
+        """
+        Import data from layer 3 switch
+        :param l3switch: L3Switch
+        """
 
-        # find port
-        server_port, created = _get_or_create_object(ServerPort, dict(mac=record.mac))
+        source_switch = Resource.objects.get(pk=switch_cmdb_id)
+        for l3port in l3switch.ports:
+            # add switch port
+            switch_local_port = None
+            if l3port.is_local:
+                switch_local_port, created = _get_or_create_object(SwitchPort,
+                                                                   dict(number=l3port.number, parent=source_switch))
+                if created:
+                    print "Added switch port: %d:%d (cmdbid:%s)" % (
+                    source_switch.id, l3port.number, switch_local_port.id)
 
-        # add or update ip and assign it to port
-        self.add_ip(record.ip, server_port)
+            # add server ports and the servers
+            for connected_mac in l3port.macs:
+                physical_server = None
 
-    def add_mac_record(self, source_switch, record):
-        assert source_switch, "source_switch must be defined."
-
-        # create server port and server itself
-        server_port, created = _get_or_create_object(ServerPort, dict(mac=record.mac))
-        if not server_port.parent:
-            # create server and port
-            if record.vendor:
-                server = Server.create(label='Server', vendor=record.vendor)
-            else:
-                server = VirtualServer.create(label='VPS')
-
-            server_port.parent = server
-            server_port.use()
-
-        if not created:
-            server_port.parent.touch()
-            server_port.touch()
-
-        # try add switch port and connection object
-        try:
-            # switch port
-            if not record.port:
-                raise ValueError()
-
-            port_number = int(record.port)
-
-            switch_port, created = _get_or_create_object(SwitchPort,
-                                                         dict(number=port_number, parent=source_switch),
-                                                         dict(number=port_number, parent=source_switch,
-                                                              server_name=str(server_port.parent.as_leaf_class())))
-            switch_port.use()
-
-            if created:
-                print "Added switch port: %d:%d" % (source_switch.id, port_number)
-
-            if record.vendor:
-                port_connection, created = _get_or_create_object(PortConnection,
-                                                                 dict(port1=switch_port.id, port2=server_port.id),
-                                                                 dict(port1=switch_port.id, port2=server_port.id,
-                                                                      link_speed_mbit=1000,
-                                                                      port1_device=str(source_switch),
-                                                                      port2_device=str(server_port.parent)))
-                port_connection.use()
+                server_port, created = _get_or_create_object(ServerPort, dict(mac=connected_mac.interface))
 
                 if created:
-                    print "Added %d Mbit connection %d <-> %d" % (
-                        port_connection.link_speed_mbit, switch_port.id, server_port.id)
+                    print "Added server port %s (%s)" % (server_port.id, connected_mac.interface)
+
+                    # add server
+                    if connected_mac.vendor:
+                        if not physical_server:
+                            server = Server.create(label='Server', vendor=connected_mac.vendor)
+                            print "Added server i-%d %s (%s)" % (server.id, server, connected_mac)
+                        else:
+                            server = physical_server
+                            print "Reused server i-%d %s (%s)" % (server.id, server, connected_mac)
+
+                        if l3port.is_local:
+                            if len(l3port.macs) > 1:
+                                print "    possibly hypervisor"
+                                server.set_option('role_discovered', 'hypervisor')
+                    else:
+                        server = VirtualServer.create(label='VPS', parent=physical_server)
+                        print "Added VPS i-%d %s (%s)" % (server.id, server, connected_mac)
+
+                    server_port.parent = server
                 else:
-                    port_connection.touch()
+                    server_port.touch()
 
-        except ValueError:
-            print "Port %s has no direct connection to the device %d. Port: %s." % (
-                record.mac, source_switch.id, record.port)
+                # add PortConnection only to physical servers
+                if connected_mac.vendor and l3port.is_local:
+                    port_connection, created = _get_or_create_object(PortConnection,
+                                                                     dict(parent=switch_local_port,
+                                                                          linked_port_id=server_port.id))
+                    if created:
+                        print "Added %d Mbit connection: %d <-> %d" % (
+                            port_connection.link_speed_mbit, switch_local_port.id, server_port.id)
+                    else:
+                        port_connection.touch()
 
-    def add_ip(self, ip_address, parent=None):
+                    port_connection.use()
+
+                # adding IP
+                for ip_address in l3switch.get_mac_ips(str(connected_mac)):
+                    self._add_ip(ip_address, parent=server_port)
+
+    def _add_ip(self, ip_address, parent=None):
         assert ip_address, "ip_address must be defined."
 
         added = False
@@ -122,4 +122,4 @@ class CmdbImporter(object):
                 break
 
         if not added:
-            print "!!! IP %s is not added" % ip_address
+            print "WARNING: %s is not added. IP pool is not available." % ip_address

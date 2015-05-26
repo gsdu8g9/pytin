@@ -2,48 +2,48 @@ import os
 
 from django.test import TestCase
 
-from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump
+from assets.models import Switch
+from importer.providers.vendors.hp import HP1910Switch
+from importer.providers.vendors.qtech import QtechL3Switch
 
 
 class QSW8300ProvidersTest(TestCase):
     DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-    def test_load_arp_table(self):
-        file_path = os.path.join(self.DATA_DIR, 'arp-table.txt')
+    def test_l3_hp_switch(self):
+        switch = HP1910Switch()
+        switch._add_switch_port(None, 'sdfjskdfhsdkfh')
+        switch._add_switch_port(5, 'GigabitEthernet1/0/5')
 
-        arp_table = QSW8300ArpTableFileDump(file_path, 11)
-        arp_table_list = list(arp_table)
+        swports = list(switch.ports)
+        self.assertEqual(5, swports[0].number)
+        self.assertEqual(True, swports[0].is_local)
 
-        self.assertEqual(1332, len(arp_table_list))
+        self.assertEqual(None, swports[1].number)
+        self.assertEqual(False, swports[1].is_local)
 
-        self.assertEqual('46.17.40.2', arp_table_list[0].ip)
-        self.assertEqual('827D7CE0B36E', arp_table_list[0].mac)
-        self.assertEqual('Port-Channel1', arp_table_list[0].port)
-        self.assertEqual(11, arp_table_list[0].source_device_id)
+    def test_l3_qtech_switch(self):
+        switch = QtechL3Switch()
 
-        self.assertEqual('176.32.36.226', arp_table_list[735].ip)
-        self.assertEqual('002590892FC6', arp_table_list[735].mac)
-        self.assertEqual(16, arp_table_list[735].port)
-        self.assertEqual(11, arp_table_list[735].source_device_id)
-
-        self.assertEqual('176.32.37.164', arp_table_list[900].ip)
-        self.assertEqual('001E6766BA7E', arp_table_list[900].mac)
-        self.assertEqual(13, arp_table_list[900].port)
-
-    def test_load_mac_table(self):
         file_path = os.path.join(self.DATA_DIR, 'mac-table.txt')
+        switch.from_mac_dump(file_path)
 
-        mac_table = QSW8300MacTableFileDump(file_path, 11)
+        test_data = {}
 
-        mac_table_list = list(mac_table)
+        for switch_port in switch.ports:
+            test_data[switch_port.name] = {
+                'num': switch_port.number,
+                'islocal': switch_port.is_local,
+                'macs': switch_port.macs
+            }
 
-        self.assertEqual(125, len(mac_table_list))
+        self.assertEqual(13, len(test_data))
 
-        self.assertEqual('003048DE46F9', mac_table_list[70].mac)
-        self.assertEqual('Port-Channel2', mac_table_list[70].port)
-        self.assertEqual('Supermicro Computer, Inc.', mac_table_list[70].vendor)
-        self.assertEqual(11, mac_table_list[70].source_device_id)
+        self.assertEqual(15, test_data['ethernet1/0/15']['num'])
+        self.assertEqual(True, test_data['ethernet1/0/15']['islocal'])
+        self.assertEqual(2, len(test_data['ethernet1/0/15']['macs']))
 
-        self.assertEqual('90E6BA93EE9D', mac_table_list[100].mac)
-        self.assertEqual(17, mac_table_list[100].port)
-        self.assertEqual('ASUSTek COMPUTER INC.', mac_table_list[100].vendor)
+        self.assertEqual(None, test_data['port-channel2']['num'])
+        self.assertEqual(False, test_data['port-channel2']['islocal'])
+        self.assertEqual(48, len(test_data['port-channel2']['macs']))
+        self.assertEqual('Intel Corporate', test_data['port-channel2']['macs'][0].vendor)

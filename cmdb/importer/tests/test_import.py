@@ -5,7 +5,7 @@ from django.test import TestCase
 from assets.models import RegionResource, ServerPort, Server, VirtualServer, GatewaySwitch, PortConnection
 from importer.importlib import CmdbImporter
 
-from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump
+from importer.providers.vendors.qtech import QtechL3Switch
 from ipman.models import IPNetworkPool, IPAddress
 
 
@@ -25,10 +25,12 @@ class QSW8300ImportDataTest(TestCase):
         anders_gw = GatewaySwitch.create(name="baxet-gw-q", parent=dc_anders)
 
         # arp table provider
-        arp_table = QSW8300ArpTableFileDump(file_path, anders_gw.id)
-        arp_table_list = list(arp_table)
+        qtech_switch = QtechL3Switch()
+        qtech_switch.from_arp_dump(file_path)
 
-        self.assertEqual(1332, len(arp_table_list))
+        switch_ports = list(qtech_switch.ports)
+
+        self.assertEqual(12, len(switch_ports))
 
         # Add our IP pools
         pool_list = [IPNetworkPool.create(network='46.17.40.0/23', parent=dc_anders),
@@ -47,11 +49,13 @@ class QSW8300ImportDataTest(TestCase):
                      IPNetworkPool.create(network='185.22.152.0/22', parent=dc_rtcom),
                      IPNetworkPool.create(network='2a00:b700:1::/48', parent=dc_rtcom)]
 
-        # Double the IP, to test update process
-        arp_table_list.extend(arp_table)
+        # # Double the IP, to test update process
+        # arp_table_list.extend(arp_table)
+        #
+        # for arp_record in arp_table_list:
+        #     cmdb_importer.add_arp_record(anders_gw, arp_record)
 
-        for arp_record in arp_table_list:
-            cmdb_importer.add_arp_record(anders_gw, arp_record)
+        cmdb_importer.import_switch(anders_gw.id, qtech_switch)
 
         # -1 IP: 87.251.133.9, /30 peering network address
         self.assertEqual(1331, len(IPAddress.objects.active()))

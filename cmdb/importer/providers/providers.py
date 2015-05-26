@@ -1,4 +1,6 @@
 import netaddr
+from resources.models import Resource
+
 
 class MacTable(object):
     def __init__(self):
@@ -17,11 +19,11 @@ class MacTableRecord(object):
     def __init__(self, mac, port, source_device_id):
         self._mac = netaddr.EUI(mac, dialect=netaddr.mac_bare)
         self._port = port
-        self._source_device_id = source_device_id
+        self._source_device = Resource.objects.get(pk=source_device_id)
 
     @property
     def source_device_id(self):
-        return self._source_device_id
+        return self._source_device.id
 
     @property
     def mac(self):
@@ -38,6 +40,11 @@ class MacTableRecord(object):
         except netaddr.NotRegisteredError:
             return None
 
+    def import_record(self, importer):
+        assert importer, "importer must be defined"
+
+        importer.add_arp_record(self._source_device, self)
+
 
 class ArpTableRecord(MacTableRecord):
     def __init__(self, ip, mac, port, source_device_id):
@@ -47,3 +54,8 @@ class ArpTableRecord(MacTableRecord):
     @property
     def ip(self):
         return self._ip
+
+    def import_record(self, importer):
+        assert importer, "importer must be defined"
+
+        importer.add_mac_record(self._source_device, self)

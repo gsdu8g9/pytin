@@ -349,24 +349,24 @@ class Resource(models.Model):
         self.last_seen = timezone.now()
         self.save()
 
-    def lock(self):
-        self._change_status(self.STATUS_LOCKED, 'lock')
+    def lock(self, cascade=False):
+        self._change_status(self.STATUS_LOCKED, 'lock', cascade)
 
-    def use(self):
-        self._change_status(self.STATUS_INUSE, 'use')
+    def use(self, cascade=False):
+        self._change_status(self.STATUS_INUSE, 'use', cascade)
 
-    def fail(self):
-        self._change_status(self.STATUS_FAILED, 'fail')
+    def fail(self, cascade=False):
+        self._change_status(self.STATUS_FAILED, 'fail', cascade)
 
-    def free(self):
-        self._change_status(self.STATUS_FREE, 'free')
+    def free(self, cascade=False):
+        self._change_status(self.STATUS_FREE, 'free', cascade)
 
-    def delete(self):
+    def delete(self, cascade=False):
         """
         Override Model .delete() method. Instead of actual deleting object from the DB
         set status Deleted.
         """
-        self._change_status(self.STATUS_DELETED, 'delete')
+        self._change_status(self.STATUS_DELETED, 'delete', cascade)
 
     @property
     def is_locked(self):
@@ -479,12 +479,13 @@ class Resource(models.Model):
         for res in Resource.objects.active(parent=self, status=Resource.STATUS_FREE):
             yield res
 
-    def _change_status(self, new_status, method_name):
+    def _change_status(self, new_status, method_name, cascade=False):
         assert new_status, "new_status must be defined."
         assert method_name, "method_name must be defined."
 
-        for child in self:
-            getattr(child, method_name)()
+        if cascade:
+            for child in self:
+                getattr(child, method_name)()
 
         self.status = new_status
         self.save()

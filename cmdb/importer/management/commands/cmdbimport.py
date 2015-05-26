@@ -4,9 +4,9 @@ from django.core.management.base import BaseCommand
 
 from assets.models import GatewaySwitch, Switch
 from importer.importlib import CmdbImporter
-from importer.providers.providers import ArpTableRecord
-from importer.providers.qtech.qsw8300 import QSW8300ArpTableFileDump, QSW8300MacTableFileDump, QSW8300ArpTableSnmp, \
-    QSW8300MacTableSnmp
+from importer.providers.l3_switch import L3Switch
+from importer.providers.vendors.hp import HP1910Switch
+from importer.providers.vendors.qtech import QtechL3Switch
 from resources.models import Resource
 
 
@@ -15,18 +15,11 @@ class Command(BaseCommand):
 
     registered_handlers = {}
 
-    registered_providers_file = {
-        'QSW8300.arp': QSW8300ArpTableFileDump,
-        'QSW3400.arp': QSW8300ArpTableFileDump,
-        'QSW8300.mac': QSW8300MacTableFileDump,
-        'QSW3400.mac': QSW8300MacTableFileDump,
-    }
-
-    registered_providers_snmp = {
-        'QSW8300.arp': QSW8300ArpTableSnmp,
-        'QSW3400.arp': QSW8300ArpTableSnmp,
-        'QSW8300.mac': QSW8300MacTableSnmp,
-        'QSW3400.mac': QSW8300MacTableSnmp,
+    registered_providers = {
+        'qtech': QtechL3Switch,
+        'hp': HP1910Switch,
+        '3com': HP1910Switch,
+        'generic': L3Switch
     }
 
     def add_arguments(self, parser):
@@ -38,7 +31,7 @@ class Command(BaseCommand):
         # IP address commands
         file_cmd_parser = subparsers.add_parser('fromfile', help='Import data from dump files')
         file_cmd_parser.add_argument('device-id', help="Resource ID of the device used to take the dump.")
-        file_cmd_parser.add_argument('provider', choices=self.registered_providers_file.keys(),
+        file_cmd_parser.add_argument('provider', choices=self.registered_providers.keys(),
                                      help="Type of the device (or dump file format).")
         file_types_group = file_cmd_parser.add_mutually_exclusive_group()
         file_types_group.add_argument('--arpdump', help="Path to the ARP dump.")
@@ -47,7 +40,7 @@ class Command(BaseCommand):
 
         snmp_cmd_parser = subparsers.add_parser('snmp', help='Import data from SNMP')
         snmp_cmd_parser.add_argument('device-id', help="Resource ID of the device used to take the dump.")
-        snmp_cmd_parser.add_argument('provider', choices=self.registered_providers_snmp.keys(),
+        snmp_cmd_parser.add_argument('provider', choices=self.registered_providers.keys(),
                                      help="Type of the device (or dump file format).")
         snmp_cmd_parser.add_argument('hostname', help="Hostname or IP address.")
         snmp_cmd_parser.add_argument('community', help="SNMP community string.")
@@ -62,13 +55,15 @@ class Command(BaseCommand):
             print "Found switch: %s" % switch
             if switch.has_option('snmp_provider_key'):
                 snmp_provider_key = switch.get_option_value('snmp_provider_key')
-                if snmp_provider_key in self.registered_providers_snmp:
+                if snmp_provider_key in self.registered_providers:
                     hostname = switch.get_option_value('snmp_host')
                     community = switch.get_option_value('snmp_community')
 
                     print "\tdata: ID:%d\t%s\t%s" % (switch.id, hostname, community)
-                    provider = self.registered_providers_snmp[snmp_provider_key](switch.id, hostname, community)
-                    self._import_record(switch, provider)
+                    provider = self.registered_providers[snmp_provider_key]()
+                    provider.from_snmp(hostname, community)
+
+                    self.cmdb_importer.import_switch(switch.id, provider)
 
     def _handle_snmp(self, *args, **options):
         device_id = options['device-id']
@@ -78,53 +73,28 @@ class Command(BaseCommand):
 
         source_switch = Resource.objects.get(pk=device_id)
 
-        provider = self.registered_providers_snmp[provider_key](device_id, hostname, community)
-        self._import_record(source_switch, provider)
+        provider = self.registered_providers[provider_key]()
+        provider.from_snmp(hostname, community)
+        self.cmdb_importer.import_switch(device_id, provider)
 
         source_switch.set_option('snmp_host', hostname)
         source_switch.set_option('snmp_community', community)
         source_switch.set_option('snmp_provider_key', provider_key)
 
-    def _import_record(self, gw_switch, provider):
-        assert gw_switch, "gw_switch must be defined."
-        assert provider, "provider must be defined."
-
-        for record in provider:
-            if record.__class__ == ArpTableRecord:
-                self.cmdb_importer.add_arp_record(gw_switch, record)
-            else:
-                self.cmdb_importer.add_mac_record(gw_switch, record)
-
     def _handle_file_dumps(self, *args, **options):
         device_id = options['device-id']
         provider_key = options['provider']
 
+        provider = self.registered_providers[provider_key]()
+
         if options['arpdump']:
-            provider = self.registered_providers_file[provider_key]
-            file_name = options['arpdump']
-            self._import_from_arp(provider(file_name, device_id))
+            provider.from_arp_dump(options['arpdump'])
         elif options['macdump']:
-            provider = self.registered_providers_file[provider_key]
-            file_name = options['macdump']
-            self._import_from_mac(provider(file_name, device_id))
+            provider.from_mac_dump(options['macdump'])
         else:
             raise Exception("Specify one of the dump files.")
 
-    def _import_from_arp(self, arp_provider):
-        assert arp_provider, "arp_provider must be defined."
-
-        source_switch = Resource.objects.get(pk=arp_provider.device_id)
-
-        for arp_record in arp_provider:
-            self.cmdb_importer.add_arp_record(source_switch, arp_record)
-
-    def _import_from_mac(self, mac_provider):
-        assert mac_provider, "mac_provider must be defined."
-
-        source_switch = Resource.objects.get(pk=mac_provider.device_id)
-
-        for mac_record in mac_provider:
-            self.cmdb_importer.add_mac_record(source_switch, mac_record)
+        self.cmdb_importer.import_switch(device_id, provider)
 
     def handle(self, *args, **options):
         if 'subcommand_name' in options:
