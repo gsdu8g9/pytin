@@ -2,12 +2,18 @@
 
 from django.test import TestCase
 
-from resources.models import Resource, ResourceOption
+from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
 class ResourceTest(TestCase):
-    def test_set_parent(self):
-        pass
+    def test_model_field_checker(self):
+        new_res1 = Resource.create(somekey1='someval1', somekey='someval')
+
+        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'type'))
+        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'parent'))
+        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'parent_id'))
+        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'id'))
+        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'is_free'))
 
     def test_find_by_many_options(self):
         """
