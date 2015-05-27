@@ -1,10 +1,28 @@
 from django.test import TestCase
 
-from assets.models import RegionResource, Server, ServerPort, Rack
-from resources.models import Resource
+from assets.models import RegionResource, Server, ServerPort, Rack, Switch
+from resources.models import Resource, ModelFieldChecker
 
 
 class AssetsTest(TestCase):
+
+    def test_change_asset_type(self):
+        new_res1 = Switch.create(label="test switch")
+
+        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1.__class__, 'type'))
+
+        setattr(new_res1, 'type', 'Server')
+        new_res1.save()
+        new_res1.refresh_from_db()
+
+        self.assertEqual('Switch', new_res1.type)
+        self.assertEqual(Switch, new_res1.__class__)
+
+        # real change type
+        new_res1 = new_res1.cast_type(Server)
+
+        self.assertEqual('Server', new_res1.type)
+        self.assertEqual(Server, new_res1.__class__)
 
     def test_option_type(self):
         country = RegionResource.create(name='Russia')

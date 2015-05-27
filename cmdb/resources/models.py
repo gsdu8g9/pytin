@@ -25,7 +25,7 @@ class ModelFieldChecker:
         assert name is not None, "Parameter 'name' must be defined."
         assert issubclass(class_type, models.Model), "Class 'class_type' must be the subclass of models.Model."
 
-        return ModelFieldChecker.is_model_field(class_type, name) and hasattr(class_type, name)
+        return ModelFieldChecker.is_model_field(class_type, name) or hasattr(class_type, name)
 
     @staticmethod
     def is_model_field(class_type, name):
@@ -334,6 +334,19 @@ class Resource(models.Model):
 
         if need_save:
             new_object.save()
+
+        return new_object
+
+    def cast_type(self, new_class_type):
+        assert new_class_type
+
+        self.content_type = ContentType.objects.get_for_model(new_class_type,
+                                                              for_concrete_model=not self._meta.proxy)
+
+        self.type = new_class_type.__name__
+
+        super(Resource, self).save()
+        new_object = self.as_leaf_class()
 
         return new_object
 

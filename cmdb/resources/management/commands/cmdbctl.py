@@ -127,7 +127,10 @@ class Command(BaseCommand):
             resource = Resource.objects.get(pk=res_id)
 
             if options['option_name'] and options['option_value']:
-                if ModelFieldChecker.is_field_or_property(resource.__class__, options['option_name']):
+                if options['option_name'] == 'type':
+                    requested_model = apps.get_model(options['option_value'])
+                    resource = resource.cast_type(requested_model)
+                elif ModelFieldChecker.is_field_or_property(resource.__class__, options['option_name']):
                     setattr(resource, options['option_name'], options['option_value'])
                     resource.save()
                 else:
