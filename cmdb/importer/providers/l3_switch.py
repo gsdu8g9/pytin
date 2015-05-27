@@ -136,14 +136,17 @@ class L3Switch(object):
         raise NotImplementedError()
 
     def from_snmp(self, host, community):
+        assert host
+        assert community
+
         # switch port names and numbers
         oid = '.1.3.6.1.2.1.31.1.1.1.1'
-        for name, value in _snmp_walk(self.host, self.community, oid):
+        for name, value in _snmp_walk(host, community, oid):
             self._add_switch_port(name[len(oid):], value)
 
         # mac addresses table
         oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'
-        for name, value in _snmp_walk(self.host, self.community, oid):
+        for name, value in _snmp_walk(host, community, oid):
             name_parts = name.split('.')
             mac_address = "".join(
                 [("%02x" % int(name_parts[x])).upper() for x in
@@ -153,7 +156,7 @@ class L3Switch(object):
 
         # arp address table
         oid = '.1.3.6.1.2.1.4.22.1.2'
-        for name, value in _snmp_walk(self.host, self.community, oid):
+        for name, value in _snmp_walk(host, community, oid):
             name_parts = name.split('.')
             ip_address = ".".join([name_parts[x] for x in range(len(name_parts) - 4, len(name_parts))])
             self._add_server_port_ip(value[2:].upper(), ip_address)

@@ -31,7 +31,7 @@ class Command(BaseCommand):
         res_set_cmd = subparsers.add_parser('set', help="Set resource options.")
         res_set_cmd.add_argument('resource-id', nargs='+', help="ID of the resource.")
         res_set_cmd.add_argument('-n', '--option-name', help="Name of the option.")
-        res_set_cmd.add_argument('-v', '--option-value', help="Value of the option.")
+        res_set_cmd.add_argument('-v', '--option-value', type=str, help="Value of the option.")
         res_set_cmd.add_argument('--format', '--option-format', help="Type of the value.",
                                  default=ResourceOption.FORMAT_STRING,
                                  choices=[choice[0] for choice in ResourceOption.FORMAT_CHOICES])
