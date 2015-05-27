@@ -5,6 +5,16 @@ from resources.models import Resource
 
 
 class IPmanTest(TestCase):
+
+    def test_ip_beauty(self):
+        self.assertEqual(4, IPAddress.create(address='46.17.40.29').beauty)
+        self.assertEqual(8, IPAddress.create(address='172.27.27.27').beauty)
+        self.assertEqual(7, IPAddress.create(address='46.17.46.17').beauty)
+        self.assertEqual(7, IPAddress.create(address='46.17.46.64').beauty)
+        self.assertEqual(1, IPAddress.create(address='237.45.160.89').beauty)
+        self.assertEqual(2, IPAddress.create(address='237.45.169.89').beauty)
+        self.assertEqual(10, IPAddress.create(address='111.11.11.11').beauty)
+
     def test_polymorfic_pool_list(self):
         ip_pool_types = [
             IPAddressPool.__name__,
@@ -147,6 +157,31 @@ class IPmanTest(TestCase):
 
         self.assertTrue(ip1 in ipnet)
         self.assertFalse(ip2 in ipnet)
+
+    def test_cross_pool_ip_usage(self):
+        """
+        Test ip addresses acquisition
+        """
+        ipnet = IPNetworkPool.create(network='192.168.1.1/24')
+        ipset = IPAddressPool.create(name='Set of IPs elsewhere')
+
+        ip1 = ipnet.available().next()
+        ip2 = ipnet.available().next()
+
+        self.assertEqual('192.168.1.1', str(ip1))
+        self.assertEqual(4, ip1.version)
+
+        self.assertEqual('192.168.1.1', str(ip2))
+        self.assertEqual(4, ip2.version)
+
+        # use IP elsewhere
+        ip2.parent = ipset
+        ip2.save()
+
+        ip3 = ipnet.available().next()
+
+        self.assertEqual('192.168.1.2', str(ip3))
+        self.assertEqual(4, ip3.version)
 
     def test_pool_network_ipv4_acquire(self):
         """

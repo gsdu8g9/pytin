@@ -3,23 +3,16 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 
 from ipman.models import IPNetworkPool, IPAddressPool, IPAddressRangePool, IPAddress
-from resources.models import Resource, ResourceOption
+from resources.models import Resource
 
 
 class Command(BaseCommand):
-    ip_pool_types = [
-        IPAddressPool.__name__,
-        IPAddressRangePool.__name__,
-        IPNetworkPool.__name__
-    ]
-
     registered_handlers = {}
 
     def add_arguments(self, parser):
         """
         Add custom arguments and subcommands
         """
-
         subparsers = parser.add_subparsers(title="Management commands",
                                            help="Commands help",
                                            dest='manager_name',
@@ -39,12 +32,13 @@ class Command(BaseCommand):
 
         addr_list_cmd = address_subparsers.add_parser('list', help="List addresses")
         addr_list_cmd.add_argument('--pool-id', help="ID of the pool")
-        addr_list_cmd.add_argument('--status', help="Status of the IP")
+        addr_list_cmd.add_argument('--status', help="Status of the IP",
+                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
         addr_list_cmd.add_argument('--address', help="Search in address")
         self._register_handler('address.list', self._handle_address_list)
 
         addr_del_cmd = address_subparsers.add_parser('delete', help="Delete address")
-        addr_del_cmd.add_argument('address-id', help="ID of the address")
+        addr_del_cmd.add_argument('address-id', nargs='+', help="ID of the address")
         self._register_handler('address.delete', self._handle_delete_address)
 
 
@@ -76,20 +70,12 @@ class Command(BaseCommand):
         pool_subparsers.add_parser('list', help="List pools")
         self._register_handler('pool.list', self._handle_list_pools)
 
-        # Common operatoins (move to resources?)
-        res_get_cmd = subparsers.add_parser('get', help="Get resource options")
-        res_get_cmd.add_argument('resource-id', help="ID of the resource")
-        self._register_handler('get', self._handle_res_get_options)
-
-        res_set_cmd = subparsers.add_parser('set', help="Set resource options")
-        res_set_cmd.add_argument('resource-id', help="ID of the resource")
-        res_set_cmd.add_argument('option-name', help="Name of the option")
-        res_set_cmd.add_argument('option-value', help="Value of the option")
-        res_set_cmd.add_argument('--format', '--option-format', help="Type of the value",
-                                 default=ResourceOption.FORMAT_STRING,
-                                 choices=[ResourceOption.FORMAT_STRING, ResourceOption.FORMAT_INT,
-                                          ResourceOption.FORMAT_FLOAT, ResourceOption.FORMAT_DICT])
-        self._register_handler('set', self._handle_res_set_options)
+        pool_get_next_cmd = pool_subparsers.add_parser('get', help="Get next available addresses from the pool")
+        pool_get_next_cmd.add_argument('pool-id', nargs='+', help="ID of the pool")
+        pool_get_next_cmd.add_argument('-c', '--count', type=int, default=1, help="Number of addresses to acquire")
+        pool_get_next_cmd.add_argument('-b', '--beauty', type=int, default=5,
+                                       help="Return IPs with beauty greater or equal.")
+        self._register_handler('pool.get', self._handle_pool_get_next)
 
     def handle(self, *args, **options):
         if 'subcommand_name' in options:
@@ -100,19 +86,41 @@ class Command(BaseCommand):
         # call handler
         self.registered_handlers[subcommand](*args, **options)
 
+    def _handle_pool_get_next(self, *args, **options):
+        for pool_id in options['pool-id']:
+            ip_set = Resource.objects.get(pk=pool_id)
+            ip_count = options['count']
+            beauty_idx = options['beauty']
+
+            for ip_address in ip_set.available():
+                if not ip_count:
+                    break
+
+                if ip_address.beauty >= beauty_idx:
+                    print "%d\t%s\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
+                    ip_count -= 1
+
+            if ip_count > 0:
+                print "Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1)
+
     def _handle_delete_address(self, *args, **options):
-        address = Resource.objects.get(pk=options['address-id'])
+        for addr_id in options['address-id']:
+            address = Resource.objects.get(pk=addr_id)
 
-        address.delete()
+            address.delete()
 
-        if address.parent_id > 0:
-            self._list_addresses(address.parent_id)
+            if address.parent_id > 0:
+                print address.parent
+                self._list_addresses(parent=address.parent_id)
 
     def _handle_address_list(self, *args, **options):
         supported_fields = ['status', 'address']
 
         query_fields = []
         for option_name in options:
+            if not options[option_name]:
+                continue
+
             for supported_field in supported_fields:
                 if option_name.startswith(supported_field):
                     query_fields.append(option_name)
@@ -122,29 +130,19 @@ class Command(BaseCommand):
             if options[field] is not None:
                 query[field] = options[field]
 
-        self._list_addresses(options['pool_id'], **query)
+        if options['pool_id']:
+            query['parent'] = options['pool_id']
+
+        self._list_addresses(**query)
 
     def _handle_address_add(self, *args, **options):
         ip_set = Resource.objects.get(pk=options['pool-id'])
 
+        ips = IPAddress.objects.active(address=options['ip'])
         for ip_address in options['ip']:
-            ip_set += IPAddress.create(address=ip_address)
+            ip_set += ips[0] if len(ips) > 0 else IPAddress.create(address=ip_address)
 
-        self._list_addresses(ip_set.id)
-
-    def _handle_res_get_options(self, *args, **options):
-        ip_pool = Resource.objects.get(pk=options['resource-id'])
-
-        for option in ip_pool.get_options():
-            print option
-
-    def _handle_res_set_options(self, *args, **options):
-        ip_pool = Resource.objects.get(pk=options['resource-id'])
-
-        ip_pool.set_option(options['option-name'], options['option-value'])
-
-        for option in ip_pool.get_options():
-            print option
+        self._list_addresses(parent=ip_set.id)
 
     def _handle_pool_addnamed(self, *args, **options):
         IPAddressPool.create(name=options['pool-name'])
@@ -165,25 +163,19 @@ class Command(BaseCommand):
         self._list_pools()
 
     def _handle_pool_addrange(self, *args, **options):
-        print args, options
-
         IPAddressRangePool.create(range_from=options['ip-start'], range_to=options['ip-end'])
 
         self._list_pools()
 
-    def _list_addresses(self, pool_id, **kwargs):
-        assert pool_id > 0, "pool_id must be defined."
-
-        query = {'parent': pool_id}
-
-        query.update(kwargs)
-
-        for ip_address in IPAddress.objects.active(**query):
-            print "%d\t%d\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
+    def _list_addresses(self, **kwargs):
+        for ip_address in IPAddress.objects.active(**kwargs):
+            print "%d\t%s\t%s\t%s\t%d" % (
+                ip_address.id, ip_address.parent_id, ip_address, ip_address.status, ip_address.beauty)
 
     def _list_pools(self):
-        for address_pool in Resource.objects.active(type__in=self.ip_pool_types):
-            print "%d\t%s\t%s\t%s" % (address_pool.id, address_pool, address_pool.usage, address_pool.type)
+        for address_pool in IPAddressPool.get_all_pools():
+            print "%d\t%s\t%s\t%s\t%s" % (
+                address_pool.id, address_pool.parent_id, address_pool, address_pool.usage, address_pool.type)
 
     def _register_handler(self, command_name, handler):
         assert command_name, "command_name must be defined."

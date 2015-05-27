@@ -1,16 +1,70 @@
-from resources.models import Resource
+import netaddr
+
+from resources.models import Resource, ResourceOption
 
 
 class RegionResource(Resource):
     """
-    Resource grouping.
+    Resource grouping by region.
     """
 
     class Meta:
         proxy = True
 
 
-class PortResource(Resource):
+class PortConnection(Resource):
+    """
+    Connection between the ports in the network
+    """
+
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return "%s %s<->%s (%s Mbit)" % (self.name, self.id, self.linked_port_id, self.link_speed_mbit)
+
+    @property
+    def linked_port_id(self):
+        return self.get_option_value('linked_port_id', default=0)
+
+    @linked_port_id.setter
+    def linked_port_id(self, value):
+        self.set_option('linked_port_id', value, format=ResourceOption.FORMAT_INT)
+
+    @property
+    def link_speed_mbit(self):
+        return self.get_option_value('link_speed_mbit', default=1000)
+
+    @link_speed_mbit.setter
+    def link_speed_mbit(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('link_speed_mbit', value, format=ResourceOption.FORMAT_INT)
+
+
+class SwitchPort(Resource):
+    """
+    Network switch port
+    """
+
+    class Meta:
+        proxy = True
+
+    # def __str__(self):
+    #     return "%s:%d" % (self.parent.as_leaf_class(), self.number)
+
+    @property
+    def number(self):
+        return self.get_option_value('number', default=0)
+
+    @number.setter
+    def number(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('number', value, format=ResourceOption.FORMAT_INT)
+
+
+class ServerPort(SwitchPort):
     """
     Network port
     """
@@ -18,25 +72,20 @@ class PortResource(Resource):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return self.mac
+
     @property
     def mac(self):
-        return self.get_option_value('mac', default="00:00:00:00:00:00")
+        return self.get_option_value('mac', default="000000000000")
 
     @mac.setter
     def mac(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('mac', value)
+        _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
 
-    @property
-    def number(self):
-        return self.get_option_value('number', default="0")
-
-    @number.setter
-    def number(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('number', value)
+        self.set_option('mac', str(_mac).upper())
 
 
 class InventoryResource(Resource):
@@ -47,6 +96,9 @@ class InventoryResource(Resource):
 
     class Meta:
         proxy = True
+
+    def __str__(self):
+        return self.label
 
     @property
     def label(self):
@@ -66,15 +118,28 @@ class InventoryResource(Resource):
     def serial(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('serial', value)
-
-    @property
-    def is_failed(self):
-        return super(Resource, self).is_failed or \
-               Resource.objects.active(status=Resource.STATUS_FAILED, parent=self).exists()
+        self.set_option('serial', value.lower())
 
 
-class ServerResource(InventoryResource):
+class Switch(InventoryResource):
+    """
+    Switch object
+    """
+
+    class Meta:
+        proxy = True
+
+
+class GatewaySwitch(InventoryResource):
+    """
+    Gateway device (BGP, announce networks)
+    """
+
+    class Meta:
+        proxy = True
+
+
+class Server(InventoryResource):
     """
     Server object
     """
@@ -83,7 +148,16 @@ class ServerResource(InventoryResource):
         proxy = True
 
 
-class RackResource(InventoryResource):
+class VirtualServer(InventoryResource):
+    """
+    Server object
+    """
+
+    class Meta:
+        proxy = True
+
+
+class Rack(InventoryResource):
     """
     Rack mount object
     """

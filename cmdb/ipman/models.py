@@ -1,11 +1,13 @@
 import ipaddress
 
-from resources.models import Resource
+from resources.models import Resource, ResourceOption
 
 
 class IPAddress(Resource):
     """
     IP address
+    Note: IPAddress is added to the IP pool with ipman_pool_id option. This option allows to organize Resources and
+          keep tracking of IP-IP_pool relations.
     """
 
     class Meta:
@@ -13,6 +15,17 @@ class IPAddress(Resource):
 
     def __str__(self):
         return self.address
+
+    def _get_beauty(self, address):
+        assert address, "address must be defined."
+        """
+        Count beauty factor: 1 - 10
+        """
+        diff_map = {}
+        for ch in address:
+            diff_map[ch] = 1
+
+        return (12 if self.version == 4 else 17) - len(diff_map)
 
     @property
     def address(self):
@@ -25,25 +38,49 @@ class IPAddress(Resource):
         parsed_addr = ipaddress.ip_address(unicode(address))
         self.set_option('address', parsed_addr)
         self.set_option('version', parsed_addr.version)
+        self.set_option('beauty', self._get_beauty(unicode(address)), format=ResourceOption.FORMAT_INT)
 
     @property
     def version(self):
         return self.get_option_value('version')
 
+    @property
+    def beauty(self):
+        return self.get_option_value('beauty', default=self._get_beauty(self.address))
+
+    def save(self, *args, **kwargs):
+        need_save = True
+
+        if not self.is_saved():
+            if self.parent and not isinstance(self.parent, IPAddressPool):
+                raise Exception("IP address must be added to the pool for the first time.")
+
+            super(IPAddress, self).save(*args, **kwargs)
+            need_save = False
+
+        if self.parent and isinstance(self.parent, IPAddressPool):
+            self.set_option('ipman_pool_id', self.parent.id)
+
+        if need_save:
+            super(IPAddress, self).save(*args, **kwargs)
+
 
 class IPAddressPool(Resource):
+    ip_pool_types = [
+        'IPAddressPool',
+        'IPAddressRangePool',
+        'IPNetworkPool'
+    ]
+
     class Meta:
         proxy = True
 
     def __str__(self):
         return self.name
 
-    def __iter__(self):
-        """
-        Iterates by all related IP addresses.
-        """
-        for ipaddr in IPAddress.objects.active(parent=self):
-            yield ipaddr
+    @staticmethod
+    def get_all_pools():
+        return Resource.objects.active(type__in=IPAddressPool.ip_pool_types)
 
     @property
     def version(self):
@@ -55,11 +92,11 @@ class IPAddressPool(Resource):
 
     @property
     def total_addresses(self):
-        return IPAddress.objects.active(parent=self).count()
+        return IPAddress.objects.active(ipman_pool_id=self.id).count()
 
     @property
     def used_addresses(self):
-        return IPAddress.objects.active(parent=self, status=Resource.STATUS_INUSE).count()
+        return IPAddress.objects.active(ipman_pool_id=self.id, status=Resource.STATUS_INUSE).count()
 
     def get_usage(self):
         total = float(self.total_addresses)
@@ -71,15 +108,30 @@ class IPAddressPool(Resource):
         """
         Iterate through all IP in this pool, even that are not allocated.
         """
-        for addr in self.available():
+        for addr in IPAddress.objects.active(ipman_pool_id=self.id, status=Resource.STATUS_FREE):
             yield addr.address
 
     def available(self):
         """
-        Iterate through available resources in the pool. Override this method in resource specific pools.
+        Check availability of the specific IP and return IPAddress that can be used.
         """
-        for res in IPAddress.objects.active(parent=self, status=Resource.STATUS_FREE):
-            yield res
+        for address in self.browse():
+            # search in the current pool
+            ips = IPAddress.objects.active(address=address, ipman_pool_id=self.id)
+            if len(ips) > 0:
+                for ip in ips:
+                    if ip.is_free:
+                        yield ip
+                    else:
+                        continue
+            else:
+                # guarantee the uniq IPs, search in other pools
+                existing_ips = IPAddress.objects.active(address=address)
+                if len(existing_ips) <= 0:
+                    yield IPAddress.create(address=address, parent=self)
+                else:
+                    # IP from this pool is used elsewhere
+                    continue
 
 
 class IPAddressRangePool(IPAddressPool):
@@ -141,20 +193,6 @@ class IPAddressRangePool(IPAddressPool):
         for address in self._get_range_addresses():
             yield address
 
-    def available(self):
-        """
-        Check availability of the specific IP and return IPAddress that can be used.
-        """
-        for address in self.browse():
-            ips = IPAddress.objects.active(address=address, parent=self)
-            if len(ips) > 0:
-                if ips[0].is_free:
-                    yield ips[0]
-                else:
-                    continue
-            else:
-                yield IPAddress.create(address=address, parent=self)
-
     def _get_range_addresses(self):
         ip_from = int(ipaddress.ip_address(unicode(self.range_from)))
         ip_to = int(ipaddress.ip_address(unicode(self.range_to)))
@@ -215,20 +253,6 @@ class IPNetworkPool(IPAddressPool):
         parsed_net = self._get_network_object()
         for address in parsed_net.hosts():
             yield address
-
-    def available(self):
-        """
-        Check availability of the specific IP and return IPAddress that can be used.
-        """
-        for address in self.browse():
-            ips = IPAddress.objects.active(address=address, parent=self)
-            if len(ips) > 0:
-                if ips[0].is_free:
-                    yield ips[0]
-                else:
-                    continue
-            else:
-                yield IPAddress.create(address=address, parent=self)
 
     def _get_network_object(self):
         return ipaddress.ip_network(unicode(self.network), strict=False)

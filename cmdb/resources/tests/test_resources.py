@@ -6,6 +6,56 @@ from resources.models import Resource, ResourceOption
 
 
 class ResourceTest(TestCase):
+    def test_find_by_many_options(self):
+        """
+        Bug fixed: when searching for Resources by many options, only searched by the last option
+        """
+
+        # differs only by one option
+        new_res1 = Resource.create(somekey1='someval1', somekey='someval')
+        new_res2 = Resource.create(somekey1='someval2', somekey='someval')
+
+        found1 = Resource.objects.active(somekey1='someval1', somekey='someval')
+        self.assertEqual(1, len(found1))
+        self.assertEqual(new_res1.id, found1[0].id)
+
+        found2 = Resource.objects.active(somekey1='someval2', somekey='someval')
+        self.assertEqual(1, len(found2))
+        self.assertEqual(new_res2.id, found2[0].id)
+
+        found3 = Resource.objects.active(somekey1='someval3', somekey='someval')
+        self.assertEqual(0, len(found3))
+
+        found4 = Resource.objects.active(somekey='someval')
+        self.assertEqual(2, len(found4))
+
+    def test_delete(self):
+        resource1 = Resource()
+        resource1.save()
+
+        resource2 = Resource()
+        resource2.save()
+
+        resource3 = Resource(parent=resource2)
+        resource3.save()
+
+        self.assertEqual(3, len(Resource.objects.all()))
+
+        resource2.delete(cascade=True)
+
+        self.assertEqual(3, len(Resource.objects.all()))
+        self.assertEqual(1, len(Resource.objects.active()))
+
+    def test_static_create_with_fields(self):
+        """
+        Bug fixed: when creating models with model fields in create() call - they are not saved
+        """
+        new_res1 = Resource.create(somekey1='someval1', somekey2='someval2')
+        new_res2 = Resource.create(somekey3='someval3', somekey4='someval4', parent_id=new_res1.id)
+        new_res2.refresh_from_db()
+
+        self.assertEqual(new_res1.id, new_res2.parent_id)
+
     def test_static_create(self):
         new_res = Resource.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
 

@@ -8,6 +8,9 @@
 #
 # Requirements:
 #	CentOS 6/7
+#
+# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+#
 
 yum clean all
 yum -y update

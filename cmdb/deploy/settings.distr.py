@@ -18,12 +18,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '-xj#o6!xvljfkw7%2xbqpapm!y(*+zqh$*41b=zg9kv42rh5k3'
+SECRET_KEY = ''
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-TEMPLATE_DEBUG = True
+TEMPLATE_DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -66,7 +66,7 @@ WSGI_APPLICATION = 'cmdb.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db/cmdb.sqlite3'),
+        'NAME': os.path.join(os.path.dirname(BASE_DIR), 'db/cmdb.sqlite3'),
     }
 }
 
