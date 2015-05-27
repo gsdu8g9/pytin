@@ -9,7 +9,7 @@ class AssetsTest(TestCase):
     def test_change_asset_type(self):
         new_res1 = Switch.create(label="test switch")
 
-        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1.__class__, 'type'))
+        self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'type'))
 
         setattr(new_res1, 'type', 'Server')
         new_res1.save()

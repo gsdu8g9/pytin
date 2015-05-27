@@ -18,14 +18,14 @@ class ModelFieldChecker:
         pass
 
     @staticmethod
-    def is_field_or_property(class_type, name):
+    def is_field_or_property(object, name):
         """
         Check if field name belongs to model fields or properties
         """
         assert name is not None, "Parameter 'name' must be defined."
-        assert issubclass(class_type, models.Model), "Class 'class_type' must be the subclass of models.Model."
+        assert issubclass(object.__class__, models.Model), "Class 'class_type' must be the subclass of models.Model."
 
-        return ModelFieldChecker.is_model_field(class_type, name) or hasattr(class_type, name)
+        return ModelFieldChecker.is_model_field(object.__class__, name) or hasattr(object, name)
 
     @staticmethod
     def is_model_field(class_type, name):

@@ -6,6 +6,9 @@ from resources.models import Resource, ResourceOption
 
 
 class ResourceTest(TestCase):
+    def test_set_parent(self):
+        pass
+
     def test_find_by_many_options(self):
         """
         Bug fixed: when searching for Resources by many options, only searched by the last option
