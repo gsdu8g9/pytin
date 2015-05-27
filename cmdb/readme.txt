@@ -1,10 +1,24 @@
-Resources API
-=============
+JustHost.ru CMDB
+================
+
+Configuration management database (CMDB)
+
+Written in Python, easy to install and maintain. Used to track infrastructure resources like hardware,
+IP addresses, network ports. Dynamic resources like connections and virtual servers.
+
+Features
+* Tracking of IP addresses usage (using SNMP, MAC and ARP table dumps)
+* Discover IPs used by servers and ability to query this info (find server and switch port by IP)
+* Hypervisors discovery and keep track of VPSs form them
+* Export CMDB data to Zabbix, generate complex and graph screens
+* Provides CLI interface and RESTful API for the integration
+
 
 1. Installation
 ---------------
 
-    Add app to INSTALLED_APPS
+    Run under root user:
+    $ bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/cmdb/deploy/init.sh)
 
 2. Overview
 -----------
@@ -30,17 +44,6 @@ Resources API
 
     Resource.can_add(resource)
         Method is overrided in a relative classes to check is specific resource can be added as a child.
-
-    Usage Scenarios
-    ---------------
-
-    # List free IP pools
-    $ cmdbctl list type=IPNetworkPool status=free
-
-    # Get next available IPs from pools 3 and 4 (2 IPs from each pool)
-    ipmanctl pool get 3 4 -c 2
-    cmdbctl set <list_of_ids> --use
-
 
 2.1. Query resources
 --------------------
@@ -75,6 +78,8 @@ Resources API
 3. IP address
 -------------------
 
+    Supported by module: ipman
+
     IPAddress
         query: address, version
 
@@ -99,8 +104,18 @@ Resources API
     store the hierarchy of the resources.
 
 
+    # List free IP pools
+    $ cmdbctl list type=IPNetworkPool status=free
+
+    # Get next available IPs from pools 3 and 4 (2 IPs from each pool)
+    $ ipmanctl pool get 3 4 -c 2
+    $ cmdbctl set <list_of_ids> --use
+
+
 4. Assets
 ---------
+
+    Supported by module: assets
 
     RegionResource
         query:
