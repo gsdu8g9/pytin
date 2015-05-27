@@ -41,3 +41,11 @@ cd ..
 
 cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
 perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
+
+# For OpenVZ
+ip link | grep venet
+if [ $? -ne 0 ];
+then
+    perl -pi -e 's/IFACE_IN="eth0"/IFACE_IN="venet0"/g' /etc/apf/conf.apf
+    perl -pi -e 's/IFACE_OUT="eth0"/IFACE_OUT="venet0"/g' /etc/apf/conf.apf
+fi

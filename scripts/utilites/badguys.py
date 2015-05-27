@@ -15,6 +15,7 @@ import traceback
 import sys
 import os
 import datetime
+import pygeoip
 
 class IPList:
     def __init__(self):
@@ -97,7 +98,6 @@ class FW():
                 f.write(ip + "\n")
         if self.args.verbose:
             print 'Время записи в файл: ' + str(datetime.now() - t1).seconds + ' секунд'
-        self.iplist = []
         
     def add(self):
         for ip in self.args.addip:
@@ -108,6 +108,19 @@ class FW():
         for ip in self.args.delip:
             self.iplist.Delete(ip)
         self.refresh()
+
+    def infoip(self):
+        """
+        Получить информацию об IP
+        """
+        for ip in self.args.infoip:
+            gi = pygeoip.GeoIP('/usr/local/share/GeoIP/GeoIP.dat')
+            print "Страна: " + gi.country_name_by_addr(ip)
+            result = self.iplist.Search(ip)
+            if not result:
+                print "IP " + ip + " в чёрном списке не найден"
+            else:
+                print "IP " + ip + " в чёрном списке"
 
     def flush(self):
         fw_cmd('flush')
@@ -180,7 +193,8 @@ def main():
     mutex_group1.add_argument("-a", "--add", nargs='+', dest="addip", help="Добавить IP")
     mutex_group1.add_argument("-d", "--delete", nargs='+', dest="delip", help="Удалить IP")
     mutex_group1.add_argument("-c", "--clear", action='store_true', dest="fwclear", help="Очистить правила")
-    mutex_group1.add_argument("-l", "--list", default='firewall', dest="listshow", choices=['firewall', 'file'], help="Показать список IP")
+    mutex_group1.add_argument("-i", "--info", nargs='+', dest="infoip", help="Получить информацию об IP")
+    mutex_group1.add_argument("-l", "--list", default='none', dest="listshow", choices=['none', 'firewall', 'file'], help="Показать список IP")
     mutex_group1.add_argument("-r", "--reload", action='store_true', dest="refresh", help="Перезагрузить правила")
 
     args = parser.parse_args()
@@ -193,6 +207,8 @@ def main():
         fw.flush()
     elif args.delip:
         fw.delete()
+    if args.infoip:
+        fw.infoip()
     elif args.listshow:
         fw.showlist()
     elif args.refresh:
