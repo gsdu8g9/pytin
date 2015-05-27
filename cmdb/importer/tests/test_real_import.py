@@ -81,7 +81,7 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(41, len(VirtualServer.objects.active()))
         self.assertEqual(117, len(ServerPort.objects.active()))
         self.assertEqual(0, len(ServerPort.objects.active(parent=None)))
-        self.assertEqual(45, len(PortConnection.objects.active()))
+        self.assertEqual(54, len(PortConnection.objects.active()))
 
         # Linked VPS
         self.assertEqual(3, len(VirtualServer.objects.active(parent=619)))
@@ -89,3 +89,10 @@ class QSW8300ImportDataTest(TestCase):
 
         # Guessed roles
         self.assertEqual(3, len(Server.objects.active(guessed_role='hypervisor')))
+        for srv in Server.objects.active(guessed_role='hypervisor'):
+            print srv.id
+            for srv_port in srv:
+                print "    %s" % srv_port
+
+        srv_port = ServerPort.objects.active(mac='001517E69D70')[0]
+        self.assertEqual(4, len(VirtualServer.objects.active(parent=srv_port.parent)))

@@ -68,12 +68,18 @@ class L3SwitchPort(object):
     Level3 switch port
     """
 
-    def __init__(self, port_name, port_num, macs=[]):
+    def __init__(self, switch, port_name, port_num, macs=[]):
         assert port_name
+        assert switch
 
+        self._switch = switch
         self._port_name = _normalize_port_name(port_name)
         self._port_num = port_num
         self._macs = [ServerInterface(mac_addr) for mac_addr in macs]
+
+    @property
+    def switch(self):
+        return self._switch
 
     @property
     def name(self):
@@ -118,7 +124,7 @@ class L3Switch(object):
             if port_name in self.port_name__macs__map:
                 macs = self.port_name__macs__map[port_name]
 
-            port_object = self.port_implementor(port_name, port_num, macs)
+            port_object = self.port_implementor(self, port_name, port_num, macs)
 
             yield port_object
 
