@@ -116,6 +116,9 @@ class CmdbImporter(object):
             if created:
                 print "Added %d Mbit connection: %d <-> %d" % (
                     port_connection.link_speed_mbit, switch_local_port.id, server_port.id)
+
+                if self._detect_uplink_local_port(switch_local_port):
+                    print "NOTE: Possibly UPLINK port: %s" % switch_local_port
             else:
                 port_connection.touch()
 
@@ -124,6 +127,22 @@ class CmdbImporter(object):
             # adding IP
             for ip_address in l3port.switch.get_mac_ips(str(connected_mac)):
                 self._add_ip(ip_address, parent=server_port)
+
+    def _detect_uplink_local_port(self, switch_local_port):
+        assert switch_local_port
+
+        connections = PortConnection.objects.active(parent=switch_local_port)
+        if len(connections) > 2:
+            phyz = 0
+            for connection in connections:
+                server_port = ServerPort.objects.get(pk=connection.linked_port_id)
+                if server_port.parent.type == Server.__name__:
+                    phyz += 1
+
+            if phyz > 1:
+                return True
+
+        return False
 
     def _import_switch_aggregate_port(self, source_switch, l3port):
         assert l3port
