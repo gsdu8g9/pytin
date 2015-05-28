@@ -11,6 +11,9 @@ class RegionResource(Resource):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return self.name
+
 
 class PortConnection(Resource):
     """
@@ -21,7 +24,7 @@ class PortConnection(Resource):
         proxy = True
 
     def __str__(self):
-        return "%s %s<->%s (%s Mbit)" % (self.name, self.id, self.linked_port_id, self.link_speed_mbit)
+        return "swport:%s <-> srvport:%s (%s Mbit)" % (self.parent.id, self.linked_port_id, self.link_speed_mbit)
 
     @property
     def linked_port_id(self):
@@ -50,8 +53,8 @@ class SwitchPort(Resource):
     class Meta:
         proxy = True
 
-    # def __str__(self):
-    #     return "%s:%d" % (self.parent.as_leaf_class(), self.number)
+    def __str__(self):
+        return "%s:%s" % (self.parent.id, self.number)
 
     @property
     def number(self):
@@ -98,11 +101,11 @@ class InventoryResource(Resource):
         proxy = True
 
     def __str__(self):
-        return self.label
+        return "%s (SN: %s)" % (self.label, self.serial)
 
     @property
     def label(self):
-        return self.get_option_value('label', default="s%s" % self.id)
+        return self.get_option_value('label', default="no label" % self.id)
 
     @label.setter
     def label(self, value):
@@ -112,7 +115,7 @@ class InventoryResource(Resource):
 
     @property
     def serial(self):
-        return self.get_option_value('serial', default="sn%s" % self.id)
+        return self.get_option_value('serial', default="NA" % self.id)
 
     @serial.setter
     def serial(self, value):

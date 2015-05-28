@@ -202,7 +202,7 @@ class CmdbImporter(object):
 
                 if parent:
                     if added_ip.parent and added_ip.parent.id != parent.id:
-                        print "IP %s moved from %s to %s" % (ip_address, added_ip.parent, parent)
+                        print "IP %s moved from %s to %s" % (ip_address, added_ip.parent.as_leaf_class(), parent)
 
                     added_ip.parent = parent
                     added_ip.save()

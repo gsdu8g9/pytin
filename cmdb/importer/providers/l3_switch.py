@@ -12,7 +12,8 @@ def _snmp_walk(host, community, oid):
     errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(
         cmdgen.CommunityData(community),
         cmdgen.UdpTransportTarget((host, 161)),
-        oid
+        oid,
+        ignoreNonIncreasingOid=True
     )
 
     if errorIndication:
@@ -91,7 +92,7 @@ class L3SwitchPort(object):
 
     @property
     def is_local(self):
-        return True
+        return self._port_name.startswith('ethernet')
 
     @property
     def macs(self):

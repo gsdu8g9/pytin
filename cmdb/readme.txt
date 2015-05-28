@@ -121,7 +121,8 @@ Features
         query:
 
     PortConnection
-        query: port1, port2, link_speed_mbit
+        Connection between two ports. One port in parent, and the other in linked_port_id.
+        query: link_speed_mbit, linked_port_id
 
     SwitchPort
         query: number

@@ -26,21 +26,9 @@ class Command(BaseCommand):
                                                                parser_class=ArgumentParser)
 
         addr_add_cmd = address_subparsers.add_parser('add', help="Add IP in")
-        addr_add_cmd.add_argument('pool-id', help="ID of the pool")
+        addr_add_cmd.add_argument('pool-id', type=int, help="ID of the pool")
         addr_add_cmd.add_argument('ip', nargs='+', help="IP address to add to pool")
         self._register_handler('address.add', self._handle_address_add)
-
-        addr_list_cmd = address_subparsers.add_parser('list', help="List addresses")
-        addr_list_cmd.add_argument('--pool-id', help="ID of the pool")
-        addr_list_cmd.add_argument('--status', help="Status of the IP",
-                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
-        addr_list_cmd.add_argument('--address', help="Search in address")
-        self._register_handler('address.list', self._handle_address_list)
-
-        addr_del_cmd = address_subparsers.add_parser('delete', help="Delete address")
-        addr_del_cmd.add_argument('address-id', nargs='+', help="ID of the address")
-        self._register_handler('address.delete', self._handle_delete_address)
-
 
         # POOL commands
         pool_cmd_parser = subparsers.add_parser('pool', help='Manage address pools')
@@ -62,10 +50,6 @@ class Command(BaseCommand):
         add_cidr_cmd = pool_subparsers.add_parser('addnamed', help="Add named pool")
         add_cidr_cmd.add_argument('pool-name', help="Name of the pool. It holds arbitrary IPs.")
         self._register_handler('pool.addnamed', self._handle_pool_addnamed)
-
-        add_cidr_cmd = pool_subparsers.add_parser('delete', help="Delete pool")
-        add_cidr_cmd.add_argument('pool-id', help="ID of the pool")
-        self._register_handler('pool.delete', self._handle_delete_pool)
 
         pool_subparsers.add_parser('list', help="List pools")
         self._register_handler('pool.list', self._handle_list_pools)
@@ -103,38 +87,6 @@ class Command(BaseCommand):
             if ip_count > 0:
                 print "Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1)
 
-    def _handle_delete_address(self, *args, **options):
-        for addr_id in options['address-id']:
-            address = Resource.objects.get(pk=addr_id)
-
-            address.delete()
-
-            if address.parent_id > 0:
-                print address.parent
-                self._list_addresses(parent=address.parent_id)
-
-    def _handle_address_list(self, *args, **options):
-        supported_fields = ['status', 'address']
-
-        query_fields = []
-        for option_name in options:
-            if not options[option_name]:
-                continue
-
-            for supported_field in supported_fields:
-                if option_name.startswith(supported_field):
-                    query_fields.append(option_name)
-
-        query = {}
-        for field in query_fields:
-            if options[field] is not None:
-                query[field] = options[field]
-
-        if options['pool_id']:
-            query['parent'] = options['pool_id']
-
-        self._list_addresses(**query)
-
     def _handle_address_add(self, *args, **options):
         ip_set = Resource.objects.get(pk=options['pool-id'])
 
@@ -149,14 +101,6 @@ class Command(BaseCommand):
 
         self._list_pools()
 
-    def _handle_list_pools(self, *args, **options):
-        self._list_pools()
-
-    def _handle_delete_pool(self, *args, **options):
-        Resource.objects.active(pk=options['pool-id']).delete()
-
-        self._list_pools()
-
     def _handle_pool_addcidr(self, *args, **options):
         IPNetworkPool.create(network=options['net'])
 
@@ -167,6 +111,14 @@ class Command(BaseCommand):
 
         self._list_pools()
 
+    def _handle_list_pools(self, *args, **options):
+        self._list_pools()
+
+    def _handle_delete_pool(self, *args, **options):
+        Resource.objects.active(pk=options['pool-id']).delete()
+
+        self._list_pools()
+
     def _list_addresses(self, **kwargs):
         for ip_address in IPAddress.objects.active(**kwargs):
             print "%d\t%s\t%s\t%s\t%d" % (
@@ -174,8 +126,9 @@ class Command(BaseCommand):
 
     def _list_pools(self):
         for address_pool in IPAddressPool.get_all_pools():
-            print "%d\t%s\t%s\t%s\t%s" % (
-                address_pool.id, address_pool.parent_id, address_pool, address_pool.usage, address_pool.type)
+            print "%d\t%s\t%s\t%s\t%s\t%s" % (
+                address_pool.id, address_pool.parent_id, address_pool, address_pool.usage, address_pool.type,
+                address_pool.status)
 
     def _register_handler(self, command_name, handler):
         assert command_name, "command_name must be defined."

@@ -24,12 +24,12 @@ class Command(BaseCommand):
 
         # Common operatoins
         res_get_cmd = subparsers.add_parser('get', help="Get resource options.")
-        res_get_cmd.add_argument('resource-id', nargs='+', help="ID of the resource.")
+        res_get_cmd.add_argument('resource-id', type=int, nargs='+', help="ID of the resource.")
         res_get_cmd.add_argument('-t', '--tree', action='store_true', help="Display resources as the tree structure.")
         self._register_handler('get', self._handle_res_get_options)
 
         res_set_cmd = subparsers.add_parser('set', help="Set resource options.")
-        res_set_cmd.add_argument('resource-id', nargs='+', help="ID of the resource.")
+        res_set_cmd.add_argument('resource-id', type=int, nargs='+', help="ID of the resource.")
         res_set_cmd.add_argument('-n', '--option-name', help="Name of the option.")
         res_set_cmd.add_argument('-v', '--option-value', type=str, help="Value of the option.")
         res_set_cmd.add_argument('--format', '--option-format', help="Type of the value.",
@@ -57,7 +57,7 @@ class Command(BaseCommand):
         self._register_handler('add', self._handle_res_add)
 
         res_delete_cmd = subparsers.add_parser('delete', help="Delete resource objects.")
-        res_delete_cmd.add_argument('resource-id', nargs='+', help="IDs of the resources to delete.")
+        res_delete_cmd.add_argument('resource-id', type=int, nargs='+', help="IDs of the resources to delete.")
         self._register_handler('delete', self._handle_res_delete)
 
     def handle(self, *args, **options):
