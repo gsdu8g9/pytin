@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 
 from django.apps import apps
 
-from resources.iterators import ParentsIterator
+from resources.iterators import PathIterator, TreeIterator
 from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
@@ -25,7 +25,9 @@ class Command(BaseCommand):
         # Common operatoins
         res_get_cmd = subparsers.add_parser('get', help="Get resource options.")
         res_get_cmd.add_argument('resource-id', type=int, nargs='+', help="ID of the resource.")
-        res_get_cmd.add_argument('-t', '--tree', action='store_true', help="Display resources as the tree structure.")
+        res_get_cmd.add_argument('-p', '--path', action='store_true',
+                                 help="Display path from root node to resource-id.")
+        res_get_cmd.add_argument('-t', '--tree', action='store_true', help="Display the tree of childs.")
         self._register_handler('get', self._handle_res_get_options)
 
         res_set_cmd = subparsers.add_parser('set', help="Set resource options.")
@@ -81,6 +83,10 @@ class Command(BaseCommand):
         if options['type']:
             requested_model = apps.get_model(options['type'])
 
+        if 'parent' in parsed_data:
+            parsed_data['parent_id'] = parsed_data['parent']
+            del parsed_data['parent']
+
         if 'id' in parsed_data and Resource.objects.active(pk=parsed_data['id']).exists():
             raise Exception("Item with ID %s is already exists." % parsed_data['id'])
 
@@ -114,11 +120,15 @@ class Command(BaseCommand):
         for res_id in options['resource-id']:
             resource = Resource.objects.get(pk=res_id)
 
-            if options['tree']:
+            if options['path']:
                 indent = 0
-                for inner_resource in ParentsIterator(resource):
+                for inner_resource in PathIterator(resource):
                     self._print_resource_data(inner_resource, indent)
                     indent += 8
+            elif options['tree']:
+                for inner_resource, level in TreeIterator(resource):
+                    indent = (8 * (level - 1))
+                    self._print_resource_data(inner_resource, indent)
             else:
                 self._print_resource_data(resource)
 
@@ -152,14 +162,15 @@ class Command(BaseCommand):
     def _print_resource_data(self, resource, indent=0):
         padding = "".ljust(indent, ' ')
 
-        print "%s[%d\t%s\t%s\t%s\t%s]" % (
-            padding, resource.id, resource.parent_id, resource.type, resource.name, resource.status)
-        print "%s:created_at = %s" % (padding, resource.created_at)
-        print "%s:updated_at = %s" % (padding, resource.updated_at)
-        print "%s:last_seen = %s" % (padding, resource.last_seen)
+        print "%s|-------------------" % padding
+        print "%s|%d\t%s\t%s\t%s\t%s]" % (
+            padding, resource.id, resource.parent_id, resource.type, resource, resource.status)
+        print "%s|:created_at = %s" % (padding, resource.created_at)
+        print "%s|:updated_at = %s" % (padding, resource.updated_at)
+        print "%s|:last_seen = %s" % (padding, resource.last_seen)
 
         for option in resource.get_options():
-            print "%s%s" % (padding, option)
+            print "%s|%s" % (padding, option)
 
     def _parse_reminder_arg(self, reminder_args):
         query = {}
