@@ -105,7 +105,7 @@ class InventoryResource(Resource):
 
     @property
     def label(self):
-        return self.get_option_value('label', default="no label" % self.id)
+        return self.get_option_value('label', default="no label")
 
     @label.setter
     def label(self, value):
@@ -115,7 +115,7 @@ class InventoryResource(Resource):
 
     @property
     def serial(self):
-        return self.get_option_value('serial', default="NA" % self.id)
+        return self.get_option_value('serial', default=str(self.id))
 
     @serial.setter
     def serial(self, value):

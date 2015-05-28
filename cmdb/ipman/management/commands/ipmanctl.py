@@ -88,6 +88,9 @@ class Command(BaseCommand):
                 print "Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1)
 
     def _handle_address_add(self, *args, **options):
+        if not IPAddress.is_valid_address(options['ip']):
+            raise ValueError("Invalid ip address")
+
         ip_set = Resource.objects.get(pk=options['pool-id'])
 
         ips = IPAddress.objects.active(address=options['ip'])
@@ -102,11 +105,20 @@ class Command(BaseCommand):
         self._list_pools()
 
     def _handle_pool_addcidr(self, *args, **options):
+        if not IPAddressPool.is_valid_network(options['net']):
+            raise ValueError("Invalid network")
+
         IPNetworkPool.create(network=options['net'])
 
         self._list_pools()
 
     def _handle_pool_addrange(self, *args, **options):
+        if not IPAddress.is_valid_address(options['ip-start']):
+            raise ValueError("Invalid ip-start")
+
+        if not IPAddress.is_valid_address(options['ip-end']):
+            raise ValueError("Invalid ip-end")
+
         IPAddressRangePool.create(range_from=options['ip-start'], range_to=options['ip-end'])
 
         self._list_pools()

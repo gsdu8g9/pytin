@@ -13,6 +13,15 @@ class IPAddress(Resource):
     class Meta:
         proxy = True
 
+    @staticmethod
+    def is_valid_address(address):
+        try:
+            ipaddress.ip_address(unicode(address))
+        except:
+            return False
+
+        return True
+
     def __str__(self):
         return self.address
 
@@ -77,6 +86,15 @@ class IPAddressPool(Resource):
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def is_valid_network(network):
+        try:
+            ipaddress.ip_network(unicode(network), strict=False)
+        except:
+            return False
+
+        return True
 
     @staticmethod
     def get_all_pools():
@@ -216,7 +234,7 @@ class IPNetworkPool(IPAddressPool):
 
     @property
     def network(self):
-        return self.get_option_value('network', default=None)
+        return self.get_option_value('network', default='0.0.0.0/0')
 
     @network.setter
     def network(self, network):

@@ -20,6 +20,8 @@ class Switch3Com2250(L3Switch):
             if snmp_port_id in self.snmpid__port_num__map:
                 real_port_number = self.snmpid__port_num__map[snmp_port_id]
                 self._add_switch_port(real_port_number, value)
+            else:
+                print "There is no mapping for the SNMP port ID: %s" % snmp_port_id
 
         # mac addresses table
         oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'

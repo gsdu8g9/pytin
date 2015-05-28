@@ -5,6 +5,12 @@ from resources.models import Resource
 
 
 class IPmanTest(TestCase):
+    def test_add_wrong_network(self):
+        self.assertRaises(Exception, IPNetworkPool.create, network='192.168.1/24')
+
+        pools = Resource.objects.active(type=IPNetworkPool.__name__)
+        self.assertEqual(1, len(pools))
+        self.assertEqual('0.0.0.0/0', len(pools[0]))
 
     def test_ip_beauty(self):
         self.assertEqual(4, IPAddress.create(address='46.17.40.29').beauty)

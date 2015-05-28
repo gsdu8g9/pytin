@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from assets.models import GatewaySwitch, Switch
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
+from importer.providers.vendors.dlink import DSG3200Switch
 from importer.providers.vendors.hp import HP1910Switch
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
@@ -20,6 +21,7 @@ class Command(BaseCommand):
         'generic': L3Switch,
         '3com.2952': HP1910Switch,
         '3com.2250': Switch3Com2250,
+        'dlink.dsg3200': DSG3200Switch,
         'hp.1910': HP1910Switch,
         'qtech': QtechL3Switch,
         'qtech.3400': Qtech3400Switch
