@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
-from assets.models import GatewaySwitch, Switch
+from assets.models import GatewaySwitch, Switch, SwitchPort, PortConnection, ServerPort, Server
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
 from importer.providers.vendors.dlink import DSG3200Switch
@@ -53,6 +53,25 @@ class Command(BaseCommand):
 
         auto_cmd_parser = subparsers.add_parser('auto', help='Import and update CMDB data based on resources.')
         self._register_handler('auto', self._handle_auto)
+
+        debug_cmd_parser = subparsers.add_parser('debug', help='Debug database.')
+        self._register_handler('debug', self._handle_debug)
+
+    def _handle_debug(self, *args, **options):
+        for switch_port in SwitchPort.objects.active():
+            connections = PortConnection.objects.active(parent=switch_port)
+
+            if len(connections) > 2:
+                phyz = 0
+                for connection in connections:
+                    server_port = ServerPort.objects.get(pk=connection.linked_port_id)
+                    if server_port.parent.type == Server.__name__:
+                        phyz += 1
+
+                if phyz > 1:
+                    print "Possibly uplink port: %s" % switch_port
+                    switch_port.uplink = 1
+                    connections.delete()
 
     def _handle_auto(self, *args, **options):
         # update via snmp

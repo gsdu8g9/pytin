@@ -54,7 +54,7 @@ class SwitchPort(Resource):
         proxy = True
 
     def __str__(self):
-        return "%s:%s" % (self.parent.id, self.number)
+        return "%s:%s%s" % (self.parent.id, self.number, " (uplink)" if self.uplink else "")
 
     @property
     def number(self):
@@ -65,6 +65,16 @@ class SwitchPort(Resource):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('number', value, format=ResourceOption.FORMAT_INT)
+
+    @property
+    def uplink(self):
+        return self.get_option_value('uplink', default=0)
+
+    @uplink.setter
+    def uplink(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('uplink', value, format=ResourceOption.FORMAT_INT)
 
 
 class ServerPort(SwitchPort):

@@ -375,12 +375,15 @@ class Resource(models.Model):
     def free(self, cascade=False):
         self._change_status(self.STATUS_FREE, 'free', cascade)
 
-    def delete(self, cascade=False):
+    def delete(self, cascade=False, purge=False):
         """
         Override Model .delete() method. Instead of actual deleting object from the DB
         set status Deleted.
         """
-        self._change_status(self.STATUS_DELETED, 'delete', cascade)
+        if purge:
+            super(Resource, self).delete()
+        else:
+            self._change_status(self.STATUS_DELETED, 'delete', cascade)
 
     @property
     def is_locked(self):

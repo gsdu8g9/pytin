@@ -56,6 +56,9 @@ class CmdbImporter(object):
         if created:
             print "Added switch port: %s:%s (cmdbid:%s)" % (
                 source_switch.id, l3port.number, switch_local_port.id)
+        elif switch_local_port.uplink:
+            print "Port %s marked as UPLINK, purge port connections" % switch_local_port
+            PortConnection.objects.active(parent=switch_local_port).delete(purge=True)
 
         hypervisor_server = self._find_hypervisor(l3port.macs)
 
