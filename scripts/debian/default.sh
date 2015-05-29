@@ -13,7 +13,10 @@
 case $(head -n1 /etc/issue | cut -f 1 -d ' ') in
 Debian)
     case $(head -n1 /etc/issue | grep -o '7') in
-        apt-get install debian-keyring debian-archive-keyring
+    7)
+        apt-get -y install debian-keyring debian-archive-keyring
+    ;;
+    *)
     ;;
     esac
 ;;
@@ -24,6 +27,7 @@ Ubuntu)
         sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 3B4FE6ACC0B21F32
     ;;
     esac
+;;
 *)
     typeos="rhel"
 ;;
