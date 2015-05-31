@@ -37,6 +37,7 @@ class Command(BaseCommand):
         res_set_cmd.add_argument('--format', '--option-format', help="Type of the value.",
                                  default=ResourceOption.FORMAT_STRING,
                                  choices=[choice[0] for choice in ResourceOption.FORMAT_CHOICES])
+        res_set_cmd.add_argument('--cascade', action='store_true', help="Update resource and its childs.")
         stat_group = res_set_cmd.add_mutually_exclusive_group()
         stat_group.add_argument('--use', action='store_true', help="Mark resource and its childs as used.")
         stat_group.add_argument('--free', action='store_true', help="Mark resource and its childs as free.")
@@ -60,6 +61,9 @@ class Command(BaseCommand):
 
         res_delete_cmd = subparsers.add_parser('delete', help="Delete resource objects.")
         res_delete_cmd.add_argument('resource-id', type=int, nargs='+', help="IDs of the resources to delete.")
+        res_list_cmd.add_argument('--purge', action='store_true', help="Remove object from DB.")
+        res_list_cmd.add_argument('--cascade', action='store_true',
+                                  help="Mark the resource as deleted and all its childs.")
         self._register_handler('delete', self._handle_res_delete)
 
     def handle(self, *args, **options):
@@ -74,7 +78,7 @@ class Command(BaseCommand):
     def _handle_res_delete(self, *args, **options):
         for res_id in options['resource-id']:
             resource = Resource.objects.get(pk=res_id)
-            resource.delete()
+            resource.delete(purge=options['purge'], cascade=options['cascade'])
 
     def _handle_res_add(self, *args, **options):
         parsed_data = self._parse_reminder_arg(options['fields'])
@@ -151,11 +155,11 @@ class Command(BaseCommand):
                                         value=options['option_value'],
                                         format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
             elif options['use']:
-                resource.use()
+                resource.use(cascade=options['cascade'])
             elif options['free']:
-                resource.free()
+                resource.free(cascade=options['cascade'])
             elif options['lock']:
-                resource.lock()
+                resource.lock(cascade=options['cascade'])
 
             self._print_resource_data(resource)
 
