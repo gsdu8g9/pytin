@@ -8,7 +8,7 @@
 # Requirements:
 #	CentOS 6
 #
-# $ bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup.sh)
+# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup.sh)
 #
 
 bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)

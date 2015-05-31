@@ -6,6 +6,19 @@ from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
 class ResourceTest(TestCase):
+    def test_model_query_delete(self):
+        Resource.create(name='res1')
+        Resource.create(name='res2')
+        Resource.create(name='res3')
+        Resource.create(name='res4')
+        Resource.create(name='res5')
+
+        self.assertEqual(5, len(Resource.objects.filter()))
+
+        Resource.objects.filter().delete()
+
+        self.assertEqual(0, len(Resource.objects.filter()))
+
     def test_model_field_checker(self):
         new_res1 = Resource.create(somekey1='someval1', somekey='someval')
 

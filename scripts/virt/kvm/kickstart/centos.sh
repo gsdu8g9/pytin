@@ -47,8 +47,19 @@ NETMASK=<netmask_of_the_vm>
 DNS1=<dns1_of_the_vm>
 DNS2=<dns2_of_the_vm>
 
-# do not change
+################## do not change #################
 SCRIPTDIR=$(pwd)
+
+if [ ! -e ${SCRIPTDIR}/initrd.img ]
+then
+    wget http://mirror.yandex.ru/centos/6/os/x86_64/images/pxeboot/initrd.img
+fi
+
+if [ ! -e ${SCRIPTDIR}/vmlinuz ]
+then
+    wget http://mirror.yandex.ru/centos/6/os/x86_64/images/pxeboot/vmlinuz
+fi
+
 KSFILENAME="centos.ks.tpl"
 KSRTFILENAME="vmcurr"
 

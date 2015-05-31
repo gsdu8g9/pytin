@@ -58,7 +58,13 @@ class CmdbImporter(object):
                 source_switch.id, l3port.number, switch_local_port.id)
         elif switch_local_port.uplink:
             print "Port %s marked as UPLINK, purge port connections" % switch_local_port
-            PortConnection.objects.active(parent=switch_local_port).delete(purge=True)
+            PortConnection.objects.active(parent=switch_local_port).delete()
+            return
+
+        if len(l3port.macs) > 0:
+            switch_local_port.use()
+        else:
+            switch_local_port.free()
 
         hypervisor_server = self._find_hypervisor(l3port.macs)
 

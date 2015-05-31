@@ -179,3 +179,18 @@ Features
     # python manage.py cmdbimport fromfile --arpdump /path/to/file/arp-table.txt <gateway_id> QSW8300.arp
     python manage.py cmdbimport snmp <gateway_id> QSW8300.arp <IP> <community string>
 
+
+Use cases
+--------
+
+    # Find port 26 from switch 232
+    cmdbctl list type=SwitchPort parent=232 number=26
+
+    # Find all connections to the switch port (VPS + Dedicated)
+    cmdbctl list type=PortConnection parent=switch_port_id
+
+
+    # Find switch port
+    cmdbctl list label='bxt-121' -> server_id
+    cmdbctl get --tree server_id -> (server port id)
+    cmdbctl list linked_port_id=server port id

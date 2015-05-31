@@ -24,7 +24,7 @@ class PortConnection(Resource):
         proxy = True
 
     def __str__(self):
-        return "swport:%s <-> srvport:%s (%s Mbit)" % (self.parent.id, self.linked_port_id, self.link_speed_mbit)
+        return "%s <-> srv:%s (%s Mbit)" % (self.parent, self.linked_port_id, self.link_speed_mbit)
 
     @property
     def linked_port_id(self):

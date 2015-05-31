@@ -1,7 +1,17 @@
-from importer.providers.l3_switch import L3Switch, _snmp_walk
+from importer.providers.l3_switch import L3Switch, _snmp_walk, L3SwitchPort
+
+
+class Switch3Com2250Port(L3SwitchPort):
+    @property
+    def is_local(self):
+        return self._port_name.startswith('ethernet') or \
+               self._port_name.startswith('copper') or \
+               self._port_name.startswith('fiber')
 
 
 class Switch3Com2250(L3Switch):
+    port_implementor = Switch3Com2250Port
+
     snmpid__port_num__map = {}  # port numbers are mapped: snmp id - real port number
 
     def from_snmp(self, host, community):

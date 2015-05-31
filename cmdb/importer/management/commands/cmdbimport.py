@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
-from assets.models import GatewaySwitch, Switch, SwitchPort, PortConnection, ServerPort, Server
+from assets.models import GatewaySwitch, Switch, VirtualServer, PortConnection, ServerPort
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
 from importer.providers.vendors.dlink import DSG3200Switch
@@ -58,20 +58,22 @@ class Command(BaseCommand):
         self._register_handler('debug', self._handle_debug)
 
     def _handle_debug(self, *args, **options):
-        for switch_port in SwitchPort.objects.active():
-            connections = PortConnection.objects.active(parent=switch_port)
+        print "*** Orphaned VirtualServer"
+        for server in VirtualServer.objects.active(parent=None):
+            print server
+            for port in server:
+                print port
+                for ip in port:
+                    print ip
+            print "-------"
 
-            if len(connections) > 2:
-                phyz = 0
-                for connection in connections:
-                    server_port = ServerPort.objects.get(pk=connection.linked_port_id)
-                    if server_port.parent.type == Server.__name__:
-                        phyz += 1
-
-                if phyz > 1:
-                    print "Possibly uplink port: %s" % switch_port
-                    switch_port.uplink = 1
-                    connections.delete()
+        print "*** Orphaned server ports"
+        for server_port in ServerPort.objects.active():
+            if not PortConnection.objects.active(linked_port_id=server_port.id).exists():
+                print server_port.parent.as_leaf_class(), server_port
+                for ip in server_port:
+                    print ip
+                print "-------"
 
     def _handle_auto(self, *args, **options):
         # update via snmp
