@@ -114,6 +114,7 @@ class CmdbImporter(object):
                         server_port.parent.save()
 
                 server_port.touch()
+                server_port.parent.touch()
 
             # add PortConnection only to local ports
             port_connection, created = _get_or_create_object(PortConnection,
@@ -177,6 +178,7 @@ class CmdbImporter(object):
                         server_port.parent.save()
 
                 server_port.touch()
+                server_port.parent.touch()
 
             # adding IP
             for ip_address in l3port.switch.get_mac_ips(str(connected_mac)):

@@ -34,6 +34,10 @@ class PortConnection(Resource):
     def linked_port_id(self, value):
         self.set_option('linked_port_id', value, format=ResourceOption.FORMAT_INT)
 
+        port_object = Resource.objects.active(pk=value)
+        self.set_option('linked_port_mac', str(port_object))
+        self.set_option('linked_port_parent', str(port_object.parent.as_leaf_class()))
+
     @property
     def link_speed_mbit(self):
         return self.get_option_value('link_speed_mbit', default=1000)

@@ -58,23 +58,21 @@ class Command(BaseCommand):
         self._register_handler('debug', self._handle_debug)
 
     def _handle_debug(self, *args, **options):
-        print "*** Remove orphaned VirtualServer"
+        print "*** Orphaned VirtualServer"
         for server in VirtualServer.objects.active(parent=None):
             print server
             for port in server:
                 print port
                 for ip in port:
                     print ip
-            server.delete(cascade=True, purge=True)
             print "-------"
 
-        print "*** Remove orphaned server ports"
+        print "*** Orphaned server ports"
         for server_port in ServerPort.objects.active():
             if not PortConnection.objects.active(linked_port_id=server_port.id).exists():
                 print server_port.parent.as_leaf_class(), server_port
                 for ip in server_port:
                     print ip
-                server_port.parent.delete(cascade=True, purge=True)
                 print "-------"
 
     def _handle_auto(self, *args, **options):
