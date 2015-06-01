@@ -30,6 +30,11 @@ class Command(BaseCommand):
             for port_connection in PortConnection.objects.active(parent=switch_port):
                 linked_server_port = port_connection.linked_port_id
                 server_port = ServerPort.objects.get(pk=linked_server_port)
+
+                if server_port.is_deleted():
+                    port_connection.delete()
+                    continue
+
                 print "\t\t%s %s (%s, %s)" % (server_port.parent.id, server_port.parent.as_leaf_class().label,
                                               server_port.parent.get_option_value('group'),
                                               server_port.parent.get_option_value('guessed_role'))

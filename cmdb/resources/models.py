@@ -401,6 +401,10 @@ class Resource(models.Model):
     def is_free(self):
         return self.status == self.STATUS_FREE
 
+    @property
+    def is_deleted(self):
+        return self.status == self.STATUS_DELETED
+
     def set_option(self, name, value, format=None, namespace=''):
         """
         Set resource option. If format is omitted, then format is guessed from value type.
