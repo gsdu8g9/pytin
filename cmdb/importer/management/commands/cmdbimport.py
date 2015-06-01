@@ -9,6 +9,7 @@ from importer.providers.vendors.dlink import DSG3200Switch
 from importer.providers.vendors.hp import HP1910Switch
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
+from ipman.models import IPAddress
 from resources.models import Resource
 
 
@@ -67,11 +68,22 @@ class Command(BaseCommand):
                     print ip
             print "-------"
 
-        print "*** Orphaned server ports"
+        print "*** Orphaned server ports with IPs"
         for server_port in ServerPort.objects.active():
-            if not PortConnection.objects.active(linked_port_id=server_port.id).exists():
+            ips = IPAddress.objects.active(parent=server_port)
+            if len(ips) > 0:
+                if not PortConnection.objects.active(linked_port_id=server_port.id).exists():
+                    print server_port.parent.as_leaf_class(), server_port
+                    for ip in server_port:
+                        print ip
+                    print "-------"
+
+        print "*** Possible duplicate servers"
+        for server_port in ServerPort.objects.active():
+            ips = IPAddress.objects.active(parent=server_port)
+            if len(ips) > 0 and server_port.parent.id > 332:
                 print server_port.parent.as_leaf_class(), server_port
-                for ip in server_port:
+                for ip in ips:
                     print ip
                 print "-------"
 

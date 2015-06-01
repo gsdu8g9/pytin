@@ -61,8 +61,8 @@ class Command(BaseCommand):
 
         res_delete_cmd = subparsers.add_parser('delete', help="Delete resource objects.")
         res_delete_cmd.add_argument('resource-id', type=int, nargs='+', help="IDs of the resources to delete.")
-        res_list_cmd.add_argument('--purge', action='store_true', help="Remove object from DB.")
-        res_list_cmd.add_argument('--cascade', action='store_true',
+        res_delete_cmd.add_argument('--purge', action='store_true', help="Remove object from DB.")
+        res_delete_cmd.add_argument('--cascade', action='store_true',
                                   help="Mark the resource as deleted and all its childs.")
         self._register_handler('delete', self._handle_res_delete)
 
