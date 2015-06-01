@@ -45,7 +45,7 @@ class Command(BaseCommand):
         self._register_handler('set', self._handle_res_set_options)
 
         res_list_cmd = subparsers.add_parser('list', help="Get resource list.")
-        res_list_cmd.add_argument('--limit', type=int, default=100, help="Limit the resources output.")
+        res_list_cmd.add_argument('--limit', type=int, default=0, help="Limit the resources output.")
         res_list_cmd.add_argument('--page', type=int, default=1, help="Page number to paginate resource list (from 1).")
         res_list_cmd.add_argument('--status', help="Status of the IP",
                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
@@ -63,7 +63,7 @@ class Command(BaseCommand):
         res_delete_cmd.add_argument('resource-id', type=int, nargs='+', help="IDs of the resources to delete.")
         res_delete_cmd.add_argument('--purge', action='store_true', help="Remove object from DB.")
         res_delete_cmd.add_argument('--cascade', action='store_true',
-                                  help="Mark the resource as deleted and all its childs.")
+                                    help="Mark the resource as deleted and all its childs.")
         self._register_handler('delete', self._handle_res_delete)
 
     def handle(self, *args, **options):
@@ -109,10 +109,13 @@ class Command(BaseCommand):
         offset = (options['page'] - 1) * limit
 
         if not options['status']:
-            resource_set = Resource.objects.active(**query)[offset:limit]
+            resource_set = Resource.objects.active(**query)
         else:
             query['status'] = options['status']
-            resource_set = Resource.objects.filter(**query)[offset:limit]
+            resource_set = Resource.objects.filter(**query)
+
+        if limit > 0:
+            resource_set = resource_set[offset:limit]
 
         row_format = '%5s%11s%35s%20s%10s'
         print row_format % ('ID', 'parent_id', 'name', 'type', 'status')

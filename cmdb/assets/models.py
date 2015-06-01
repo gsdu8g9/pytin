@@ -24,7 +24,7 @@ class PortConnection(Resource):
         proxy = True
 
     def __str__(self):
-        return "%s <-> srv:%s (%s Mbit)" % (self.parent, self.linked_port_id, self.link_speed_mbit)
+        return "%s <-> srv:%s (%s Mbit)" % (self.parent.as_leaf_class(), self.linked_port_id, self.link_speed_mbit)
 
     @property
     def linked_port_id(self):
@@ -34,9 +34,11 @@ class PortConnection(Resource):
     def linked_port_id(self, value):
         self.set_option('linked_port_id', value, format=ResourceOption.FORMAT_INT)
 
-        port_object = Resource.objects.active(pk=value)
+        port_object = Resource.objects.get(pk=value)
         self.set_option('linked_port_mac', str(port_object))
-        self.set_option('linked_port_parent', str(port_object.parent.as_leaf_class()))
+
+        if port_object.parent:
+            self.set_option('linked_port_parent', str(port_object.parent.as_leaf_class()))
 
     @property
     def link_speed_mbit(self):
@@ -47,6 +49,9 @@ class PortConnection(Resource):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('link_speed_mbit', value, format=ResourceOption.FORMAT_INT)
+
+    def save(self, *args, **kwargs):
+        super(PortConnection, self).save(*args, **kwargs)
 
 
 class SwitchPort(Resource):

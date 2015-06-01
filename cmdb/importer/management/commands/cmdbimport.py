@@ -81,7 +81,7 @@ class Command(BaseCommand):
         print "*** Possible duplicate servers"
         for server_port in ServerPort.objects.active():
             ips = IPAddress.objects.active(parent=server_port)
-            if len(ips) > 0 and server_port.parent.id > 332:
+            if len(ips) > 0 and server_port.parent.id > 332 and server_port.parent.type != 'VirtualServer':
                 print server_port.parent.as_leaf_class(), server_port
                 for ip in ips:
                     print ip
