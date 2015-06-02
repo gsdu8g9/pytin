@@ -76,7 +76,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'simple': {
-            'format': '[%(levelname)s] %(message)s',
+            'format': '%(message)s',
             'datefmt': '%Y-%m-%d %H:%M:%S'
         },
         'verbose': {
