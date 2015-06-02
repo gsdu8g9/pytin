@@ -54,7 +54,7 @@ class Command(BaseCommand):
 
         logger.info(switch)
         for switch_port in SwitchPort.objects.active(parent=switch):
-            logger.info("\t", switch_port)
+            logger.info("\t%s", switch_port)
             for port_connection in PortConnection.objects.active(parent=switch_port):
                 linked_server_port = port_connection.linked_port_id
                 server_port = ServerPort.objects.get(pk=linked_server_port)

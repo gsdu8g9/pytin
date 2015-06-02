@@ -26,7 +26,7 @@ def _get_or_create_object(klass, query, creational=None):
         ret_object.touch()  # update last_seen date
 
         if len(found_objects) > 1:
-            logger.error("ERROR: duplicate objects %s for the query: %s" % (klass.__name__, query))
+            logger.error("Duplicate objects %s for the query: %s" % (klass.__name__, query))
 
     return ret_object, created
 
