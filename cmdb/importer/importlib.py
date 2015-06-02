@@ -107,11 +107,16 @@ class CmdbImporter(object):
                     # update server type
                     server_port.parent.type = VirtualServer.__class__.__name__
                     server_port.parent.save()
-                elif connected_mac.vendor and server_port.parent:
+
+                if not hypervisor_server and server_port.parent.parent:
+                    server_port.parent.parent = None
+
+                if connected_mac.vendor and server_port.parent:
                     if server_port.parent.name == 'Server':
                         # update standard server name to platform name
                         server_port.parent.name = connected_mac.vendor
                         server_port.parent.save()
+
 
                 server_port.touch()
                 server_port.parent.touch()

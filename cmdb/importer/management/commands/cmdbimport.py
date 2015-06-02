@@ -55,38 +55,6 @@ class Command(BaseCommand):
         auto_cmd_parser = subparsers.add_parser('auto', help='Import and update CMDB data based on resources.')
         self._register_handler('auto', self._handle_auto)
 
-        debug_cmd_parser = subparsers.add_parser('debug', help='Debug database.')
-        self._register_handler('debug', self._handle_debug)
-
-    def _handle_debug(self, *args, **options):
-        print "*** Orphaned VirtualServer"
-        for server in VirtualServer.objects.active(parent=None):
-            print server
-            for port in server:
-                print port
-                for ip in port:
-                    print ip
-            print "-------"
-
-        print "*** Orphaned server ports with IPs"
-        for server_port in ServerPort.objects.active():
-            ips = IPAddress.objects.active(parent=server_port)
-            if len(ips) > 0:
-                if not PortConnection.objects.active(linked_port_id=server_port.id).exists():
-                    print server_port.parent.as_leaf_class(), server_port
-                    for ip in server_port:
-                        print ip
-                    print "-------"
-
-        print "*** Possible duplicate servers"
-        for server_port in ServerPort.objects.active():
-            ips = IPAddress.objects.active(parent=server_port)
-            if len(ips) > 0 and server_port.parent.id > 332 and server_port.parent.type != 'VirtualServer':
-                print server_port.parent.as_leaf_class(), server_port
-                for ip in ips:
-                    print ip
-                print "-------"
-
     def _handle_auto(self, *args, **options):
         # update via snmp
         for switch in Resource.objects.active(type__in=[GatewaySwitch.__name__, Switch.__name__]):

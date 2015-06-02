@@ -31,7 +31,7 @@ class Command(BaseCommand):
                 linked_server_port = port_connection.linked_port_id
                 server_port = ServerPort.objects.get(pk=linked_server_port)
 
-                if server_port.is_deleted():
+                if server_port.is_deleted:
                     port_connection.delete()
                     continue
 
