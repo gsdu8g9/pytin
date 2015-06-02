@@ -120,7 +120,7 @@ class InventoryResource(Resource):
         proxy = True
 
     def __str__(self):
-        return "%s (SN: %s)" % (self.label, self.serial)
+        return "inv-%s %s (SN: %s)" % (self.id, self.label, self.serial)
 
     @property
     def label(self):
@@ -151,8 +151,11 @@ class Switch(InventoryResource):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return "sw-%s %s" % (self.id, self.label)
 
-class GatewaySwitch(InventoryResource):
+
+class GatewaySwitch(Switch):
     """
     Gateway device (BGP, announce networks)
     """
@@ -169,6 +172,9 @@ class Server(InventoryResource):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return "i-%s %s" % (self.id, self.label)
+
 
 class VirtualServer(InventoryResource):
     """
@@ -178,6 +184,9 @@ class VirtualServer(InventoryResource):
     class Meta:
         proxy = True
 
+    def __str__(self):
+        return "vm-%s %s" % (self.id, self.label)
+
 
 class Rack(InventoryResource):
     """
@@ -186,3 +195,6 @@ class Rack(InventoryResource):
 
     class Meta:
         proxy = True
+
+    def __str__(self):
+        return "%s" % self.label

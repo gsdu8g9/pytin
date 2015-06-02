@@ -119,7 +119,6 @@ class CmdbImporter(object):
                         server_port.parent.name = connected_mac.vendor
                         server_port.parent.save()
 
-
                 server_port.touch()
                 server_port.parent.touch()
 
