@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
-from assets.models import PortConnection, SwitchPort, ServerPort, Server
+from assets.models import PortConnection, SwitchPort, ServerPort, Server, InventoryResource
 from cmdb.settings import logger
 from ipman.models import IPAddress
 from resources.models import Resource
@@ -23,18 +23,29 @@ class Command(BaseCommand):
         self._register_handler('switchlinks', self._handle_switchlinks)
 
         server_cmd_parser = subparsers.add_parser('server', help='Server query')
-        server_cmd_parser.add_argument('server-id', nargs='*', help="IDs of the server to view.")
+        server_cmd_parser.add_argument('ip-or-id', nargs='*', help="IDs or IPs of the server to view.")
+        server_cmd_parser.add_argument('-o', '--with-options', action='store_true', help="Show server resource options")
         self._register_handler('server', self._handle_server)
 
     def _handle_server(self, *args, **options):
-        if len(options['server-id']) > 0:
-            for server_id in options['server-id']:
-                server = Server.objects.get(pk=server_id)
-                self._dump_server(server)
-                logger.info("")
+        if len(options['ip-or-id']) > 0:
+            for server_ip_id in options['ip-or-id']:
+                server = None
+                if server_ip_id.find('.') > -1:
+                    ips = IPAddress.objects.active(address=server_ip_id)
+                    if len(ips) > 0 and issubclass(ips[0].parent.parent.__class__, InventoryResource):
+                        server = ips[0].parent.parent.as_leaf_class()
+                    else:
+                        logger.warning("IP %s is not assigned to any server." % server_ip_id)
+                else:
+                    server = Server.objects.get(pk=server_ip_id)
+
+                if server:
+                    self._dump_server(server, options['with_options'])
+                    logger.info("")
         else:
             for server in Server.objects.active():
-                self._dump_server(server)
+                self._dump_server(server, options['with_options'])
                 logger.info("")
 
     def _handle_switchlinks(self, *args, **options):
@@ -53,13 +64,22 @@ class Command(BaseCommand):
                     continue
 
                 logger.info("\t\t%s %s (%s, %s)" % (server_port.parent.id, server_port.parent.as_leaf_class().label,
-                                              server_port.parent.get_option_value('group'),
-                                              server_port.parent.get_option_value('guessed_role')))
+                                                    server_port.parent.get_option_value('group'),
+                                                    server_port.parent.get_option_value('guessed_role')))
 
-    def _dump_server(self, server):
+    def _dump_server(self, server, with_options=False):
         assert server
 
-        logger.info(server)
+        logger.info("i-%d\t%s\t%s\t%s\t%s" % (server.id, server.parent_id, server.type, server, server.status))
+
+        if with_options:
+            logger.info("created_at = %s" % server.created_at)
+            logger.info("updated_at = %s" % server.updated_at)
+            logger.info("last_seen = %s" % server.last_seen)
+
+            for option in server.get_options():
+                logger.info("%s" % option)
+
         has_port = False
         has_connection = False
         has_ip = False
