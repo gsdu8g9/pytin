@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
+from cmdb.settings import logger
 
 from ipman.models import IPNetworkPool, IPAddressPool, IPAddressRangePool, IPAddress
 from resources.models import Resource
@@ -81,11 +82,11 @@ class Command(BaseCommand):
                     break
 
                 if ip_address.beauty >= beauty_idx:
-                    print "%d\t%s\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status)
+                    logger.info("%d\t%s\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status))
                     ip_count -= 1
 
             if ip_count > 0:
-                print "Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1)
+                logger.warning("Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1))
 
     def _handle_address_add(self, *args, **options):
         if not IPAddress.is_valid_address(options['ip']):
@@ -133,14 +134,14 @@ class Command(BaseCommand):
 
     def _list_addresses(self, **kwargs):
         for ip_address in IPAddress.objects.active(**kwargs):
-            print "%d\t%s\t%s\t%s\t%d" % (
-                ip_address.id, ip_address.parent_id, ip_address, ip_address.status, ip_address.beauty)
+            logger.info("%d\t%s\t%s\t%s\t%d" % (
+                ip_address.id, ip_address.parent_id, ip_address, ip_address.status, ip_address.beauty))
 
     def _list_pools(self):
         for address_pool in IPAddressPool.get_all_pools():
-            print "%d\t%s\t%s\t%s\t%s\t%s" % (
+            logger.info("%d\t%s\t%s\t%s\t%s\t%s" % (
                 address_pool.id, address_pool.parent_id, address_pool, address_pool.usage, address_pool.type,
-                address_pool.status)
+                address_pool.status))
 
     def _register_handler(self, command_name, handler):
         assert command_name, "command_name must be defined."

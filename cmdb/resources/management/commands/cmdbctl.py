@@ -4,6 +4,7 @@ import argparse
 from django.core.management.base import BaseCommand
 
 from django.apps import apps
+from cmdb.settings import logger
 
 from resources.iterators import PathIterator, TreeIterator
 from resources.models import Resource, ResourceOption, ModelFieldChecker
@@ -98,7 +99,7 @@ class Command(BaseCommand):
         resource.refresh_from_db()
 
         if options['outid']:
-            print resource.id
+            logger.info(resource.id)
         else:
             self._print_resource_data(resource)
 
@@ -118,10 +119,10 @@ class Command(BaseCommand):
             resource_set = resource_set[offset:limit]
 
         row_format = '%5s%11s%35s%20s%10s'
-        print row_format % ('ID', 'parent_id', 'name', 'type', 'status')
+        logger.info(row_format % ('ID', 'parent_id', 'name', 'type', 'status'))
         for resource in resource_set:
-            print row_format % (
-                resource.id, resource.parent_id, resource, resource.type, resource.status)
+            logger.info(row_format % (
+                resource.id, resource.parent_id, resource, resource.type, resource.status))
 
     def _handle_res_get_options(self, *args, **options):
         for res_id in options['resource-id']:
@@ -169,15 +170,15 @@ class Command(BaseCommand):
     def _print_resource_data(self, resource, indent=0):
         padding = "".ljust(indent, ' ')
 
-        print "%s|-------------------" % padding
-        print "%s|%d\t%s\t%s\t%s\t%s]" % (
-            padding, resource.id, resource.parent_id, resource.type, resource, resource.status)
-        print "%s|:created_at = %s" % (padding, resource.created_at)
-        print "%s|:updated_at = %s" % (padding, resource.updated_at)
-        print "%s|:last_seen = %s" % (padding, resource.last_seen)
+        logger.info("%s|-------------------" % padding)
+        logger.info("%s|%d\t%s\t%s\t%s\t%s]" % (
+            padding, resource.id, resource.parent_id, resource.type, resource, resource.status))
+        logger.info("%s|:created_at = %s" % (padding, resource.created_at))
+        logger.info("%s|:updated_at = %s" % (padding, resource.updated_at))
+        logger.info("%s|:last_seen = %s" % (padding, resource.last_seen))
 
         for option in resource.get_options():
-            print "%s|%s" % (padding, option)
+            logger.info("%s|%s" % (padding, option))
 
     def _parse_reminder_arg(self, reminder_args):
         query = {}

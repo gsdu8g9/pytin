@@ -1,5 +1,6 @@
 import netaddr
 from pysnmp.entity.rfc3413.oneliner import cmdgen
+from cmdb.settings import logger
 
 
 def _snmp_walk(host, community, oid):
@@ -17,7 +18,7 @@ def _snmp_walk(host, community, oid):
     )
 
     if errorIndication:
-        print(errorIndication)
+        logger.error(errorIndication)
     else:
         if errorStatus:
             raise Exception('%s at %s' % (

@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 """
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import logging
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -69,6 +70,30 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db/cmdb.sqlite3'),
     }
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/debug.log'),
+        },
+    },
+    'loggers': {
+        'cmdb': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+        },
+    },
+}
+
+logger = logging.getLogger('cmdb')
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/

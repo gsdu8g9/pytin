@@ -1,3 +1,4 @@
+from cmdb.settings import logger
 from importer.providers.l3_switch import L3Switch, _snmp_walk, L3SwitchPort
 
 
@@ -31,7 +32,7 @@ class Switch3Com2250(L3Switch):
                 real_port_number = self.snmpid__port_num__map[snmp_port_id]
                 self._add_switch_port(real_port_number, value)
             else:
-                print "There is no mapping for the SNMP port ID: %s" % snmp_port_id
+                logger.warning("There is no mapping for the SNMP port ID: %s" % snmp_port_id)
 
         # mac addresses table
         oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'

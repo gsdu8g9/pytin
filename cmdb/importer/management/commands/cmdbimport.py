@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 
 from assets.models import GatewaySwitch, Switch, VirtualServer, PortConnection, ServerPort
+from cmdb.settings import logger
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
 from importer.providers.vendors.dlink import DSG3200Switch
@@ -58,20 +59,20 @@ class Command(BaseCommand):
     def _handle_auto(self, *args, **options):
         # update via snmp
         for switch in Resource.objects.active(type__in=[GatewaySwitch.__name__, Switch.__name__]):
-            print "Found switch: %s" % switch
+            logger.info("Found switch: %s" % switch)
             if switch.has_option('snmp_provider_key'):
                 snmp_provider_key = switch.get_option_value('snmp_provider_key')
                 if snmp_provider_key in self.registered_providers:
                     hostname = switch.get_option_value('snmp_host')
                     community = switch.get_option_value('snmp_community')
 
-                    print "\tdata: ID:%d\t%s\t%s" % (switch.id, hostname, community)
+                    logger.info("\tdata: ID:%d\t%s\t%s" % (switch.id, hostname, community))
                     provider = self.registered_providers[snmp_provider_key]()
                     provider.from_snmp(hostname, community)
 
                     self.cmdb_importer.import_switch(switch.id, provider)
                 else:
-                    print "WARNING: Unknown SNMP data provider: %s" % snmp_provider_key
+                    logger.warning("Unknown SNMP data provider: %s" % snmp_provider_key)
 
     def _handle_snmp(self, *args, **options):
         device_id = options['device-id']
