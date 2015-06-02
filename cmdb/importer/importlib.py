@@ -110,6 +110,8 @@ class CmdbImporter(object):
 
                 if not hypervisor_server and server_port.parent.parent:
                     server_port.parent.parent = None
+                    server_port.parent.save()
+                    print "Cleared parent of server i-%s" % server_port.parent.id
 
                 if connected_mac.vendor and server_port.parent:
                     if server_port.parent.name == 'Server':
