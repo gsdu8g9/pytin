@@ -33,7 +33,8 @@ class Command(BaseCommand):
                 server = None
                 if server_ip_id.find('.') > -1:
                     ips = IPAddress.objects.active(address=server_ip_id)
-                    if len(ips) > 0 and issubclass(ips[0].parent.parent.__class__, InventoryResource):
+                    if len(ips) > 0 and issubclass(ips[0].parent.parent.as_leaf_class().__class__, InventoryResource):
+                        print ips[0].parent.parent.type
                         server = ips[0].parent.parent.as_leaf_class()
                     else:
                         logger.warning("IP %s is not assigned to any server." % server_ip_id)

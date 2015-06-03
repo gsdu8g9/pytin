@@ -194,3 +194,7 @@ Use cases
     cmdbctl list label='bxt-121' -> server_id
     cmdbctl get --tree server_id -> (server port id)
     cmdbctl list linked_port_id=server port id
+
+
+     python manage.py cmdbctl list address="46.17.40.111"
+     python manage.py assetctl server [-o] 46.17.46.111
