@@ -52,6 +52,11 @@ perl -pi -e "s/SECRET_KEY = ''/SECRET_KEY = '${secret}'/g" ${DJANGOROOT}/${APPNA
 
 
 echo "    create backlinks"
+if [ -e ${DJANGOROOT}/logs ]
+then
+    rm -rf ${DJANGOROOT}/logs
+fi
+
 ln -s ${APPROOT}/logs ${DJANGOROOT}/
 
 echo "Setting file righs"

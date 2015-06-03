@@ -61,3 +61,5 @@ scripts/proxmox/target
 scripts/proxmox/work
 
 scripts/scripts/utilites/tests/
+
+cmdb/logs
