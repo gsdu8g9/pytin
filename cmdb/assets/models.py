@@ -95,7 +95,7 @@ class ServerPort(SwitchPort):
         proxy = True
 
     def __str__(self):
-        return self.mac
+        return "eth%s:%s" % (self.number, self.mac)
 
     @property
     def mac(self):

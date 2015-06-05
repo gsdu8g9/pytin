@@ -1,10 +1,9 @@
 from django.contrib import admin
-from events.models import Event
+from events.models import HistoryEvent
 
 
-class EventAdmin(admin.ModelAdmin):
-    list_display = ['id', 'source_object_id', 'source_model', 'type', 'created_at', 'data']
+class HistoryEventAdmin(admin.ModelAdmin):
     list_filter = ['type']
 
-admin.site.register(Event, EventAdmin)
+admin.site.register(HistoryEvent, HistoryEventAdmin)
 

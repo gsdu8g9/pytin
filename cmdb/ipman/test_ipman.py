@@ -10,7 +10,7 @@ class IPmanTest(TestCase):
 
         pools = Resource.objects.active(type=IPNetworkPool.__name__)
         self.assertEqual(1, len(pools))
-        self.assertEqual('0.0.0.0/0', pools[0])
+        self.assertEqual('0.0.0.0/0', str(pools[0]))
 
     def test_ip_beauty(self):
         self.assertEqual(4, IPAddress.create(address='46.17.40.29').beauty)

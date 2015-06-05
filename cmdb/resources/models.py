@@ -5,7 +5,6 @@ from django.db import models
 from django.core import exceptions as djexceptions
 from django.db.models.query import QuerySet
 from django.utils import timezone
-from django.utils.datetime_safe import datetime
 
 
 class ModelFieldChecker:
@@ -54,7 +53,7 @@ class SubclassingQuerySet(QuerySet):
 
     def __iter__(self):
         for item in super(SubclassingQuerySet, self).__iter__():
-            yield item.as_leaf_class()
+            yield item.as_leaf_class() if isinstance(item, Resource) else item
 
     def filter(self, *args, **kwargs):
         """
@@ -259,7 +258,7 @@ class Resource(models.Model):
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
-    last_seen = models.DateTimeField('Date last seen', db_index=True, default=datetime.now)
+    last_seen = models.DateTimeField('Date last seen', db_index=True, default=timezone.now)
 
     objects = ResourcesWithOptionsManager()
 
