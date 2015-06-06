@@ -131,9 +131,6 @@ class CmdbImporter(object):
             if created:
                 logger.info("Added %d Mbit connection: %d <-> %d" % (
                     port_connection.link_speed_mbit, switch_local_port.id, server_port.id))
-
-                if self._detect_uplink_local_port(switch_local_port):
-                    logger.warning("Possibly UPLINK port: %s" % switch_local_port)
             else:
                 port_connection.touch()
 
@@ -142,22 +139,6 @@ class CmdbImporter(object):
             # adding IP
             for ip_address in l3port.switch.get_mac_ips(str(connected_mac)):
                 self._add_ip(ip_address, parent=server_port)
-
-    def _detect_uplink_local_port(self, switch_local_port):
-        assert switch_local_port
-
-        connections = PortConnection.objects.active(parent=switch_local_port)
-        if len(connections) > 2:
-            phyz = 0
-            for connection in connections:
-                server_port = ServerPort.objects.get(pk=connection.linked_port_id)
-                if server_port.parent.type == Server.__name__:
-                    phyz += 1
-
-            if phyz > 1:
-                return True
-
-        return False
 
     def _import_switch_aggregate_port(self, source_switch, l3port):
         assert l3port
@@ -196,29 +177,35 @@ class CmdbImporter(object):
         if len(mac_list) <= 0:
             return None
 
-        # search for known guessed_role
+        # search for known guessed_role hypervisors
         for connected_mac in mac_list:
             for port in ServerPort.objects.active(mac=str(connected_mac)):
                 if port.parent and port.parent.get_option_value('guessed_role') == 'hypervisor':
                     return port.parent
 
-        # try to identify hypervisor by mac
-        phyz_server = None
+        # Try to identify hypervisor by mac:
+        # one phyz server and many VPS - phyz server is a hypervisor
+        # many phyz - possibly aggregated port, no hypervisors
+        # one phyz and one mac in list - not a hypervisor
+        phyz_server_list = []
         for connected_mac in mac_list:
             if connected_mac.vendor:
-                if phyz_server:
-                    # if more then one physical server on port, return None
-                    # possibly L2 switching
-                    return None
-
                 server_port, created = _get_or_create_object(ServerPort, dict(mac=connected_mac.interface))
-
                 if created:
                     phyz_server = Server.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
                     server_port.parent = phyz_server
                     server_port.save()
+                    phyz_server_list.append(phyz_server)
                 else:
-                    phyz_server = server_port.parent
+                    phyz_server_list.append(server_port.parent)
+
+        phyz_server = None
+        if len(phyz_server_list) > 1:
+            logger.warning("Possibly UPLINK port: %s" % connected_mac)
+        elif len(phyz_server_list) == 1 and len(mac_list) > 1:
+            # one phyz and many VPS on port - hypervisor detected
+            phyz_server = phyz_server_list[0]
+            logger.info('Possible Hypervisor detected: %s' % phyz_server)
 
         return phyz_server
 
