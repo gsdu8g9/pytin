@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models.signals import post_init
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
+from django.utils import timezone
 
 from resources.models import Resource, ResourceOption
 
@@ -24,7 +25,7 @@ class HistoryEvent(models.Model):
     field_name = models.CharField(max_length=155, db_index=True, null=True)
     field_old_value = models.CharField(max_length=255, db_index=True, null=True)
     field_new_value = models.CharField(max_length=255, db_index=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(null=False, db_index=True)
 
     class Meta:
         db_table = "resource_history"
@@ -46,6 +47,12 @@ class HistoryEvent(models.Model):
     def add_delete(resource):
         event = HistoryEvent(resource=resource, type=HistoryEvent.DELETE)
         event.save()
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.created_at = timezone.now()
+
+        super(HistoryEvent, self).save(*args, **kwargs)
 
 
 ####### Attach history models to the resources #######

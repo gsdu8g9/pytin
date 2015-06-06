@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from assets.models import PortConnection, SwitchPort, ServerPort, Server, InventoryResource
 from cmdb.settings import logger
@@ -74,9 +75,9 @@ class Command(BaseCommand):
         logger.info("i-%d\t%s\t%s\t%s\t%s" % (server.id, server.parent_id, server.type, server, server.status))
 
         if with_options:
-            logger.info("created_at = %s" % server.created_at)
-            logger.info("updated_at = %s" % server.updated_at)
-            logger.info("last_seen = %s" % server.last_seen)
+            logger.info("created_at = %s" % timezone.localtime(server.created_at))
+            logger.info("updated_at = %s" % timezone.localtime(server.updated_at))
+            logger.info("last_seen = %s" % timezone.localtime(server.last_seen))
 
             for option in server.get_options():
                 logger.info("%s" % option)

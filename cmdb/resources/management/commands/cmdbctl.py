@@ -4,6 +4,7 @@ import argparse
 from django.core.management.base import BaseCommand
 
 from django.apps import apps
+from django.utils import timezone
 from cmdb.settings import logger
 
 from resources.iterators import PathIterator, TreeIterator
@@ -173,9 +174,9 @@ class Command(BaseCommand):
         logger.info("%s|-------------------" % padding)
         logger.info("%s|%d\t%s\t%s\t%s\t%s]" % (
             padding, resource.id, resource.parent_id, resource.type, resource, resource.status))
-        logger.info("%s|:created_at = %s" % (padding, resource.created_at))
-        logger.info("%s|:updated_at = %s" % (padding, resource.updated_at))
-        logger.info("%s|:last_seen = %s" % (padding, resource.last_seen))
+        logger.info("%s|:created_at = %s" % (padding, timezone.localtime(resource.created_at)))
+        logger.info("%s|:updated_at = %s" % (padding, timezone.localtime(resource.updated_at)))
+        logger.info("%s|:last_seen = %s" % (padding, timezone.localtime(resource.last_seen)))
 
         for option in resource.get_options():
             logger.info("%s|%s" % (padding, option))
