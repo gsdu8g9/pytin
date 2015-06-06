@@ -69,7 +69,7 @@ class CmdbImporter(object):
             logger.debug("Switch port %s marked free" % switch_local_port)
             switch_local_port.free()
 
-        hypervisor_server = self._find_hypervisor(l3port.macs)
+        hypervisor_server = self._find_hypervisor(l3port)
 
         for connected_mac in l3port.macs:
             server_port, created = _get_or_create_object(ServerPort, dict(mac=connected_mac.interface))
@@ -173,12 +173,12 @@ class CmdbImporter(object):
             for ip_address in l3port.switch.get_mac_ips(str(connected_mac)):
                 self._add_ip(ip_address, parent=server_port)
 
-    def _find_hypervisor(self, mac_list):
-        if len(mac_list) <= 0:
+    def _find_hypervisor(self, l3port):
+        if len(l3port.macs) <= 0:
             return None
 
         # search for known guessed_role hypervisors
-        for connected_mac in mac_list:
+        for connected_mac in l3port.macs:
             for port in ServerPort.objects.active(mac=str(connected_mac)):
                 if port.parent and port.parent.get_option_value('guessed_role') == 'hypervisor':
                     return port.parent
@@ -188,7 +188,7 @@ class CmdbImporter(object):
         # many phyz - possibly aggregated port, no hypervisors
         # one phyz and one mac in list - not a hypervisor
         phyz_server_list = []
-        for connected_mac in mac_list:
+        for connected_mac in l3port.macs:
             if connected_mac.vendor:
                 server_port, created = _get_or_create_object(ServerPort, dict(mac=connected_mac.interface))
                 if created:
@@ -201,8 +201,9 @@ class CmdbImporter(object):
 
         phyz_server = None
         if len(phyz_server_list) > 1:
-            logger.warning("Possibly UPLINK port: %s" % connected_mac)
-        elif len(phyz_server_list) == 1 and len(mac_list) > 1:
+            logger.warning("Possibly UPLINK port: %s (phyz servers %s, MAC count on port %s)" % (
+                l3port.number, len(phyz_server_list), len(l3port.macs)))
+        elif len(phyz_server_list) == 1 and len(l3port.macs) > 1:
             # one phyz and many VPS on port - hypervisor detected
             phyz_server = phyz_server_list[0]
             logger.info('Possible Hypervisor detected: %s' % phyz_server)
