@@ -111,7 +111,7 @@ class CmdbImporter(object):
                     server_port.parent.type = VirtualServer.__class__.__name__
                     server_port.parent.save()
 
-                if not hypervisor_server:
+                if not hypervisor_server and server_port.parent.parent:
                     if isinstance(server_port.parent.as_leaf_class(), Server):
                         server_port.parent.parent = None
                         server_port.parent.as_leaf_class().save()
