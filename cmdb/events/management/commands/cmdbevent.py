@@ -49,12 +49,13 @@ class Command(BaseCommand):
         if limit > 0:
             events_set = events_set[offset:limit]
 
-        row_format = '%15s %5s %11s %15s %35s %35s'
-        logger.info(row_format % ('DATE', 'ID', 'TYPE', 'FIELD', 'OLD', 'NEW'))
+        row_format = '%15s %5s %11s %15s %15s %25s %25s'
+        logger.info(row_format % ('DATE', 'TYPE', 'RES_ID', 'RES', 'FIELD', 'OLD', 'NEW'))
         for event in events_set:
             logger.info(row_format % (
-                timezone.localtime(event.created_at).strftime('%d.%m.%Y %H:%M'), event.id, event.type, event.field_name,
-                event.field_old_value, event.field_new_value))
+                timezone.localtime(event.created_at).strftime('%d.%m.%Y %H:%M'), event.type, event.resource.id,
+                str(event.resource.as_leaf_class())[:15], event.field_name, event.field_old_value,
+                event.field_new_value))
 
     def _parse_reminder_arg(self, reminder_args):
         query = {}
