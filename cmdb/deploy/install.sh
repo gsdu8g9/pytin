@@ -64,8 +64,13 @@ chmod -R u=rwX ${APPROOT}
 chmod -R go-rwxX ${APPROOT}
 chown -R root:root ${APPROOT}
 
+echo "Perform DB updates"
+
 cd ${DJANGOROOT}
 python2.7 manage.py makemigrations
 python2.7 manage.py migrate
+
+echo "Update environment"
+pip install -r requirements.txt
 
 echo "DONE Deployment to ${APPROOT} for ${APPNAME} (${USER})"

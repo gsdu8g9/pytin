@@ -14,7 +14,7 @@ class IpPoolNewIPs(generics.RetrieveAPIView):
 
     def get(self, request, pk, format=None, *args, **kwargs):
         ip_pool = self.get_object()
-        ip_count = int(request.query_params['count']) if 'count' in request.query_params else 1
+        ip_count = int(request.query_params.get('count', 1))
 
         logger.info("Getting %s new ip addresses from pool %s" % (ip_count, ip_pool))
 
