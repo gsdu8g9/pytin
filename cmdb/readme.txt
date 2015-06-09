@@ -198,3 +198,14 @@ Use cases
 
      python manage.py cmdbctl list address="46.17.40.111"
      python manage.py assetctl server [-o] 46.17.46.111
+
+REST API
+========
+/v1/ippool/<poolid>/newip[?count=<ip_count>]
+
+GET, POST
+/v1/resources/
+
+GET, PUT, DELETE
+/v1/resources/<res_id>
+

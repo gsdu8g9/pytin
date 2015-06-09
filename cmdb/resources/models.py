@@ -247,8 +247,8 @@ class Resource(models.Model):
         (STATUS_FREE, 'Free to use'),
         (STATUS_INUSE, 'Used by someone'),
         (STATUS_FAILED, 'Failed resource'),
-        (STATUS_LOCKED, 'Locked by business'),
-        (STATUS_DELETED, 'Deleted'),
+        (STATUS_LOCKED, 'Resource is reserved'),
+        (STATUS_DELETED, 'Resource is marked to delete'),
     )
 
     parent = models.ForeignKey("self", default=None, db_index=True, null=True)
