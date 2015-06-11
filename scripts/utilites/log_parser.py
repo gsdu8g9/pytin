@@ -21,16 +21,15 @@ from ddos_stat import DDoSStat
 from api_sqlite import DDoSSQLite
 
 class DDoSAnalizer:
-    def __init__(self, filename, patterns, type_file):
+    def __init__(self, filename, type_file, limitrequests = 10):
         """
         Инициализация класса парсера
         """
         self.filename = filename
-        self.patterns = patterns
         self.stat = DDoSStat()
         self.type_file = type_file
         self.quiet = False
-        self.patterns = ["192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
+        self.ippatterns = ["192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
 
     def isRFC(self, ip):
         """
@@ -179,7 +178,8 @@ def statistics(iplist):
     print()
     print("Всего уникальных IP: " + str(len(iplist)))
     for ip in iplist:
-        print("IP: " + ip[0] + " обратился " + str(ip[1]) + " раз")
+        if ip[1] > limitrequests:
+            print("IP: " + ip[0] + " обратился " + str(ip[1]) + " раз")
 
 def main():
     parser = argparse.ArgumentParser(description='DDoS log parser',
@@ -191,6 +191,8 @@ def main():
     parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
         required=True, help="Тип парсера")
     parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
+    parser.add_argument("--limit", dest="limitrequests", type=int,
+        help="Лимит запросов с одного IP к одному домену")
 
     args = parser.parse_args()
 
@@ -201,52 +203,19 @@ def main():
         if os.path.exists(args.database):
             raise Exception("Файл БД существует: %s" % args.database)
 
-#    tmp = DDoSSQLite(args.database)
-
     # Описание переменных
-    # Паттерны парсера
-    patterns = ''
     # Список исключённых IP
     excludeip = ''
 
     iplist = []
     hostlist = []
 
-    """
-    Паттерны для парсинга
-    """
-    if args.type_file == 'apache':
-        patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)',  # IP remote
-                    '^\-',  # -
-                    '^(\S+|"\S*")',  # Remote user
-                    '^\[\S*\s\S*\]',  # Dateime
-                    '^\"\S+[^\"]*\"',  # , # Request
-                    '^(\S+|"\S*")',  # Status
-                    '^(\S+|"\S*")',  # Body bytes sent
-                    '^(""|"(.*?)"|\S*\s\S*")', # '^(\d*|\S+|"\S*")',  # URL
-                    '^(""|"(.*?)"|\(null\)|\S*\s\S*")', # '^\".[^\"]*\"',  # '"$http_user_agent"
-                    '^".*"/U', # X-Forwarded-For
-#                    '^(""|-|unknown|\(null\)|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)(,\s*(unknown|\(null\)|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*))*"',  # X-Forwarded-For
-                    '^\"*\S*\"*']
-#                    '^\(\S+|"\S*")']  # Domain
-    elif args.type_file == 'nginx':
-        patterns = ['^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)',  # IP remote
-                    '^\-',  # -
-                    '^(\S+|"\S*")',  # Remote user
-                    '^\[\S*\s\S*\]',  # Dateime
-                    '^\"\S+[^\"]*\"',  # Request
-                    '^(\S+|"\S*")',  # Status
-                    '^(\S+|"\S*")',  # Body bytes sent
-                    '^\"\S*"',  # URL
-                    '^\".[^\"]*\"',  # '"$http_user_agent"
-                    '^\"(-|unknown|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)(, \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|:?(?:[0-9a-f]{1,4}:)*:?(?::?[0-9a-f]{1,4})*)*"']  # X-Forwarded-For
-
-    ddos_analizer = DDoSAnalizer(args.log_file, patterns, args.type_file)
+    # Инициализация анализатора и его запуск
+    ddos_analizer = DDoSAnalizer(args.log_file, args.type_file)
     ddos_analizer.start()
-#    for ip in ddos_analizer.iplist:
-#        tmp.addIP(ip[0])
 
-    ddos_analizer.stat.statistics(args.outfile)
+    # Вывод статистики
+    ddos_analizer.stat.statistics(args.outfile, int(args.limitrequests))
 
 if __name__ == "__main__":
     try:

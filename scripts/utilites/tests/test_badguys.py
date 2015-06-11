@@ -15,5 +15,8 @@ class TestBadguysIPList(unittest.TestCase):
         self.assertEqual(iplist.Add('8.8.4.4'), '8.8.4.4')
         self.assertEqual(iplist.Add('8.8.2.2:'), None)
 
+class TestFW(unittest.TestCase):
+    def test_
+
 if __name__ == '__main__':
     unittest.main()

@@ -185,9 +185,11 @@ class DDoSStat:
         else:
             result[4] = result[4] + 1
 
-    def statistics(self, filename=None):
+    def statistics(self, filename=None, limitrequests = 0):
         """
         Вывод статистики
+        
+        limitrequests - Лимит запросов
         """
         if filename:
             outfile = open(filename, "w")
@@ -201,17 +203,33 @@ class DDoSStat:
                 outfile.write("К домену: " + domain[1] + " обратились " + str(domain[2]) + " раз" + '\n')
             outfile.write('\n')
             for log in self.loglist:
-                outfile.write("В период " + log[3] + " к домену " + self.Domains.domainlist[log[2]][1] + " с IP " + self.IPs.iplist[log[1]][1] + " обратились " + str(log[4]) + " раз" + '\n')
+                if limitrequests > 0:
+                    if log[4] > limitrequests:
+                        outfile.write("В период " + log[3] + " к домену " + self.Domains.domainlist[log[2]][1] + " с IP " + self.IPs.iplist[log[1]][1] + " обратились " + str(log[4]) + " раз" + '\n')
+                else:
+                    outfile.write("В период " + log[3] + " к домену " + self.Domains.domainlist[log[2]][1] + " с IP " + self.IPs.iplist[log[1]][1] + " обратились " + str(log[4]) + " раз" + '\n')
             outfile.close()
         else:
             print
             print("Всего уникальных IP: " + str(len(self.IPs.iplist)))
             for ip in self.IPs.iplist:
-                print("IP: " + ip[1] + " обратился " + str(ip[2]) + " раз")
+                if limitrequests > 0:
+                    if ip[2] > limitrequests:
+                        print("IP: " + ip[1] + " обратился " + str(ip[2]) + " раз")
+                else:
+                    print("IP: " + ip[1] + " обратился " + str(ip[2]) + " раз")
             print
             print("Всего уникальных доменов: " + str(len(self.Domains.domainlist)))
             for domain in self.Domains.domainlist:
-                print("К домену: " + domain[1] + " обратились " + str(domain[2]) + " раз")
+                if limitrequests > 0:
+                    if domain[2] > limitrequests:
+                        print("К домену: " + domain[1] + " обратились " + str(domain[2]) + " раз")
+                else:
+                    print("К домену: " + domain[1] + " обратились " + str(domain[2]) + " раз")
             print
             for log in self.loglist:
-                print("В период " + log[3] + " к домену " + self.Domains.domainlist[log[2]][1] + " с IP " + self.IPs.iplist[log[1]][1] + " обратились " + str(log[4]) + " раз")
+                if limitrequests > 0:
+                    if log[4] > limitrequests:
+                        print("В период " + log[3] + " к домену " + self.Domains.domainlist[log[2]][1] + " с IP " + self.IPs.iplist[log[1]][1] + " обратились " + str(log[4]) + " раз")
+                else:
+                    print("В период " + log[3] + " к домену " + self.Domains.domainlist[log[2]][1] + " с IP " + self.IPs.iplist[log[1]][1] + " обратились " + str(log[4]) + " раз")
