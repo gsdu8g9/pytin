@@ -169,7 +169,6 @@ class DDoSAnalizer:
 #                if self.quiet:
                 if i%1000 == 0:
                     self.cli_progress_test(i)
-#            self.iplist.sort(key=lambda tup: tup[1])
 
 def statistics(iplist):
     """
@@ -191,7 +190,7 @@ def main():
     parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
         required=True, help="Тип парсера")
     parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
-    parser.add_argument("--limit", dest="limitrequests", type=int,
+    parser.add_argument("--limit", dest="limitrequests", type=int, default=10,
         help="Лимит запросов с одного IP к одному домену")
 
     args = parser.parse_args()
