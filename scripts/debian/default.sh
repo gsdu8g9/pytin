@@ -12,6 +12,7 @@
 # Usage:
 #   Debian:
 #       wget --no-check-certificate https://raw.githubusercontent.com/servancho/pytin/master/scripts/debian/default.sh
+#       bash default.sh
 
 # Detect OS
 case $(head -n1 /etc/issue | cut -f 1 -d ' ') in
