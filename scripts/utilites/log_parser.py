@@ -137,11 +137,6 @@ class DDoSAnalizer:
             for line in f:
                 line = line.replace("\n", "")
                 stamp = self.get_date(line)
-                #		controltime = datetime.datetime.now()
-                #		if get_time_diff(controltime, stamp) < datetime.timedelta(minutes=60):
-                #			for pattern in patterns:
-                #				result.append(get_log_value(line))
-                #		for pattern in patterns:
                 log_value = self.get_log_value(line)
                 i += 1
                 if not self.isRFC(log_value[0]):
@@ -170,21 +165,12 @@ class DDoSAnalizer:
                 if i%1000 == 0:
                     self.cli_progress_test(i)
 
-def statistics(iplist):
-    """
-    Вывод статистики
-    """
-    print()
-    print("Всего уникальных IP: " + str(len(iplist)))
-    for ip in iplist:
-        if ip[1] > limitrequests:
-            print("IP: " + ip[0] + " обратился " + str(ip[1]) + " раз")
-
 def main():
     parser = argparse.ArgumentParser(description='DDoS log parser',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-o", "--outfile", dest="outfile", help="Файл для вывода")
+    parser.add_argument("-B", "--block", dest="blockpath", help="Путь для блокировки")
     parser.add_argument("-l", "--log", dest="log_file", required=True,
         help="Лог-файл для анализа")
     parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
@@ -192,6 +178,8 @@ def main():
     parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
     parser.add_argument("--limit", dest="limitrequests", type=int, default=10,
         help="Лимит запросов с одного IP к одному домену")
+    parser.add_argument("-S", "--statistics", dest="statistics", action='store_true',
+        help="Вывести статистику")
 
     args = parser.parse_args()
 
@@ -213,8 +201,36 @@ def main():
     ddos_analizer = DDoSAnalizer(args.log_file, args.type_file)
     ddos_analizer.start()
 
+    # Получить данные
+    stat = ddos_analizer.stat
+
     # Вывод статистики
-    ddos_analizer.stat.statistics(args.outfile, int(args.limitrequests))
+    if args.statistics:
+        stat.statistics(args.outfile, int(args.limitrequests))
+
+    # Заблокировать
+    if args.blockpath and args.limitrequests > 0:
+        if not os.path.isdir(args.blockpath):
+            raise Exception("Путь не существует: %s" % args.blockpath)
+        outfile = open(args.blockpath + '/block_' + datetime.datetime.now().strftime('%Y%m%d%H%M'), "w")
+        outfile.write('#!/bin/bash\n')
+        for log in stat.loglist:
+            if log[4] > args.limitrequests:
+                outfile.write("iptables -A INPUT -s " + stat.IPs.iplist[log[1]][1] +" -j DROP -m comment --comment 'pytin'" + '\n')
+        outfile.write('rm ' + args.blockpath + '/block_' + datetime.datetime.now().strftime('%Y%m%d%H%M') + '\n')
+        outfile.close()
+        outfile = open(args.blockpath + '/unblock_' + datetime.datetime.now().strftime('%Y%m%d%H%M'), "w")
+        outfile.write('#!/bin/bash\n')
+        futuredate = (datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime('%Y%m%d%H%M')
+        outfile.write('cond="' + futuredate + '"\n')
+        outfile.write('if [[ `date +%Y%m%d%H%M` < $cond ]]; then\n')
+        outfile.write('exit\n')
+        outfile.write('fi\n')
+        for log in stat.loglist:
+            if log[4] > args.limitrequests:
+                outfile.write("iptables -D INPUT -s " + stat.IPs.iplist[log[1]][1] +" -j DROP -m comment --comment 'pytin'" + '\n')
+        outfile.write('rm ' + args.blockpath + '/unblock_' + datetime.datetime.now().strftime('%Y%m%d%H%M') + '\n')
+        outfile.close()
 
 if __name__ == "__main__":
     try:

@@ -189,6 +189,7 @@ class DDoSStat:
         """
         Вывод статистики
         
+        filename - Файл для вывода статистики
         limitrequests - Лимит запросов
         """
         if filename:
