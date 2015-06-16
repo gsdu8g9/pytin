@@ -63,34 +63,32 @@ class DDoSAnalizer:
         prevCh = ''
         words = ['']
         inQuote = False
-       
+        Quote = ''
+
+        para = {'"': '"', '(': ')', '[': ']', "'": "'"}
         for Ch in line:
             if(Ch==' ') and (prevCh!='\\') and (not inQuote):
                 if(len(words[len(words)-1])!=0):
                     words.append('')
             else:
-                if(Ch=='"') and (prevCh!='\\') and (not inQuote):
+                if (para.get(Ch)) and (prevCh!='\\') and (not inQuote):
                     if(len(words[len(words)-1])!=0):
                         words.append('')
                     words[len(words)-1] += Ch
+                    Quote = Ch
                     inQuote = True
-                elif(Ch=='"') and (prevCh!='\\') and (inQuote):
-                    words[len(words)-1] += Ch
-                    words.append('')
-                    inQuote = False
-                elif(Ch=='[') and (prevCh!='\\') and (not inQuote):
-                    if(len(words[len(words)-1])!=0):
+                elif inQuote:
+                    if (Ch==para[Quote]) and (prevCh!='\\'):
+                        words[len(words)-1] += Ch
                         words.append('')
-                    words[len(words)-1] += Ch
-                    inQuote = True
-                elif(Ch==']') and (prevCh!='\\') and (inQuote):
-                    words[len(words)-1] += Ch
-                    words.append('')
-                    inQuote = False
+                        inQuote = False
+                        Quote = ''
+                    else:
+                        words[len(words)-1] += Ch
                 else:
                     words[len(words)-1] += Ch
             prevCh = Ch
-            
+
         if(len(words[-1:][0])==0):
             words.pop()
         result = words
