@@ -60,7 +60,6 @@ cmdb/db/cmdb.sqlite3
 scripts/proxmox/target
 scripts/proxmox/work
 
-scripts/utilites/tests/
 scrips/utilites/access.log-mini
 scrips/utilites/*.pyc
 
