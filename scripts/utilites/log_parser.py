@@ -17,8 +17,10 @@ import traceback
 import os
 import sqlite3
 
+from iplist import IPList
 from ddos_stat import DDoSStat
 from api_sqlite import DDoSSQLite
+from nginx_log_data_provider import NginxLogDataProvider
 
 class DDoSAnalizer:
     def __init__(self, filename, type_file, limitrequests = 10):
@@ -29,21 +31,6 @@ class DDoSAnalizer:
         self.stat = DDoSStat()
         self.type_file = type_file
         self.quiet = False
-        self.ippatterns = ["192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
-
-    def isRFC(self, ip):
-        """
-        Проверка на совпадение с RFC
-        """
-        result = False
-        if ip == "127.0.0.1":
-            result = True
-        for pattern in self.ippatterns:
-            match = re.findall(pattern, ip)
-            if match:
-                result = True
-        return result
-
 
     def cli_progress_test(self, cur):
         """
@@ -130,38 +117,39 @@ class DDoSAnalizer:
         """
         Обработка записей
         """
-        with open(self.filename, 'r') as f:
-            i = 0
-            for line in f:
-                line = line.replace("\n", "")
-                stamp = self.get_date(line)
-                log_value = self.get_log_value(line)
-                i += 1
-                if not self.isRFC(log_value[0]):
-#                    self.stat.addIP(log_value[0])
-                    if self.type_file == 'nginx':
-                        if log_value[7] != '"-"':
-                            domain = self.get_domain(log_value[7])
+#        with open(self.filename, 'r') as f:
+        f = None
+        if self.type_file == 'nginx':
+            f = NginxLogDataProvider(self.filename)
+        elif self.type_file == 'apache':
+            print 'apache'
+        i = 0
+        for line in f:
+            stamp = line['date']
+            i += 1
+            if not self.stat.IPs.isRFC(line['ip']):
+                if line['domain'] != '"-"':
+                    domain = self.get_domain(line['domain'])
+                else:
+                    domain = "-"
+                self.stat.addLogLine(stamp, line['ip'], domain)
+                if self.type_file == 'apache':
+                    if len(log_value)<11:
+                        print "Ошибка при разборе строки"
+                        print line
+                        print ''
+                    else:
+                        if log_value[10] != '"-"':
+                            domain = self.get_domain(log_value[10])
                         else:
                             domain = "-"
                         self.stat.addLogLine(stamp, log_value[0], domain)
-                    elif self.type_file == 'apache':
-                        if len(log_value)<11:
-                            print "Ошибка при разборе строки"
-                            print line
-                            print ''
-                        else:
-                            if log_value[10] != '"-"':
-                                domain = self.get_domain(log_value[10])
-                            else:
-                                domain = "-"
-                            self.stat.addLogLine(stamp, log_value[0], domain)
 #                    result.append(log_value[0])
-                if not stamp:
-                    sys.exit(0)
+            if not stamp:
+                sys.exit(0)
 #                if self.quiet:
-                if i%1000 == 0:
-                    self.cli_progress_test(i)
+            if i%1000 == 0:
+                self.cli_progress_test(i)
 
 def main():
     parser = argparse.ArgumentParser(description='DDoS log parser',

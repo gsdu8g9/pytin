@@ -8,61 +8,7 @@
 
 import datetime
 
-class IPList:
-    def __init__(self):
-        self.iplist = []
-        # Index - позиция индекса IP в элементе
-        self.Index = 1
-
-    def Add(self, IP):
-        """
-        Добавить IP в БД
-        """
-        result = self.Search(IP)
-        if not result:
-            self.Insert(IP)
-            result = self.Search(IP)
-        else:
-            result[2] = result[2] + 1
-        return result
-
-    def Insert(self, IP):
-        """
-        Вставка в отсортированный массив
-        """
-        # Index - позиция индекса IP в элементе
-        Index = 1
-        Element = [len(self.iplist), IP, 1]
-        min, max = 0, len(self.iplist)
-        while max - min > 0:
-            m = (min + max) // 2 # Делим отрезок пополам
-            if self.iplist[m][Index] > Element[Index]:
-                max = m
-            else:
-                min = m + 1
-        result = self.iplist[:max] + [Element] + self.iplist[max:]
-        self.iplist = result
-
-    def Search(self, IP):
-        """
-        Бинарный поиск
-        """
-        i = 0
-        j = len(self.iplist)-1
-        Element = [None, IP, None]
-        if j == -1:
-            return None
-        while i < j:
-            m = int((i+j)/2)
-            if Element[self.Index] > self.iplist[m][self.Index]:
-                i = m+1
-            else:
-                j = m
-        #тут не важно j или i
-        if self.iplist[j][self.Index] == Element[self.Index]:
-            return self.iplist[j]
-        else:
-            return None
+from iplist import IPList
 
 class DomainList:
     def __init__(self):
