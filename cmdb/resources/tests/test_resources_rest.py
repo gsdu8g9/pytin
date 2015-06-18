@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from assets.models import Server
-from assets.models import ServerPort
+from assets.models import Server, ServerPort
+
 from resources.models import Resource
 
 
@@ -21,8 +21,8 @@ class ResourcesAPITests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
 
     def test_resource_delete(self):
-        res1 = Resource.create(name='res1')
-        res2 = Server.create(name='res2', parent=res1)
+        res1 = Resource.objects.create(name='res1')
+        res2 = Server.objects.create(name='res2', parent=res1)
 
         response = self.client.delete('/v1/resources/%s/' % res2.id, format='json')
 
@@ -34,9 +34,30 @@ class ResourcesAPITests(APITestCase):
         self.assertEqual(Resource.STATUS_DELETED, res2.status)
         self.assertEqual('Server', res2.type)
 
+    def test_resource_create(self):
+        payload = {
+            'status': Resource.STATUS_INUSE,
+            'name': 'res1',
+            'options': [
+                {'name': 'somename1', 'value': 'someval1'},
+                {'name': 'somename2', 'value': 'someval2'}
+            ]
+        }
+
+        response = self.client.post('/v1/resources/', payload, format='json')
+
+        self.assertEqual(201, response.status_code)
+        self.assertEqual('res1', response.data['name'])
+        self.assertEqual('Resource', response.data['type'])
+        self.assertEqual(2, len(response.data['options']))
+        self.assertEqual('somename1', response.data['options'][0]['name'])
+        self.assertEqual('someval1', response.data['options'][0]['value'])
+        self.assertEqual('somename2', response.data['options'][1]['name'])
+        self.assertEqual('someval2', response.data['options'][1]['value'])
+
     def test_resource_update(self):
-        res1 = Resource.create(name='res1')
-        res2 = Server.create(name='res2', parent=res1, extrafield='extravalue', extrafield2='extravalue2')
+        res1 = Resource.objects.create(name='res1')
+        res2 = Server.objects.create(name='res2', parent=res1, extrafield='extravalue', extrafield2='extravalue2')
 
         response = self.client.put('/v1/resources/%s/' % res2.id, {'status': Resource.STATUS_INUSE, 'name': 'res2_ed'},
                                    format='json')
@@ -62,8 +83,8 @@ class ResourcesAPITests(APITestCase):
         self.assertEqual('extravalue', res2.get_option_value('extrafield'))
 
     def test_resource_details(self):
-        res1 = Resource.create(name='res1')
-        res2 = Server.create(name='res2', parent=res1)
+        res1 = Resource.objects.create(name='res1')
+        res2 = Server.objects.create(name='res2', parent=res1)
 
         response = self.client.get('/v1/resources/%s/' % res2.id, format='json')
 
@@ -76,11 +97,32 @@ class ResourcesAPITests(APITestCase):
         self.assertEqual(1, response.data['parent'])
 
     def test_resources_list(self):
-        res1 = Resource.create(name='res1')
-        res2 = Server.create(name='res2', parent=res1)
-        res3 = ServerPort.create(name='res3', parent=res2)
+        res1 = Resource.objects.create(name='res1')
+        res2 = Server.objects.create(name='res2', parent=res1)
+        res3 = ServerPort.objects.create(name='res3', parent=res2)
 
         response = self.client.get('/v1/resources/', format='json')
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(3, response.data['count'])
+
+        # Not implemented yet
+        # def test_resources_filter(self):
+        #     Resource.objects.create(name='Test res1')
+        #     Resource.objects.create(name='Test res2')
+        #     Resource.objects.create(name='Super res3')
+        #     Resource.objects.create(name='Sutest res4')
+        #
+        #     # all set
+        #     response = self.client.get('/v1/resources/', {}, format='json')
+        #     self.assertEqual(200, response.status_code)
+        #
+        #     self.assertEqual(4, response.data['count'])
+        #     self.assertEqual(4, len(response.data['results']))
+        #
+        #     # 'Test' word
+        #     response = self.client.get('/v1/resources/', {'name': 'Test'}, format='json')
+        #     self.assertEqual(200, response.status_code)
+        #
+        #     self.assertEqual(2, response.data['count'])
+        #     self.assertEqual(2, len(response.data['results']))

@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
-from assets.models import GatewaySwitch, Switch, VirtualServer, PortConnection, ServerPort
+from assets.models import GatewaySwitch, Switch
 from cmdb.settings import logger
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
@@ -10,7 +10,6 @@ from importer.providers.vendors.dlink import DSG3200Switch
 from importer.providers.vendors.hp import HP1910Switch
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
-from ipman.models import IPAddress
 from resources.models import Resource
 
 

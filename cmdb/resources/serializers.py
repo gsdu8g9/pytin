@@ -4,6 +4,8 @@ from resources.models import Resource, ResourceOption
 
 
 class ResourceOptionSerializer(serializers.ModelSerializer):
+    namespace = serializers.CharField(allow_blank=True, required=False, default='', max_length=155)
+
     class Meta:
         model = ResourceOption
         fields = ('id', 'name', 'value', 'namespace', 'format', 'updated_at')
@@ -16,3 +18,35 @@ class ResourceSerializer(serializers.ModelSerializer):
         model = Resource
         fields = (
             'id', 'name', 'parent', 'type', 'status', 'created_at', 'updated_at', 'last_seen', 'options')
+
+    def update(self, instance, validated_data):
+        options_list = validated_data.pop('resourceoption_set', [])
+
+        resource, created = Resource.objects.update_or_create(
+            id=instance.id,
+            defaults=validated_data
+        )
+
+        for option_item in options_list:
+            ResourceOption.objects.update_or_create(
+                name=option_item['name'],
+                resource=resource,
+                defaults=option_item,
+            )
+
+        resource.refresh_from_db()
+
+        return resource
+
+    def create(self, validated_data):
+        options_list = validated_data.pop('resourceoption_set')
+        resource = Resource.objects.create(**validated_data)
+
+        for option_item in options_list:
+            ResourceOption.objects.update_or_create(
+                name=option_item['name'],
+                resource=resource,
+                defaults=option_item
+            )
+
+        return resource

@@ -8,12 +8,8 @@ from resources.serializers import ResourceSerializer
 
 
 class ResourceFilter(django_filters.FilterSet):
-    address = django_filters.CharFilter(name="address")
-
     class Meta:
         model = Resource
-        fields = ['name', 'parent', 'type', 'status', 'address']
-
 
 class ResourcesViewSet(viewsets.ModelViewSet):
     queryset = Resource.objects.active()

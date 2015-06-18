@@ -7,11 +7,11 @@ from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 class ResourceTest(TestCase):
     def test_model_query_delete(self):
-        Resource.create(name='res1')
-        Resource.create(name='res2')
-        Resource.create(name='res3')
-        Resource.create(name='res4')
-        Resource.create(name='res5')
+        Resource.objects.create(name='res1')
+        Resource.objects.create(name='res2')
+        Resource.objects.create(name='res3')
+        Resource.objects.create(name='res4')
+        Resource.objects.create(name='res5')
 
         self.assertEqual(5, len(Resource.objects.filter()))
 
@@ -20,7 +20,7 @@ class ResourceTest(TestCase):
         self.assertEqual(0, len(Resource.objects.filter()))
 
     def test_model_field_checker(self):
-        new_res1 = Resource.create(somekey1='someval1', somekey='someval')
+        new_res1 = Resource.objects.create(somekey1='someval1', somekey='someval')
 
         self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'type'))
         self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'parent'))
@@ -34,8 +34,8 @@ class ResourceTest(TestCase):
         """
 
         # differs only by one option
-        new_res1 = Resource.create(somekey1='someval1', somekey='someval')
-        new_res2 = Resource.create(somekey1='someval2', somekey='someval')
+        new_res1 = Resource.objects.create(somekey1='someval1', somekey='someval')
+        new_res2 = Resource.objects.create(somekey1='someval2', somekey='someval')
 
         found1 = Resource.objects.active(somekey1='someval1', somekey='someval')
         self.assertEqual(1, len(found1))
@@ -72,14 +72,14 @@ class ResourceTest(TestCase):
         """
         Bug fixed: when creating models with model fields in create() call - they are not saved
         """
-        new_res1 = Resource.create(somekey1='someval1', somekey2='someval2')
-        new_res2 = Resource.create(somekey3='someval3', somekey4='someval4', parent_id=new_res1.id)
+        new_res1 = Resource.objects.create(somekey1='someval1', somekey2='someval2')
+        new_res2 = Resource.objects.create(somekey3='someval3', somekey4='someval4', parent_id=new_res1.id)
         new_res2.refresh_from_db()
 
         self.assertEqual(new_res1.id, new_res2.parent_id)
 
     def test_static_create(self):
-        new_res = Resource.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
+        new_res = Resource.objects.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
 
         new_res.set_option('nsvalname1', 'nsval1', namespace='somens')
         new_res.set_option('nsvalname2', 'nsval2', namespace='somens')
@@ -94,7 +94,7 @@ class ResourceTest(TestCase):
         self.assertEqual('someval1', new_res.get_option_value('somekey1'))
         self.assertEqual('someval2', new_res.get_option_value('somekey2'))
 
-        new_res1 = Resource.create(status=Resource.STATUS_LOCKED, somekey1='someval11', somekey2='someval21')
+        new_res1 = Resource.objects.create(status=Resource.STATUS_LOCKED, somekey1='someval11', somekey2='someval21')
 
         self.assertEqual(Resource.STATUS_LOCKED, new_res1.status)
         self.assertEqual('someval11', new_res1.get_option_value('somekey1'))

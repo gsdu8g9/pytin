@@ -96,12 +96,12 @@ class Command(BaseCommand):
 
         ips = IPAddress.objects.active(address=options['ip'])
         for ip_address in options['ip']:
-            ip_set += ips[0] if len(ips) > 0 else IPAddress.create(address=ip_address)
+            ip_set += ips[0] if len(ips) > 0 else IPAddress.objects.create(address=ip_address)
 
         self._list_addresses(parent=ip_set.id)
 
     def _handle_pool_addnamed(self, *args, **options):
-        IPAddressPool.create(name=options['pool-name'])
+        IPAddressPool.objects.create(name=options['pool-name'])
 
         self._list_pools()
 
@@ -109,7 +109,7 @@ class Command(BaseCommand):
         if not IPAddressPool.is_valid_network(options['net']):
             raise ValueError("Invalid network")
 
-        IPNetworkPool.create(network=options['net'])
+        IPNetworkPool.objects.create(network=options['net'])
 
         self._list_pools()
 
@@ -120,7 +120,7 @@ class Command(BaseCommand):
         if not IPAddress.is_valid_address(options['ip-end']):
             raise ValueError("Invalid ip-end")
 
-        IPAddressRangePool.create(range_from=options['ip-start'], range_to=options['ip-end'])
+        IPAddressRangePool.objects.create(range_from=options['ip-start'], range_to=options['ip-end'])
 
         self._list_pools()
 

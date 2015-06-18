@@ -25,12 +25,12 @@ class QSW8300ImportDataTest(TestCase):
         switch._add_server_port('ethernet/1/24', 'CEA9ACD2084C')
 
         # manually identify hypervisor
-        hv_server = Server.create(label="hvisor", guessed_role='hypervisor')
-        ServerPort.create(mac='0025904EB5A4', parent=hv_server)
+        hv_server = Server.objects.create(label="hvisor", guessed_role='hypervisor')
+        ServerPort.objects.create(mac='0025904EB5A4', parent=hv_server)
 
         cmdb_importer = CmdbImporter()
 
-        sw = Switch.create(label="switch")
+        sw = Switch.objects.create(label="switch")
         cmdb_importer.import_switch(sw.id, switch)
 
         self.assertEqual(1, len(Server.objects.active()))
@@ -54,7 +54,7 @@ class QSW8300ImportDataTest(TestCase):
 
         cmdb_importer = CmdbImporter()
 
-        sw = Switch.create(label="switch")
+        sw = Switch.objects.create(label="switch")
         cmdb_importer.import_switch(sw.id, switch)
 
         self.assertEqual(2, len(Server.objects.active()))
@@ -65,7 +65,7 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(7, len(PortConnection.objects.active()))
 
     def test_create_with_id(self):
-        new_server = Server.create(label="test server", id=103)
+        new_server = Server.objects.create(label="test server", id=103)
         new_server.refresh_from_db()
 
         self.assertEqual(103, new_server.id)

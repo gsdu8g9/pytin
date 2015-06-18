@@ -96,7 +96,7 @@ class Command(BaseCommand):
         if 'id' in parsed_data and Resource.objects.active(pk=parsed_data['id']).exists():
             raise Exception("Item with ID %s is already exists." % parsed_data['id'])
 
-        resource = requested_model.create(**parsed_data)
+        resource = requested_model.objects.create(**parsed_data)
         resource.refresh_from_db()
 
         if options['outid']:

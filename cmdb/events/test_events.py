@@ -6,7 +6,7 @@ from resources.models import Resource
 
 class HistoryEventTest(TestCase):
     def test_resource_option_change_history(self):
-        res1 = Resource.create(name='res1')
+        res1 = Resource.objects.create(name='res1')
 
         self.assertEqual(1, len(HistoryEvent.objects.all()))
 
@@ -32,8 +32,8 @@ class HistoryEventTest(TestCase):
         self.assertEqual('testval2', events[1].field_new_value)
 
     def test_resource_change_history(self):
-        res1 = Resource.create(name='res1')
-        res2 = Resource.create(name='res2', parent=res1)
+        res1 = Resource.objects.create(name='res1')
+        res2 = Resource.objects.create(name='res2', parent=res1)
 
         # two create events
         events = HistoryEvent.objects.all()

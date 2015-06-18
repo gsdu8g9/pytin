@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import ipaddress
 
 from resources.models import Resource, ResourceOption
@@ -146,7 +148,7 @@ class IPAddressPool(Resource):
                 # guarantee the uniq IPs, search in other pools
                 existing_ips = IPAddress.objects.active(address=address)
                 if len(existing_ips) <= 0:
-                    yield IPAddress.create(address=address, parent=self)
+                    yield IPAddress.objects.create(address=address, parent=self)
                 else:
                     # IP from this pool is used elsewhere
                     continue

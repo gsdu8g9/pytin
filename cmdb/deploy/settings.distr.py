@@ -49,6 +49,7 @@ INSTALLED_APPS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'cmdb.exceptions.ExceptionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -110,7 +111,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'verbose',
-            'filename': os.path.join(BASE_DIR, 'logs/debug.log'),
+            'filename': os.path.join(BASE_DIR, 'logs/app/debug.log'),
         },
     },
     'loggers': {

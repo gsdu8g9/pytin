@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from assets.models import SwitchPort, PortConnection, ServerPort, Server, VirtualServer
 from cmdb.settings import logger
 from ipman.models import IPAddress, IPAddressPool
@@ -19,7 +21,7 @@ def _get_or_create_object(klass, query, creational=None):
     created = False
     found_objects = klass.objects.active(**query)
     if len(found_objects) <= 0:
-        ret_object = klass.create(**creational)
+        ret_object = klass.objects.create(**creational)
         created = True
     else:
         ret_object = found_objects[0]
@@ -77,13 +79,13 @@ class CmdbImporter(object):
                 logger.info("Added server port %s (%s)" % (server_port.id, connected_mac.interface))
 
                 if not connected_mac.vendor or hypervisor_server:
-                    server = VirtualServer.create(label='VPS', parent=hypervisor_server)
+                    server = VirtualServer.objects.create(label='VPS', parent=hypervisor_server)
                     logger.info("Added VPS i-%d %s (%s) on local port %s" % (
                         server.id, server, connected_mac, l3port.number))
                     if hypervisor_server:
                         logger.info("    with parent hypervisor i-%s" % hypervisor_server.id)
                 else:
-                    server = Server.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
+                    server = Server.objects.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
                     logger.info("Added metal server i-%d %s (%s) on local port %s" % (
                         server.id, server, connected_mac, l3port.number))
 
@@ -152,10 +154,10 @@ class CmdbImporter(object):
                 logger.info("Added server port %s (%s)" % (server_port.id, connected_mac.interface))
 
                 if not connected_mac.vendor:
-                    server = VirtualServer.create(label='VPS')
+                    server = VirtualServer.objects.create(label='VPS')
                     logger.info("Added VPS i-%d %s (%s)" % (server.id, server, connected_mac))
                 else:
-                    server = Server.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
+                    server = Server.objects.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
                     logger.info("Added metal server i-%d %s (%s)" % (server.id, server, connected_mac))
 
                 # set parent for the port
@@ -194,7 +196,7 @@ class CmdbImporter(object):
             if connected_mac.vendor:
                 server_port, created = _get_or_create_object(ServerPort, dict(mac=connected_mac.interface))
                 if created:
-                    phyz_server = Server.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
+                    phyz_server = Server.objects.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
                     server_port.parent = phyz_server
                     server_port.save()
                     phyz_server_list.append(phyz_server)

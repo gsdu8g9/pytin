@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import json
 
 from django.contrib.contenttypes.models import ContentType
@@ -5,6 +7,8 @@ from django.db import models
 from django.core import exceptions as djexceptions
 from django.db.models.query import QuerySet
 from django.utils import timezone
+from django.apps import apps
+from cmdb.settings import logger
 
 
 class ModelFieldChecker:
@@ -51,6 +55,45 @@ class SubclassingQuerySet(QuerySet):
         else:
             return result
 
+    def create(self, **kwargs):
+        """
+        Create new model of calling class type. Model fields are only checked for Resource() model
+        to not interfere with proxy model properties.
+        :param kwargs: model parameters with model options
+        :return: created model
+        """
+        model_fields = {}
+        option_fields = {}
+
+        for field_name in kwargs.keys():
+            if ModelFieldChecker.is_model_field(Resource, field_name):
+                model_fields[field_name] = kwargs[field_name]
+            else:
+                option_fields[field_name] = kwargs[field_name]
+
+        requested_model = self.model
+        if 'type' in kwargs:
+            requested_model = apps.get_model(kwargs['type'])
+
+        new_object = requested_model(**model_fields)
+        self._for_write = True
+        new_object.save(force_insert=True, using=self.db)
+
+        need_save = False
+        for option_field in option_fields.keys():
+            # if model have property with the given name, then set it via setattr,
+            # because of possible custom behaviour
+            if hasattr(new_object, option_field):
+                setattr(new_object, option_field, option_fields[option_field])
+                need_save = True
+            else:
+                new_object.set_option(option_field, option_fields[option_field], namespace='')
+
+        if need_save:
+            new_object.save()
+
+        return new_object
+
     def __iter__(self):
         for item in super(SubclassingQuerySet, self).__iter__():
             yield item.as_leaf_class() if isinstance(item, Resource) else item
@@ -65,6 +108,8 @@ class SubclassingQuerySet(QuerySet):
         """
 
         search_fields = kwargs
+
+        logger.debug("Search by: %s" % search_fields)
 
         # if filter is called for proxy model, filter by proxy type
         if self.model != Resource:
@@ -119,6 +164,8 @@ class ResourcesWithOptionsManager(models.Manager):
         Resource fields has higher priority than ResourceOption fields
         """
         return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
+
+
 
 
 class ResourceOption(models.Model):
@@ -301,40 +348,44 @@ class Resource(models.Model):
         for resource in Resource.objects.active(parent=self):
             yield resource
 
-    @classmethod
-    def create(cls, **kwargs):
-        """
-        Create new model of calling class type. Model fields are only checked for Resource() model
-        to not interfere with proxy model properties.
-        :param kwargs: model parameters with model options
-        :return: created model
-        """
-        model_fields = {}
-        option_fields = {}
-
-        for field_name in kwargs.keys():
-            if ModelFieldChecker.is_model_field(Resource, field_name):
-                model_fields[field_name] = kwargs[field_name]
-            else:
-                option_fields[field_name] = kwargs[field_name]
-
-        new_object = cls(**model_fields)
-        new_object.save()
-
-        need_save = False
-        for option_field in option_fields.keys():
-            # if model have property with the given name, then set it via setattr,
-            # because of possible custom behaviour
-            if hasattr(new_object, option_field):
-                setattr(new_object, option_field, option_fields[option_field])
-                need_save = True
-            else:
-                new_object.set_option(option_field, option_fields[option_field], namespace='')
-
-        if need_save:
-            new_object.save()
-
-        return new_object
+    # @classmethod
+    # def create(cls, **kwargs):
+    #     """
+    #     Create new model of calling class type. Model fields are only checked for Resource() model
+    #     to not interfere with proxy model properties.
+    #     :param kwargs: model parameters with model options
+    #     :return: created model
+    #     """
+    #     model_fields = {}
+    #     option_fields = {}
+    #
+    #     for field_name in kwargs.keys():
+    #         if ModelFieldChecker.is_model_field(Resource, field_name):
+    #             model_fields[field_name] = kwargs[field_name]
+    #         else:
+    #             option_fields[field_name] = kwargs[field_name]
+    #
+    #     requested_model = cls
+    #     if 'type' in kwargs:
+    #         requested_model = apps.get_model(kwargs['type'])
+    #
+    #     new_object = requested_model(**model_fields)
+    #     new_object.save()
+    #
+    #     need_save = False
+    #     for option_field in option_fields.keys():
+    #         # if model have property with the given name, then set it via setattr,
+    #         # because of possible custom behaviour
+    #         if hasattr(new_object, option_field):
+    #             setattr(new_object, option_field, option_fields[option_field])
+    #             need_save = True
+    #         else:
+    #             new_object.set_option(option_field, option_fields[option_field], namespace='')
+    #
+    #     if need_save:
+    #         new_object.save()
+    #
+    #     return new_object
 
     def cast_type(self, new_class_type):
         assert new_class_type

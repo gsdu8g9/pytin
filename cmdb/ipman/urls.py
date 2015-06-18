@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from ipman.views import IpPoolNewIPs
+from ipman.views import IpManagerRentIPs
 
 urlpatterns = [
-    url(r'^ippool/(?P<pk>[0-9]+)/newip$', IpPoolNewIPs.as_view()),
+    url(r'^ipman/rent$', IpManagerRentIPs.as_view()),
 ]
