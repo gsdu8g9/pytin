@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
-from cmdb.settings import logger
 
+from cmdb.settings import logger
 from ipman.models import IPNetworkPool, IPAddressPool, IPAddressRangePool, IPAddress
 from resources.models import Resource
 
@@ -14,22 +14,27 @@ class Command(BaseCommand):
         """
         Add custom arguments and subcommands
         """
-        subparsers = parser.add_subparsers(title="Management commands",
+        subparsers = parser.add_subparsers(title="IP management commands",
                                            help="Commands help",
                                            dest='manager_name',
                                            parser_class=ArgumentParser)
 
         # IP address commands
-        address_cmd_parser = subparsers.add_parser('address', help='Manage addresses')
+        address_cmd_parser = subparsers.add_parser('address', help='Manage IP addresses')
         address_subparsers = address_cmd_parser.add_subparsers(title="IP address management commands",
                                                                help="Commands help",
                                                                dest='subcommand_name',
                                                                parser_class=ArgumentParser)
 
-        addr_add_cmd = address_subparsers.add_parser('add', help="Add IP in")
+        addr_add_cmd = address_subparsers.add_parser('add', help="Add IP in the pool")
         addr_add_cmd.add_argument('pool-id', type=int, help="ID of the pool")
-        addr_add_cmd.add_argument('ip', nargs='+', help="IP address to add to pool")
+        addr_add_cmd.add_argument('ip', nargs='+', help="IP address to add to the pool-id")
         self._register_handler('address.add', self._handle_address_add)
+
+        pool_rent_cmd = address_subparsers.add_parser('rent', help="Find and lock some IPs.")
+        pool_rent_cmd.add_argument('pool-id', nargs='+', help="IDs of the pools to rent IPs.")
+        pool_rent_cmd.add_argument('-c', '--count', type=int, default=1, help="Number of addresses to rent.")
+        self._register_handler('address.rent', self._handle_pool_rent)
 
         # POOL commands
         pool_cmd_parser = subparsers.add_parser('pool', help='Manage address pools')
@@ -39,25 +44,25 @@ class Command(BaseCommand):
                                                          dest='subcommand_name',
                                                          parser_class=ArgumentParser)
 
-        add_cidr_cmd = pool_subparsers.add_parser('addcidr', help="Add pool by network")
+        add_cidr_cmd = pool_subparsers.add_parser('addcidr', help="Add IP pool defined by network")
         add_cidr_cmd.add_argument('net', help="CIDR network")
         self._register_handler('pool.addcidr', self._handle_pool_addcidr)
 
-        add_cidr_cmd = pool_subparsers.add_parser('addrange', help="Add pool by range")
+        add_cidr_cmd = pool_subparsers.add_parser('addrange', help="Add IP pool defined by address range")
         add_cidr_cmd.add_argument('ip-start', help="IP range start")
         add_cidr_cmd.add_argument('ip-end', help="IP range end")
         self._register_handler('pool.addrange', self._handle_pool_addrange)
 
-        add_cidr_cmd = pool_subparsers.add_parser('addnamed', help="Add named pool")
-        add_cidr_cmd.add_argument('pool-name', help="Name of the pool. It holds arbitrary IPs.")
+        add_cidr_cmd = pool_subparsers.add_parser('addnamed', help="Add named pool. It holds arbitrary IPs.")
+        add_cidr_cmd.add_argument('pool-name', help="Name of the pool.")
         self._register_handler('pool.addnamed', self._handle_pool_addnamed)
 
-        pool_subparsers.add_parser('list', help="List pools")
+        pool_subparsers.add_parser('list', help="List all pools")
         self._register_handler('pool.list', self._handle_list_pools)
 
-        pool_get_next_cmd = pool_subparsers.add_parser('get', help="Get next available addresses from the pool")
-        pool_get_next_cmd.add_argument('pool-id', nargs='+', help="ID of the pool")
-        pool_get_next_cmd.add_argument('-c', '--count', type=int, default=1, help="Number of addresses to acquire")
+        pool_get_next_cmd = pool_subparsers.add_parser('get', help="Get next available addresses from the pool.")
+        pool_get_next_cmd.add_argument('pool-id', nargs='+', help="ID of the pools.")
+        pool_get_next_cmd.add_argument('-c', '--count', type=int, default=1, help="Number of addresses to acquire.")
         pool_get_next_cmd.add_argument('-b', '--beauty', type=int, default=5,
                                        help="Return IPs with beauty greater or equal.")
         self._register_handler('pool.get', self._handle_pool_get_next)
@@ -71,6 +76,13 @@ class Command(BaseCommand):
         # call handler
         self.registered_handlers[subcommand](*args, **options)
 
+    def _handle_pool_rent(self, *args, **options):
+        ip_pool_ids = options['pool-id']
+        ip_count = options['count']
+
+        rent_ips = IPAddressPool.globally_available(ip_pool_ids, ip_count)
+        self._print_addresses(rent_ips)
+
     def _handle_pool_get_next(self, *args, **options):
         for pool_id in options['pool-id']:
             ip_set = Resource.objects.get(pk=pool_id)
@@ -82,7 +94,7 @@ class Command(BaseCommand):
                     break
 
                 if ip_address.beauty >= beauty_idx:
-                    logger.info("%d\t%s\t%s\t%s" % (ip_address.id, ip_address.parent_id, ip_address, ip_address.status))
+                    self._print_address(ip_address)
                     ip_count -= 1
 
             if ip_count > 0:
@@ -98,7 +110,7 @@ class Command(BaseCommand):
         for ip_address in options['ip']:
             ip_set += ips[0] if len(ips) > 0 else IPAddress.objects.create(address=ip_address)
 
-        self._list_addresses(parent=ip_set.id)
+        self._print_addresses([ip_address for ip_address in IPAddress.objects.active(parent=ip_set.id)])
 
     def _handle_pool_addnamed(self, *args, **options):
         IPAddressPool.objects.create(name=options['pool-name'])
@@ -132,10 +144,20 @@ class Command(BaseCommand):
 
         self._list_pools()
 
-    def _list_addresses(self, **kwargs):
-        for ip_address in IPAddress.objects.active(**kwargs):
-            logger.info("%d\t%s\t%s\t%s\t%d" % (
-                ip_address.id, ip_address.parent_id, ip_address, ip_address.status, ip_address.beauty))
+    def _print_addresses(self, ip_address_list):
+        assert ip_address_list
+
+        logger.info("%5s%11s%25s%15s%11s" % (
+            'ID', 'PARENT-ID', 'ADDRESS', 'STATUS', 'BEAUTY'))
+
+        for ip_address in ip_address_list:
+            self._print_address(ip_address)
+
+    def _print_address(self, ip_address):
+        assert ip_address
+
+        logger.info("%5s%11s%25s%15s%11s" % (
+            ip_address.id, ip_address.parent_id, ip_address, ip_address.status, ip_address.beauty))
 
     def _list_pools(self):
         for address_pool in IPAddressPool.get_all_pools():

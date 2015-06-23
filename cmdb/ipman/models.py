@@ -97,11 +97,51 @@ class IPAddressPool(Resource):
         'IPNetworkPool'
     ]
 
+    class InfiniteList:
+        """
+        Implementation of the ring buffer. Infinitely iterate through the given list.
+        """
+
+        def __init__(self, list):
+            if not list:
+                raise ValueError('list')
+
+            self.list = list
+
+        def __iter__(self):
+            idx = 0
+            while True:
+                yield self.list[idx % len(self.list)]
+                idx += 1
+
     class Meta:
         proxy = True
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def globally_available(ip_pool_ids, count=1):
+        """
+        Returns given number of IPs from different IP address pools.
+        """
+
+        assert ip_pool_ids
+        assert count > 0
+
+        rented_ips = []
+        for ip_pool_id in IPAddressPool.InfiniteList(ip_pool_ids):
+            if len(rented_ips) >= count:
+                break
+
+            ip_pool_resource = Resource.objects.get(pk=ip_pool_id)
+
+            ip = ip_pool_resource.available().next()
+            ip.lock()
+
+            rented_ips.append(ip)
+
+        return rented_ips
 
     @staticmethod
     def is_valid_network(network):

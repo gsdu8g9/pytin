@@ -4,9 +4,10 @@ import argparse
 from django.core.management.base import BaseCommand
 
 from django.apps import apps
-from django.utils import timezone
-from cmdb.settings import logger
 
+from django.utils import timezone
+
+from cmdb.settings import logger
 from resources.iterators import PathIterator, TreeIterator
 from resources.models import Resource, ResourceOption, ModelFieldChecker
 
@@ -19,45 +20,45 @@ class Command(BaseCommand):
         Add custom arguments and subcommands
         """
 
-        subparsers = parser.add_subparsers(title="Resources management commands",
+        subparsers = parser.add_subparsers(title="Resource low level management commands",
                                            help="Commands help",
                                            dest='manager_name',
                                            parser_class=ArgumentParser)
 
         # Common operatoins
-        res_get_cmd = subparsers.add_parser('get', help="Get resource options.")
+        res_get_cmd = subparsers.add_parser('get', help="Get resource details.")
         res_get_cmd.add_argument('resource-id', type=int, nargs='+', help="ID of the resource.")
         res_get_cmd.add_argument('-p', '--path', action='store_true',
-                                 help="Display path from root node to resource-id.")
+                                 help="Display path from the root node to resource-id.")
         res_get_cmd.add_argument('-t', '--tree', action='store_true', help="Display the tree of childs.")
         self._register_handler('get', self._handle_res_get_options)
 
-        res_set_cmd = subparsers.add_parser('set', help="Set resource options.")
-        res_set_cmd.add_argument('resource-id', type=int, nargs='+', help="ID of the resource.")
-        res_set_cmd.add_argument('-n', '--option-name', help="Name of the option.")
-        res_set_cmd.add_argument('-v', '--option-value', type=str, help="Value of the option.")
-        res_set_cmd.add_argument('--format', '--option-format', help="Type of the value.",
+        res_set_cmd = subparsers.add_parser('set', help="Edit resource options.")
+        res_set_cmd.add_argument('resource-id', type=int, help="ID of the resource.")
+        res_set_cmd.add_argument('--format', '--option-format', help="Type of the values.",
                                  default=ResourceOption.FORMAT_STRING,
                                  choices=[choice[0] for choice in ResourceOption.FORMAT_CHOICES])
-        res_set_cmd.add_argument('--cascade', action='store_true', help="Update resource and its childs.")
+
         stat_group = res_set_cmd.add_mutually_exclusive_group()
         stat_group.add_argument('--use', action='store_true', help="Mark resource and its childs as used.")
         stat_group.add_argument('--free', action='store_true', help="Mark resource and its childs as free.")
         stat_group.add_argument('--lock', action='store_true', help="Mark resource and its childs as locked.")
+
+        res_set_cmd.add_argument('fields', nargs=argparse.REMAINDER, help="Key=Value pairs.")
         self._register_handler('set', self._handle_res_set_options)
 
-        res_list_cmd = subparsers.add_parser('list', help="Get resource list.")
+        res_list_cmd = subparsers.add_parser('search', help="Search for resources.")
         res_list_cmd.add_argument('--limit', type=int, default=0, help="Limit the resources output.")
         res_list_cmd.add_argument('--page', type=int, default=1, help="Page number to paginate resource list (from 1).")
-        res_list_cmd.add_argument('--status', help="Status of the IP",
+        res_list_cmd.add_argument('--status',
+                                  help="Status of the resource. If status is used, you can search in deleted resources.",
                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
         res_list_cmd.add_argument('filter', nargs=argparse.REMAINDER, help="Key=Value pairs.")
-        self._register_handler('list', self._handle_res_list)
+        self._register_handler('search', self._handle_res_list)
 
         res_add_cmd = subparsers.add_parser('add', help="Add the new resource.")
         res_add_cmd.add_argument('--type', default='resources.Resource',
                                  help="Type of the resource in format 'app.model'.")
-        res_add_cmd.add_argument('--outid', action='store_true', help="Print only new resource ID.")
         res_add_cmd.add_argument('fields', nargs=argparse.REMAINDER, help="Key=Value pairs.")
         self._register_handler('add', self._handle_res_add)
 
@@ -90,8 +91,10 @@ class Command(BaseCommand):
             requested_model = apps.get_model(options['type'])
 
         if 'parent' in parsed_data:
-            parsed_data['parent_id'] = parsed_data['parent']
+            field_name, field_value = self._prepare_parent_field(parsed_data['parent'])
             del parsed_data['parent']
+            del parsed_data['parent_id']
+            parsed_data[field_name] = field_value
 
         if 'id' in parsed_data and Resource.objects.active(pk=parsed_data['id']).exists():
             raise Exception("Item with ID %s is already exists." % parsed_data['id'])
@@ -99,10 +102,7 @@ class Command(BaseCommand):
         resource = requested_model.objects.create(**parsed_data)
         resource.refresh_from_db()
 
-        if options['outid']:
-            logger.info(resource.id)
-        else:
-            self._print_resource_data(resource)
+        self._print_resource_data(resource)
 
     def _handle_res_list(self, *args, **options):
         query = self._parse_reminder_arg(options['filter'])
@@ -142,34 +142,54 @@ class Command(BaseCommand):
                 self._print_resource_data(resource)
 
     def _handle_res_set_options(self, *args, **options):
-        for res_id in options['resource-id']:
-            resource = Resource.objects.get(pk=res_id)
+        res_id = options['resource-id']
+        resource = Resource.objects.get(pk=res_id)
 
-            if options['option_name'] and options['option_value']:
-                if options['option_name'] == 'parent':
-                    options['option_name'] = 'parent_id'
+        update_query = self._parse_reminder_arg(options['fields'])
+        for field_name in update_query:
+            field_value = update_query[field_name]
 
-                    if not options['option_value']:
-                        options['option_value'] = None
+            if field_name in ['parent', 'parent_id']:
+                field_name, field_value = self._prepare_parent_field(field_value)
 
-                if options['option_name'] == 'type':
-                    requested_model = apps.get_model(options['option_value'])
-                    resource = resource.cast_type(requested_model)
-                elif ModelFieldChecker.is_field_or_property(resource, options['option_name']):
-                    setattr(resource, options['option_name'], options['option_value'])
-                    resource.save()
-                else:
-                    resource.set_option(name=options['option_name'],
-                                        value=options['option_value'],
-                                        format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
-            elif options['use']:
-                resource.use(cascade=options['cascade'])
-            elif options['free']:
-                resource.free(cascade=options['cascade'])
-            elif options['lock']:
-                resource.lock(cascade=options['cascade'])
+            if field_name == 'type':
+                requested_model = apps.get_model(field_value)
+                resource = resource.cast_type(requested_model)
+            elif ModelFieldChecker.is_field_or_property(resource, field_name):
+                setattr(resource, field_name, field_value)
+                resource.save()
+            else:
+                resource.set_option(name=field_name,
+                                    value=field_value,
+                                    format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
 
-            self._print_resource_data(resource)
+        if options['use']:
+            resource.use(cascade=True)
+        elif options['free']:
+            resource.free(cascade=True)
+        elif options['lock']:
+            resource.lock(cascade=True)
+
+        self._print_resource_data(resource)
+
+    def _prepare_parent_field(self, parent_value):
+        """
+        Process field 'parent' and convert in to parent_id if necessary. Also translate value to None when appropriate.
+        :param parent_value: Value of the field 'parent'
+        :return: touple  (field_name, field_value)
+        """
+        field_value = parent_value
+
+        try:
+            field_value = int(field_value)
+            if not field_value:
+                raise ValueError()
+            field_name = 'parent_id'
+        except ValueError:
+            field_name = 'parent'
+            field_value = None
+
+        return field_name, field_value
 
     def _print_resource_data(self, resource, indent=0):
         padding = "".ljust(indent, ' ')
