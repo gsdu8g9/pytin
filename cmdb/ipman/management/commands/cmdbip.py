@@ -31,7 +31,7 @@ class Command(BaseCommand):
         addr_add_cmd.add_argument('ip', nargs='+', help="IP address to add to the pool-id")
         self._register_handler('address.add', self._handle_address_add)
 
-        pool_rent_cmd = address_subparsers.add_parser('rent', help="Find and lock some IPs.")
+        pool_rent_cmd = address_subparsers.add_parser('rent', help="Find and lock 'count' IPs from specified pools.")
         pool_rent_cmd.add_argument('pool-id', nargs='+', help="IDs of the pools to rent IPs.")
         pool_rent_cmd.add_argument('-c', '--count', type=int, default=1, help="Number of addresses to rent.")
         self._register_handler('address.rent', self._handle_pool_rent)
