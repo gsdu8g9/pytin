@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import netaddr
+from cmdb.settings import logger
 
 from resources.models import Resource, ResourceOption
 
@@ -17,6 +18,9 @@ class PhysicalAssetMixin(object):
         """
         Override delete: free instead of delete
         """
+
+        logger.debug("Removing physical object %s" % self)
+
         if purge:
             super(PhysicalAssetMixin, self).delete(cascade=cascade, purge=purge)
         else:

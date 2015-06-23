@@ -110,8 +110,6 @@ class SubclassingQuerySet(QuerySet):
 
         search_fields = kwargs
 
-        logger.debug("Search by: %s" % search_fields)
-
         # if filter is called for proxy model, filter by proxy type
         if self.model != Resource:
             search_fields['type'] = self.model.__name__
@@ -393,6 +391,8 @@ class Resource(models.Model):
         Override Model .delete() method. Instead of actual deleting object from the DB
         set status Deleted.
         """
+        logger.debug("Removing resource ID:%s %s" % (self.id, self))
+
         if purge:
             super(Resource, self).delete()
         else:
@@ -520,6 +520,8 @@ class Resource(models.Model):
         if cascade:
             for child in self:
                 getattr(child, method_name)(cascade)
+
+        logger.debug("Setting resource ID:%s status: %s -> %s" % (self.id, self.status, new_status))
 
         self.status = new_status
         self.save()
