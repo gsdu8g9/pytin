@@ -92,8 +92,10 @@ class Command(BaseCommand):
 
         if 'parent' in parsed_data:
             field_name, field_value = self._prepare_parent_field(parsed_data['parent'])
-            del parsed_data['parent']
-            del parsed_data['parent_id']
+            if 'parent' in parsed_data:
+                del parsed_data['parent']
+            if 'parent_id' in parsed_data:
+                del parsed_data['parent_id']
             parsed_data[field_name] = field_value
 
         if 'id' in parsed_data and Resource.objects.active(pk=parsed_data['id']).exists():

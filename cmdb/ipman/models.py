@@ -64,7 +64,7 @@ class IPAddress(Resource):
         Override delete: free instead of delete
         """
         if purge:
-            self.delete(cascade=cascade, purge=purge)
+            super(IPAddress, self).delete(cascade=cascade, purge=purge)
         else:
             self.parent_id = self.get_option_value('ipman_pool_id')
             self.free()

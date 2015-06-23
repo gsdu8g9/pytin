@@ -13,6 +13,7 @@ from importer.providers.vendors.dlink import DSG3200Switch
 from importer.providers.vendors.hp import HP1910Switch
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
+from ipman.models import IPAddress
 from resources.models import Resource
 
 
@@ -63,14 +64,22 @@ class Command(BaseCommand):
 
     def _handle_household(self, *args, **options):
         last_seen_old = timezone.now() - datetime.timedelta(days=100)
-        for vm in VirtualServer.objects.active(last_seen__lt=last_seen_old):
-            logger.warning("Server %s not seen for 3 months. Removing...")
 
-            # for vm_port in VirtualServerPort.objects.active(parent=vm):
-            #     for connection in PortConnection.objects.active(linked_port_id=vm_port.id):
-            #         connection.delete(cascade=True)
-            #
-            # vm.delete(cascade=True)
+        logger.info("Clean missing virtual servers: %s" % last_seen_old)
+        for vm in VirtualServer.objects.active(last_seen__lt=last_seen_old):
+            logger.warning("    server %s not seen for 3 months. Removing..." % vm)
+            for vm_port in VirtualServerPort.objects.active(parent=vm):
+                for connection in PortConnection.objects.active(linked_port_id=vm_port.id):
+                    connection.delete(cascade=True)
+            vm.delete(cascade=True)
+
+        logger.info("Clean missing IP addresses: %s" % last_seen_old)
+        for ip in IPAddress.objects.active(last_seen__lt=last_seen_old):
+            ip_pool_id = ip.get_option_value('ipman_pool_id')
+
+            if ip_pool_id and Resource.objects.active(pk=ip_pool_id, status=Resource.STATUS_FREE).exists():
+                logger.warning("    ip %s from the FREE IP pool is not seen for 3 months. Removing..." % ip)
+                ip.delete(cascade=True)
 
     def _handle_auto(self, *args, **options):
         # update via snmp
