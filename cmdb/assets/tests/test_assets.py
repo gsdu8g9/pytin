@@ -1,10 +1,50 @@
 from django.test import TestCase
 
-from assets.models import RegionResource, Server, ServerPort, Rack, Switch
+from assets.models import RegionResource, Server, ServerPort, Rack, Switch, VirtualServer, VirtualServerPort
+from ipman.models import IPNetworkPool
 from resources.models import Resource, ModelFieldChecker
 
 
 class AssetsTest(TestCase):
+    def test_delete_virtual_hierarchy(self):
+        vm1 = VirtualServer.objects.create(label="VM", status=Resource.STATUS_INUSE)
+        vmport1 = VirtualServerPort.objects.create(number=15, mac='234567267845', parent=vm1,
+                                                   status=Resource.STATUS_INUSE)
+        ippool1 = IPNetworkPool.objects.create(network='192.168.1.1/24', status=Resource.STATUS_INUSE)
+        address1 = ippool1.available().next()
+
+        self.assertEqual(ippool1.id, address1.parent.id)
+
+        address1.parent = vmport1
+        address1.save()
+
+        self.assertEqual(vmport1.id, address1.parent.id)
+        self.assertEqual(ippool1.id, address1.get_option_value('ipman_pool_id'))
+
+        vm1.delete(cascade=True)
+
+        vm1.refresh_from_db()
+        vmport1.refresh_from_db()
+        ippool1.refresh_from_db()
+        address1.refresh_from_db()
+
+        self.assertEqual(Resource.STATUS_DELETED, vm1.status)
+        self.assertEqual(Resource.STATUS_DELETED, vmport1.status)
+        self.assertEqual(Resource.STATUS_FREE, address1.status)
+        self.assertEqual(ippool1.id, address1.parent.id)
+
+    def test_delete_resources(self):
+        switch1 = Switch.objects.create(label="test switch", status=Resource.STATUS_INUSE)
+        resource1 = VirtualServer.objects.create(label="test switch", status=Resource.STATUS_INUSE)
+
+        self.assertEqual(Resource.STATUS_INUSE, switch1.status)
+        self.assertEqual(Resource.STATUS_INUSE, resource1.status)
+
+        switch1.delete()
+        resource1.delete()
+
+        self.assertEqual(Resource.STATUS_FREE, switch1.status)
+        self.assertEqual(Resource.STATUS_DELETED, resource1.status)
 
     def test_change_asset_type(self):
         new_res1 = Switch.objects.create(label="test switch")
@@ -80,4 +120,3 @@ class AssetsTest(TestCase):
 
                             for x6 in range(1, 2):
                                 ServerPort.objects.create(number=x6, mac='00:1a:92:19:62:f%s' % x6, parent=server)
-

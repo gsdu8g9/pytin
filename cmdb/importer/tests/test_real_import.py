@@ -2,7 +2,8 @@ import os
 
 from django.test import TestCase
 
-from assets.models import RegionResource, ServerPort, Server, VirtualServer, GatewaySwitch, PortConnection, Switch
+from assets.models import RegionResource, ServerPort, Server, VirtualServer, GatewaySwitch, PortConnection, Switch, \
+    VirtualServerPort
 from importer.importlib import CmdbImporter
 
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
@@ -63,8 +64,9 @@ class QSW8300ImportDataTest(TestCase):
         # count servers
         self.assertEqual(71, len(Server.objects.active()))
         self.assertEqual(39, len(VirtualServer.objects.active()))
-        self.assertEqual(110, len(ServerPort.objects.active()))
+        self.assertEqual(71, len(ServerPort.objects.active()))
         self.assertEqual(0, len(ServerPort.objects.active(parent=None)))
+        self.assertEqual(39, len(VirtualServerPort.objects.active()))
         self.assertEqual(10, len(PortConnection.objects.active()))
 
         # import MAC data from mac table
@@ -79,8 +81,9 @@ class QSW8300ImportDataTest(TestCase):
         # count servers
         self.assertEqual(76, len(Server.objects.active()))
         self.assertEqual(41, len(VirtualServer.objects.active()))
-        self.assertEqual(117, len(ServerPort.objects.active()))
+        self.assertEqual(76, len(ServerPort.objects.active()))
         self.assertEqual(0, len(ServerPort.objects.active(parent=None)))
+        self.assertEqual(41, len(VirtualServerPort.objects.active()))
         self.assertEqual(54, len(PortConnection.objects.active()))
 
         # Linked VPS

@@ -149,6 +149,9 @@ class Command(BaseCommand):
                 if options['option_name'] == 'parent':
                     options['option_name'] = 'parent_id'
 
+                    if not options['option_value']:
+                        options['option_value'] = None
+
                 if options['option_name'] == 'type':
                     requested_model = apps.get_model(options['option_value'])
                     resource = resource.cast_type(requested_model)

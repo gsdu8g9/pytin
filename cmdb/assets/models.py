@@ -5,6 +5,98 @@ import netaddr
 from resources.models import Resource, ResourceOption
 
 
+class PhysicalAssetMixin(object):
+    """
+    Physical mixin, overrides delete() method - free instead of delete.
+    """
+
+    def delete(self, cascade=False, purge=False):
+        """
+        Override delete: free instead of delete
+        """
+        if purge:
+            super(PhysicalAssetMixin, self).delete(cascade=cascade, purge=purge)
+        else:
+            self.free(cascade=True)
+
+
+class AssetResource(Resource):
+    """
+    Physical resource, that have serial number to track it.
+    Such is server, rack, network card, etc.
+    """
+
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return "inv-%s %s (SN: %s)" % (self.id, self.label, self.serial)
+
+    @property
+    def label(self):
+        return self.get_option_value('label', default="no label")
+
+    @label.setter
+    def label(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('label', value)
+
+    @property
+    def serial(self):
+        return self.get_option_value('serial', default=str(self.id))
+
+    @serial.setter
+    def serial(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('serial', value.lower())
+
+
+class NetworkPort(Resource):
+    """
+    Network port
+    """
+
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return "%s:%s%s" % (self.parent.id, self.number, " (uplink)" if self.uplink else "")
+
+    @property
+    def number(self):
+        return self.get_option_value('number', default=0)
+
+    @number.setter
+    def number(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('number', value, format=ResourceOption.FORMAT_INT)
+
+    @property
+    def mac(self):
+        return self.get_option_value('mac', default="000000000000")
+
+    @mac.setter
+    def mac(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
+
+        self.set_option('mac', str(_mac).upper())
+
+    @property
+    def uplink(self):
+        return self.get_option_value('uplink', default=0)
+
+    @uplink.setter
+    def uplink(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('uplink', value, format=ResourceOption.FORMAT_INT)
+
+
 class RegionResource(Resource):
     """
     Resource grouping by region.
@@ -56,39 +148,16 @@ class PortConnection(Resource):
         super(PortConnection, self).save(*args, **kwargs)
 
 
-class SwitchPort(Resource):
+class SwitchPort(PhysicalAssetMixin, NetworkPort):
     """
-    Network switch port
+    Network port
     """
 
     class Meta:
         proxy = True
 
-    def __str__(self):
-        return "%s:%s%s" % (self.parent.id, self.number, " (uplink)" if self.uplink else "")
 
-    @property
-    def number(self):
-        return self.get_option_value('number', default=0)
-
-    @number.setter
-    def number(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('number', value, format=ResourceOption.FORMAT_INT)
-
-    @property
-    def uplink(self):
-        return self.get_option_value('uplink', default=0)
-
-    @uplink.setter
-    def uplink(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('uplink', value, format=ResourceOption.FORMAT_INT)
-
-
-class ServerPort(SwitchPort):
+class ServerPort(PhysicalAssetMixin, NetworkPort):
     """
     Network port
     """
@@ -99,53 +168,8 @@ class ServerPort(SwitchPort):
     def __str__(self):
         return "eth%s:%s" % (self.number, self.mac)
 
-    @property
-    def mac(self):
-        return self.get_option_value('mac', default="000000000000")
 
-    @mac.setter
-    def mac(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
-
-        self.set_option('mac', str(_mac).upper())
-
-
-class InventoryResource(Resource):
-    """
-    Physical resource, that have serial number to track it.
-    Such is server, rack, network card, etc.
-    """
-
-    class Meta:
-        proxy = True
-
-    def __str__(self):
-        return "inv-%s %s (SN: %s)" % (self.id, self.label, self.serial)
-
-    @property
-    def label(self):
-        return self.get_option_value('label', default="no label")
-
-    @label.setter
-    def label(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('label', value)
-
-    @property
-    def serial(self):
-        return self.get_option_value('serial', default=str(self.id))
-
-    @serial.setter
-    def serial(self, value):
-        assert value is not None, "Parameter 'value' must be defined."
-
-        self.set_option('serial', value.lower())
-
-
-class Switch(InventoryResource):
+class Switch(PhysicalAssetMixin, AssetResource):
     """
     Switch object
     """
@@ -166,7 +190,7 @@ class GatewaySwitch(Switch):
         proxy = True
 
 
-class Server(InventoryResource):
+class Server(PhysicalAssetMixin, AssetResource):
     """
     Server object
     """
@@ -178,19 +202,7 @@ class Server(InventoryResource):
         return "i-%s %s" % (self.id, self.label)
 
 
-class VirtualServer(InventoryResource):
-    """
-    Server object
-    """
-
-    class Meta:
-        proxy = True
-
-    def __str__(self):
-        return "vm-%s %s" % (self.id, self.label)
-
-
-class Rack(InventoryResource):
+class Rack(PhysicalAssetMixin, AssetResource):
     """
     Rack mount object
     """
@@ -200,3 +212,27 @@ class Rack(InventoryResource):
 
     def __str__(self):
         return "%s" % self.label
+
+
+class VirtualServerPort(NetworkPort):
+    """
+    Network port
+    """
+
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return "veth%s:%s" % (self.number, self.mac)
+
+
+class VirtualServer(AssetResource):
+    """
+    VirtualServer object. This is not inventory.
+    """
+
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return "vm-%s %s" % (self.id, self.label)

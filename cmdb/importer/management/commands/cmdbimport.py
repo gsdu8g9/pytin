@@ -1,8 +1,11 @@
 from argparse import ArgumentParser
+import datetime
 
 from django.core.management.base import BaseCommand
 
-from assets.models import GatewaySwitch, Switch
+from django.utils import timezone
+
+from assets.models import GatewaySwitch, Switch, VirtualServer, VirtualServerPort, PortConnection
 from cmdb.settings import logger
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
@@ -54,6 +57,20 @@ class Command(BaseCommand):
 
         auto_cmd_parser = subparsers.add_parser('auto', help='Import and update CMDB data based on resources.')
         self._register_handler('auto', self._handle_auto)
+
+        household_cmd_parser = subparsers.add_parser('household', help='Cleanup unused resources.')
+        self._register_handler('household', self._handle_household)
+
+    def _handle_household(self, *args, **options):
+        last_seen_old = timezone.now() - datetime.timedelta(weeks=12)
+        for vm in VirtualServer.objects.active(last_seen__lt=last_seen_old):
+            logger.warning("Server %s not seen for 3 months. Removing...")
+
+            for vm_port in VirtualServerPort.objects.active(parent=vm):
+                for connection in PortConnection.objects.active(linked_port_id=vm_port.id):
+                    connection.delete(cascade=True)
+
+            vm.delete(cascade=True)
 
     def _handle_auto(self, *args, **options):
         # update via snmp

@@ -3,7 +3,7 @@ import os
 from django.test import TestCase
 import netaddr
 
-from assets.models import Server, Switch, VirtualServer, ServerPort, PortConnection
+from assets.models import Server, Switch, VirtualServer, ServerPort, PortConnection, VirtualServerPort
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
 
@@ -36,8 +36,10 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(1, len(Server.objects.active()))
         self.assertEqual(6, len(VirtualServer.objects.active()))
         self.assertEqual(0, len(VirtualServer.objects.active(parent=None)))
-        self.assertEqual(7, len(ServerPort.objects.active()))
+        self.assertEqual(1, len(ServerPort.objects.active()))
         self.assertEqual(0, len(ServerPort.objects.active(parent=None)))
+        self.assertEqual(6, len(VirtualServerPort.objects.active()))
+        self.assertEqual(0, len(VirtualServerPort.objects.active(parent=None)))
         self.assertEqual(7, len(PortConnection.objects.active()))
 
     def test_hypervisor_detect(self):
@@ -60,8 +62,10 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(2, len(Server.objects.active()))
         self.assertEqual(5, len(VirtualServer.objects.active()))
         self.assertEqual(5, len(VirtualServer.objects.active(parent=None)))
-        self.assertEqual(7, len(ServerPort.objects.active()))
+        self.assertEqual(2, len(ServerPort.objects.active()))
         self.assertEqual(0, len(ServerPort.objects.active(parent=None)))
+        self.assertEqual(5, len(VirtualServerPort.objects.active()))
+        self.assertEqual(0, len(VirtualServerPort.objects.active(parent=None)))
         self.assertEqual(7, len(PortConnection.objects.active()))
 
     def test_create_with_id(self):

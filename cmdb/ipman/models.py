@@ -59,6 +59,20 @@ class IPAddress(Resource):
     def beauty(self):
         return self.get_option_value('beauty', default=self._get_beauty(self.address))
 
+    def delete(self, cascade=False, purge=False):
+        """
+        Override delete: free instead of delete
+        """
+        if purge:
+            self.delete(cascade=cascade, purge=purge)
+        else:
+            self.parent_id = self.get_option_value('ipman_pool_id')
+            self.free()
+
+            # delete related objects
+            for child in self:
+                child.delete(cascade=cascade, purge=purge)
+
     def save(self, *args, **kwargs):
         need_save = True
 
@@ -117,6 +131,16 @@ class IPAddressPool(Resource):
     @property
     def used_addresses(self):
         return IPAddress.objects.active(ipman_pool_id=self.id, status=Resource.STATUS_INUSE).count()
+
+    def delete(self, cascade=False, purge=False):
+        """
+        Override: delete allocated and other non deleted IPs from this Pool
+        """
+        # delete all related objects
+        super(IPAddressPool, self).delete(cascade=True)
+
+        # delete allocated IPs
+        IPAddress.objects.active(ipman_pool_id=self.id).delete()
 
     def get_usage(self):
         total = float(self.total_addresses)

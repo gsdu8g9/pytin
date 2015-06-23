@@ -24,14 +24,14 @@ class ResourcesAPITests(APITestCase):
         res1 = Resource.objects.create(name='res1')
         res2 = Server.objects.create(name='res2', parent=res1)
 
-        response = self.client.delete('/v1/resources/%s/' % res2.id, format='json')
+        response = self.client.delete('/v1/resources/%s/' % res2.id, format='json')  # remove physical server
 
         self.assertEqual(204, response.status_code)  # no data on delete
 
         res2.refresh_from_db()
 
         self.assertEqual('res2', res2.name)
-        self.assertEqual(Resource.STATUS_DELETED, res2.status)
+        self.assertEqual(Resource.STATUS_FREE, res2.status)
         self.assertEqual('Server', res2.type)
 
     def test_resource_create(self):

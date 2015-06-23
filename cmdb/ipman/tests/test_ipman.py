@@ -5,6 +5,26 @@ from resources.models import Resource
 
 
 class IPmanTest(TestCase):
+    def test_delete_resources(self):
+        inventory1 = IPNetworkPool.objects.create(network='192.168.1.1/24', status=Resource.STATUS_INUSE)
+        ip1 = inventory1.available().next()
+        ip1.use()
+        ip2 = IPAddress.objects.create(address='46.17.40.29', status=Resource.STATUS_INUSE)
+
+        self.assertEqual(Resource.STATUS_INUSE, inventory1.status)
+        self.assertEqual(Resource.STATUS_INUSE, ip1.status)
+        self.assertEqual(Resource.STATUS_INUSE, ip2.status)
+
+        # IP pool is completely deleted with related IPs
+        inventory1.delete()
+
+        # IP address is marked as free and not deleted
+        ip2.delete()
+
+        self.assertEqual(Resource.STATUS_DELETED, inventory1.status)
+        self.assertFalse(IPAddress.objects.filter(pk=ip1.id).exists())
+        self.assertEqual(Resource.STATUS_FREE, ip2.status)
+
     def test_add_wrong_network(self):
         self.assertRaises(Exception, IPNetworkPool.objects.create, network='192.168.1/24')
 

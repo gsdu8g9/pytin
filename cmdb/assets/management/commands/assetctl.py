@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from assets.models import PortConnection, SwitchPort, ServerPort, Server, InventoryResource
+from assets.models import PortConnection, SwitchPort, ServerPort, Server, AssetResource
 from cmdb.settings import logger
 from ipman.models import IPAddress
 from resources.models import Resource
@@ -34,7 +34,7 @@ class Command(BaseCommand):
                 server = None
                 if server_ip_id.find('.') > -1:
                     ips = IPAddress.objects.active(address=server_ip_id)
-                    if len(ips) > 0 and issubclass(ips[0].parent.parent.as_leaf_class().__class__, InventoryResource):
+                    if len(ips) > 0 and issubclass(ips[0].parent.parent.as_leaf_class().__class__, AssetResource):
                         print ips[0].parent.parent.type
                         server = ips[0].parent.parent.as_leaf_class()
                     else:

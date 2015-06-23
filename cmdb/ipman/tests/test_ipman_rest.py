@@ -24,9 +24,9 @@ class ResourcesAPITests(APITestCase):
         response = self.client.get('/v1/ipman/rent?pool=%s&pool=%s&count=3' % (ipnet1.id, ipnet2.id), format='json')
 
         self.assertEqual(3, response.data['count'])
-        self.assertEqual(3, len(response.data['items']))
+        self.assertEqual(3, len(response.data['results']))
 
-        items = response.data['items']
+        items = response.data['results']
 
         self.assertEqual(3, items[0]['id'])
         self.assertEqual('192.168.1.1', items[0]['address'])

@@ -8,6 +8,7 @@ from django.core import exceptions as djexceptions
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.apps import apps
+
 from cmdb.settings import logger
 
 
@@ -164,8 +165,6 @@ class ResourcesWithOptionsManager(models.Manager):
         Resource fields has higher priority than ResourceOption fields
         """
         return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
-
-
 
 
 class ResourceOption(models.Model):
@@ -348,47 +347,11 @@ class Resource(models.Model):
         for resource in Resource.objects.active(parent=self):
             yield resource
 
-    # @classmethod
-    # def create(cls, **kwargs):
-    #     """
-    #     Create new model of calling class type. Model fields are only checked for Resource() model
-    #     to not interfere with proxy model properties.
-    #     :param kwargs: model parameters with model options
-    #     :return: created model
-    #     """
-    #     model_fields = {}
-    #     option_fields = {}
-    #
-    #     for field_name in kwargs.keys():
-    #         if ModelFieldChecker.is_model_field(Resource, field_name):
-    #             model_fields[field_name] = kwargs[field_name]
-    #         else:
-    #             option_fields[field_name] = kwargs[field_name]
-    #
-    #     requested_model = cls
-    #     if 'type' in kwargs:
-    #         requested_model = apps.get_model(kwargs['type'])
-    #
-    #     new_object = requested_model(**model_fields)
-    #     new_object.save()
-    #
-    #     need_save = False
-    #     for option_field in option_fields.keys():
-    #         # if model have property with the given name, then set it via setattr,
-    #         # because of possible custom behaviour
-    #         if hasattr(new_object, option_field):
-    #             setattr(new_object, option_field, option_fields[option_field])
-    #             need_save = True
-    #         else:
-    #             new_object.set_option(option_field, option_fields[option_field], namespace='')
-    #
-    #     if need_save:
-    #         new_object.save()
-    #
-    #     return new_object
-
     def cast_type(self, new_class_type):
         assert new_class_type
+
+        if self.type == new_class_type.__name__:
+            return self
 
         self.content_type = ContentType.objects.get_for_model(new_class_type,
                                                               for_concrete_model=not self._meta.proxy)
@@ -556,7 +519,7 @@ class Resource(models.Model):
 
         if cascade:
             for child in self:
-                getattr(child, method_name)()
+                getattr(child, method_name)(cascade)
 
         self.status = new_status
         self.save()
