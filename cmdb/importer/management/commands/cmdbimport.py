@@ -62,15 +62,15 @@ class Command(BaseCommand):
         self._register_handler('household', self._handle_household)
 
     def _handle_household(self, *args, **options):
-        last_seen_old = timezone.now() - datetime.timedelta(weeks=12)
+        last_seen_old = timezone.now() - datetime.timedelta(days=100)
         for vm in VirtualServer.objects.active(last_seen__lt=last_seen_old):
             logger.warning("Server %s not seen for 3 months. Removing...")
 
-            for vm_port in VirtualServerPort.objects.active(parent=vm):
-                for connection in PortConnection.objects.active(linked_port_id=vm_port.id):
-                    connection.delete(cascade=True)
-
-            vm.delete(cascade=True)
+            # for vm_port in VirtualServerPort.objects.active(parent=vm):
+            #     for connection in PortConnection.objects.active(linked_port_id=vm_port.id):
+            #         connection.delete(cascade=True)
+            #
+            # vm.delete(cascade=True)
 
     def _handle_auto(self, *args, **options):
         # update via snmp
