@@ -136,15 +136,10 @@ class CmdbImporter(object):
         # one phyz and one mac in list - not a hypervisor
         phyz_server_list = []
         for connected_mac in l3port.macs:
+
             if connected_mac.vendor:
-                server_port, created = ServerPort.objects.get_or_create(mac=connected_mac.interface)
-                if created:
-                    phyz_server = Server.objects.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
-                    server_port.parent = phyz_server
-                    server_port.save()
-                    phyz_server_list.append(phyz_server)
-                else:
-                    phyz_server_list.append(server_port.parent)
+                phyz_server, server_port = self._add_server_and_port(connected_mac)
+                phyz_server_list.append(phyz_server)
 
         phyz_server = None
         if len(phyz_server_list) > 1:
@@ -153,7 +148,7 @@ class CmdbImporter(object):
         elif len(phyz_server_list) == 1 and len(l3port.macs) > 1:
             # one phyz and many VPS on port - hypervisor detected
             phyz_server = phyz_server_list[0]
-            logger.info('Possible Hypervisor detected: %s' % phyz_server)
+            logger.info('* Hypervisor detected: %s' % phyz_server)
 
             # set role
             phyz_server.set_option('guessed_role', 'hypervisor')
