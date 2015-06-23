@@ -10,6 +10,9 @@ class PhysicalAssetMixin(object):
     Physical mixin, overrides delete() method - free instead of delete.
     """
 
+    class Meta:
+        proxy = True
+
     def delete(self, cascade=False, purge=False):
         """
         Override delete: free instead of delete
