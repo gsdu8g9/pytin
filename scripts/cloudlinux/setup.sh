@@ -23,6 +23,8 @@
 # Description:
 #   Script used to convert existing system to CloudLinux
 #
+# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/cloudlinux/setup.sh)
+#
 
 set -e
 set -u

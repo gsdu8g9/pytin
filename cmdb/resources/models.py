@@ -143,6 +143,7 @@ class SubclassingQuerySet(QuerySet):
         return query_set.distinct()
 
     def get(self, *args, **kwargs):
+        logger.debug("%s, %s" % (args, kwargs))
         return super(SubclassingQuerySet, self).get(*args, **kwargs).as_leaf_class()
 
 
@@ -521,10 +522,11 @@ class Resource(models.Model):
             for child in self:
                 getattr(child, method_name)(cascade)
 
-        logger.debug("Setting resource ID:%s status: %s -> %s" % (self.id, self.status, new_status))
+        if self.status != new_status:
+            logger.debug("Setting resource ID:%s status: %s -> %s" % (self.id, self.status, new_status))
 
-        self.status = new_status
-        self.save()
+            self.status = new_status
+            self.save()
 
     def is_saved(self):
         return self.id is not None

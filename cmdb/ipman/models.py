@@ -68,6 +68,7 @@ class IPAddress(Resource):
         else:
             self.parent_id = self.get_option_value('ipman_pool_id')
             self.free()
+            self.save()
 
             # delete related objects
             for child in self:

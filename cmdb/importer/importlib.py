@@ -20,7 +20,7 @@ class CmdbImporter(object):
         for l3port in l3switch.ports:
 
             if l3port.is_local:
-                switch_local_port, created = SwitchPort.objects.get_or_create(
+                switch_local_port, created = SwitchPort.objects.active().get_or_create(
                     number=l3port.number,
                     parent=source_switch
                 )
@@ -46,7 +46,7 @@ class CmdbImporter(object):
                 server, server_port = self._add_server_and_port(connected_mac)
 
                 if l3port.is_local:
-                    port_connection, created = PortConnection.objects.get_or_create(
+                    port_connection, created = PortConnection.objects.active().get_or_create(
                         parent=switch_local_port,
                         linked_port_id=server_port.id
                     )
@@ -85,7 +85,9 @@ class CmdbImporter(object):
     def _add_server_and_port(self, connected_mac):
         assert connected_mac
 
-        server_port, created = Resource.objects.get_or_create(
+        logger.debug("Add mac: %s" % connected_mac)
+
+        server_port, created = Resource.objects.active().get_or_create(
             mac=connected_mac.interface,
             type__in=[ServerPort.__name__, VirtualServerPort.__name__],
             defaults={
@@ -115,6 +117,9 @@ class CmdbImporter(object):
 
             server_port.touch()
             server_port.parent.touch()
+
+            if server_port.parent.__class__ == VirtualServer:
+                server_port = server_port.cast_type(VirtualServerPort)
 
         return server_port.parent.as_leaf_class(), server_port
 
@@ -161,7 +166,7 @@ class CmdbImporter(object):
         added = False
         for ip_pool in self.available_ip_pools:
             if ip_pool.can_add(ip_address):
-                added_ip, created = IPAddress.objects.get_or_create(address__exact=ip_address,
+                added_ip, created = IPAddress.objects.active().get_or_create(address__exact=ip_address,
                                                                     defaults=dict(address=ip_address, parent=ip_pool))
                 added_ip.use()
 
