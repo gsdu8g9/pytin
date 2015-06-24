@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 
 from django.utils import timezone
 
-from assets.models import GatewaySwitch, Switch, VirtualServer, VirtualServerPort, PortConnection
+from assets.models import GatewaySwitch, Switch, VirtualServer, VirtualServerPort, PortConnection, ServerPort
 from cmdb.settings import logger
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
@@ -80,6 +80,11 @@ class Command(BaseCommand):
             if ip_pool_id and Resource.objects.active(pk=ip_pool_id, status=Resource.STATUS_FREE).exists():
                 logger.warning("    ip %s from the FREE IP pool is not seen for 3 months. Removing..." % ip)
                 ip.delete(cascade=True)
+
+        logger.info("Fix ServerPort types (VirtualServer must have VirtualServerPort)")
+        for srv_port in ServerPort.objects.active(parent__type=VirtualServer.__name__):
+            logger.warning("    server port %s have parent VirtualServer, change it..." % srv_port)
+            srv_port.cast_type(VirtualServerPort)
 
     def _handle_auto(self, *args, **options):
         # update via snmp
