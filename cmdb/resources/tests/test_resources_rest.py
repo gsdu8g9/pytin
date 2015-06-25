@@ -96,33 +96,44 @@ class ResourcesAPITests(APITestCase):
         self.assertEqual(res2.id, response.data['id'])
         self.assertEqual(1, response.data['parent'])
 
-    def test_resources_list(self):
-        res1 = Resource.objects.create(name='res1')
-        res2 = Server.objects.create(name='res2', parent=res1)
-        res3 = ServerPort.objects.create(name='res3', parent=res2)
+    def test_resources_filter(self):
+        res1 = Resource.objects.create(name='res1', param1='paramval1')
+        res2 = Server.objects.create(name='res2', parent=res1, param2='paramval2')
+        res3 = ServerPort.objects.create(name='res3', parent=res2, param3='paramval3', param1='paramval1')
 
         response = self.client.get('/v1/resources/', format='json')
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(3, response.data['count'])
 
-        # Not implemented yet
-        # def test_resources_filter(self):
-        #     Resource.objects.create(name='Test res1')
-        #     Resource.objects.create(name='Test res2')
-        #     Resource.objects.create(name='Super res3')
-        #     Resource.objects.create(name='Sutest res4')
-        #
-        #     # all set
-        #     response = self.client.get('/v1/resources/', {}, format='json')
-        #     self.assertEqual(200, response.status_code)
-        #
-        #     self.assertEqual(4, response.data['count'])
-        #     self.assertEqual(4, len(response.data['results']))
-        #
-        #     # 'Test' word
-        #     response = self.client.get('/v1/resources/', {'name': 'Test'}, format='json')
-        #     self.assertEqual(200, response.status_code)
-        #
-        #     self.assertEqual(2, response.data['count'])
-        #     self.assertEqual(2, len(response.data['results']))
+        # filter by param1
+        response = self.client.get('/v1/resources/', data={'param1': 'paramval1'}, format='json')
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(2, response.data['count'])
+
+        Resource.objects.create(name='Test re')
+        Resource.objects.create(name='Test res2')
+        Resource.objects.create(name='Super res3')
+        Resource.objects.create(name='Surest res4')
+
+        # all set
+        response = self.client.get('/v1/resources/', {}, format='json')
+        self.assertEqual(200, response.status_code)
+
+        self.assertEqual(7, response.data['count'])
+        self.assertEqual(7, len(response.data['results']))
+
+        # 'Test' word
+        response = self.client.get('/v1/resources/', {'name__contains': 'Test'}, format='json')
+        self.assertEqual(200, response.status_code)
+
+        self.assertEqual(2, response.data['count'])
+        self.assertEqual(2, len(response.data['results']))
+
+        # Exact match
+        response = self.client.get('/v1/resources/', {'name': 'Test re'}, format='json')
+        self.assertEqual(200, response.status_code)
+
+        self.assertEqual(1, response.data['count'])
+        self.assertEqual(1, len(response.data['results']))

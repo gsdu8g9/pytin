@@ -17,3 +17,10 @@ class ResourcesViewSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer
     filter_class = ResourceFilter
     pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        params = {}
+        for field_name in self.request.query_params:
+            params[field_name] = self.request.query_params.get(field_name)
+
+        return Resource.objects.active(**params)
