@@ -28,6 +28,9 @@
 #   genisoimage, qemu
 #
 
+# CentOS version
+CENT_OS_VER=7  # 6 or 7
+
 # Change this parameters
 VMID=<id_of_the_vm>
 VMNAME=<name_of_the_vm>
@@ -52,15 +55,19 @@ SCRIPTDIR=$(pwd)
 
 if [ ! -e ${SCRIPTDIR}/initrd.img ]
 then
-    wget http://mirror.yandex.ru/centos/6/os/x86_64/images/pxeboot/initrd.img
+    wget http://mirror.yandex.ru/centos/${CENT_OS_VER}/os/x86_64/images/pxeboot/initrd.img
 fi
 
 if [ ! -e ${SCRIPTDIR}/vmlinuz ]
 then
-    wget http://mirror.yandex.ru/centos/6/os/x86_64/images/pxeboot/vmlinuz
+    wget http://mirror.yandex.ru/centos/${CENT_OS_VER}/os/x86_64/images/pxeboot/vmlinuz
 fi
 
-KSFILENAME="centos.ks.tpl"
+echo "Update KS file:"
+KSFILENAME="centos.${CENT_OS_VER}.ks.tpl"
+rm -f ${SCRIPTDIR}/${KSFILENAME}
+wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/kickstart/${KSFILENAME}
+
 KSRTFILENAME="vmcurr"
 
 KSTPL="${SCRIPTDIR}/${KSFILENAME}"

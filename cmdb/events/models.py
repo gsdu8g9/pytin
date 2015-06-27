@@ -73,7 +73,7 @@ def resource_post_save(sender, instance, created, **kwargs):
             history_field = '_original_%s' % field
             if hasattr(instance, history_field):
                 orig_value = getattr(instance, history_field)
-                if value != orig_value:
+                if str(value) != str(orig_value):
                     HistoryEvent.add_update(instance, field, orig_value, value)
 
 
