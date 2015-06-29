@@ -35,7 +35,7 @@
 set -e
 set -u
 
-echo "*** BEGIN"
+echo "*** BEGIN" $(date +"%d.%m.%Y %H:%M:%S")
 
 ### Config section ###
 SSH_MASTER_HOST=  # user@host
@@ -87,9 +87,13 @@ echo "if changed: $config_changed_time > lastrun: $last_run_time then Restart"
 
 if (( $config_changed_time > $last_run_time ))
 then
+    echo $(date +"%d.%m.%Y %H:%M:%S") "BEGIN ACTIONS"
+
     source ${WORK_DIR}/actions.sh
+
+    echo $(date +"%d.%m.%Y %H:%M:%S") "DONE ACTIONS"
 fi
 
-echo "*** END"
+echo "*** END" $(date +"%d.%m.%Y %H:%M:%S")
 
 exit 0

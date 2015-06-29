@@ -101,14 +101,15 @@ class Command(BaseCommand):
                 logger.warning("Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1))
 
     def _handle_address_add(self, *args, **options):
-        if not IPAddress.is_valid_address(options['ip']):
-            raise ValueError("Invalid ip address")
-
         ip_set = Resource.objects.get(pk=options['pool-id'])
 
-        ips = IPAddress.objects.active(address=options['ip'])
         for ip_address in options['ip']:
-            ip_set += ips[0] if len(ips) > 0 else IPAddress.objects.create(address=ip_address)
+            if not IPAddress.is_valid_address(ip_address):
+                raise ValueError("Invalid ip address: %s" % ip_address)
+
+            ips = IPAddress.objects.active(address=options['ip'])
+            for ip_address in options['ip']:
+                ip_set += ips[0] if len(ips) > 0 else IPAddress.objects.create(address=ip_address)
 
         self._print_addresses([ip_address for ip_address in IPAddress.objects.active(parent=ip_set.id)])
 
