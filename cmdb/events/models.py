@@ -91,7 +91,7 @@ def resource_option_post_save(sender, instance, created, **kwargs):
     history_field = '_original_value'
     if hasattr(instance, history_field):
         field_old_value = getattr(instance, history_field)
-        if field_new_value != field_old_value or created:
+        if str(field_new_value) != str(field_old_value) or created:
             field_old_value = None if created else field_old_value
             HistoryEvent.add_update(instance.resource, field_name, field_old_value, field_new_value)
 
