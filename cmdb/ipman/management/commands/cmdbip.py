@@ -108,9 +108,11 @@ class Command(BaseCommand):
                 raise ValueError("Invalid ip address: %s" % ip_address)
 
             ips = IPAddress.objects.active(address=ip_address)
-            ip_set += ips[0] if len(ips) > 0 else IPAddress.objects.create(address=ip_address)
+            ip_object = ips[0] if len(ips) > 0 else IPAddress.objects.create(address=ip_address)
 
-            self._print_address(ip_address)
+            ip_set += ip_object
+
+            self._print_address(ip_object)
 
     def _handle_pool_addnamed(self, *args, **options):
         IPAddressPool.objects.create(name=options['pool-name'])
