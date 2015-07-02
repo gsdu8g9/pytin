@@ -19,24 +19,26 @@ import sqlite3
 
 from iplist import IPList
 from ddos_stat import DDoSStat
-from api_sqlite import DDoSSQLite
 from nginx_log_data_provider import NginxLogDataProvider
 from apache_log_data_provider import ApacheLogDataProvider
 
 class DDoSAnalizer:
-    def __init__(self, dataprovider, limitrequests = 10):
+    """
+    Класс анализатора событий
+    """
+    def __init__(self, dataprovider, limitrequests = 10, silent = True):
         """
-        Инициализация класса парсера
+        Инициализация класса анализатора событий
         """
         self.stat = DDoSStat()
-        self.quiet = False
+        self.silent = silent
         self.dataprovider = dataprovider
 
     def cli_progress_test(self, cur):
         """
         Прогресс бар
         """
-        if not self.quiet:
+        if not self.silent:
             text = "\rОбработано " + str(cur) + " записей. В списке " + str(len(self.stat.IPs.iplist)) + " записей IP, "
             text += str(len(self.stat.Domains.domainlist)) + " записей доменов и " + str(len(self.stat.loglist)) + " в общей таблице"
             sys.stdout.write(text)
