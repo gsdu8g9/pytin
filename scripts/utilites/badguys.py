@@ -20,6 +20,21 @@ import pygeoip
 class IPList:
     def __init__(self):
         self.iplist = []
+        self.iterator = iter(self.iplist)
+
+    def __iter__(self):
+        """
+        Инициализация итератора
+        """
+        self.iterator = iter(self.iplist)
+        return self.iterator
+
+    def next(self):
+        """
+        Выборка элемента
+        """
+        result = self.iterator.next()
+        return result
 
     def Add(self, IP):
         """
@@ -94,7 +109,7 @@ class FW():
         if self.args.verbose:
             t1 = datetime.now()
         with open(self.args.filename, 'w+') as f:
-            for ip in self.iplist.iplist:
+            for ip in self.iplist:
                 f.write(ip + "\n")
         if self.args.verbose:
             print 'Время записи в файл: ' + str(datetime.now() - t1).seconds + ' секунд'
@@ -134,7 +149,7 @@ class FW():
             print "Загрузка списка IP в таблицу межсетевого экрана"
         if self.args.verbose:
             t1 = datetime.datetime.now()
-        for ip in self.iplist.iplist:
+        for ip in self.iplist:
             self.fw_cmd('add', ip)
         if self.args.verbose:
             print "Время выполнения: " + str((datetime.datetime.now() - t1).seconds) + " секунд"
@@ -209,7 +224,7 @@ def main():
         fw.delete()
     if args.infoip:
         fw.infoip()
-    elif args.listshow:
+    elif args.listshow != 'none':
         fw.showlist()
     elif args.refresh:
         fw.refresh()

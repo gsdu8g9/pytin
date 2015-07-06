@@ -15,7 +15,22 @@ class IPList:
     def __init__(self):
         self.iplist = []
         # Index - позиция индекса IP в элементе
+        self.iterator = iter(self.iplist)
         self.Index = 1
+
+    def __iter__(self):
+        """
+        Инициализация итератора
+        """
+        self.iterator = iter(self.iplist)
+        return self
+
+    def next(self):
+        """
+        Выборка элемента
+        """
+        result = self.iterator.next()
+        return result
 
     def Add(self, IP):
         """
