@@ -64,3 +64,5 @@ scrips/utilites/access.log-mini
 scrips/utilites/*.pyc
 
 cmdb/logs
+
+cmdb/db/sync.sh

@@ -59,6 +59,14 @@ class IPAddress(Resource):
     def beauty(self):
         return self.get_option_value('beauty', default=self._get_beauty(self.address))
 
+    def set_origin(self, pool_id):
+        """
+        Set original IP pool for the IP. When IP is freed, its parent set to this origin.
+        """
+        assert pool_id > 0
+
+        self.set_option('ipman_pool_id', pool_id, ResourceOption.FORMAT_INT)
+
     def delete(self, cascade=False, purge=False):
         """
         Override delete: free instead of delete
@@ -314,7 +322,7 @@ class IPNetworkPool(IPAddressPool):
         # populate network parameters
         self.set_option('netmask', parsed_net.netmask)
         self.set_option('prefixlen', parsed_net.prefixlen)
-        self.set_option('gateway', str(parsed_net[1]) if parsed_net.num_addresses > 0 else '')
+        self.set_option('gateway', unicode(parsed_net[1]) if parsed_net.num_addresses > 0 else '')
 
     @property
     def total_addresses(self):

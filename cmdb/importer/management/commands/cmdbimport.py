@@ -86,6 +86,16 @@ class Command(BaseCommand):
             logger.warning("    server port %s have parent VirtualServer, change it..." % srv_port)
             srv_port.cast_type(VirtualServerPort)
 
+        logger.info("Clean extra PortConnections")
+        for server_port in ServerPort.objects.active():
+            port_connections = PortConnection.objects.active(linked_port_id=server_port.id).order_by('-last_seen')
+
+            if len(port_connections) > 1:
+                logger.warning("[W] Server port %s have >1 PortConnection" % server_port)
+                for port_connection in port_connections[1:]:
+                    logger.warning("    remove PortConnection %s" % port_connection)
+                    port_connection.delete()
+
     def _handle_auto(self, *args, **options):
         # update via snmp
         for switch in Resource.objects.active(type__in=[GatewaySwitch.__name__, Switch.__name__]):

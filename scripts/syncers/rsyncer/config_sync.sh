@@ -68,7 +68,9 @@ LAST_RUN_FILE=${WORK_DIR}/last_run
 mkdir -p ${TMP_TARGET}
 
 # sync
-rsync -vut --progress --recursive --files-from=${FILE_LIST_NAME} -e ssh ${SSH_MASTER_HOST}:/ ${TMP_TARGET}
+rsync -vut --progress --delete --recursive --files-from=${FILE_LIST_NAME} -e ssh ${SSH_MASTER_HOST}:/ ${TMP_TARGET}
+rm -rf ${TMP_TARGET}.bkp
+cp -rf ${TMP_TARGET} ${TMP_TARGET}.bkp
 cp -rf ${TMP_TARGET}/* ${CONFIG_TARGET}
 
 # check times

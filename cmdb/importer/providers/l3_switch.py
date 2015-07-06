@@ -32,7 +32,7 @@ def _snmp_walk(host, community, oid):
 
 def _normalize_mac(mac_address):
     assert mac_address
-    return str(netaddr.EUI(mac_address, dialect=netaddr.mac_bare)).upper()
+    return unicode(netaddr.EUI(mac_address, dialect=netaddr.mac_bare)).upper()
 
 
 def _normalize_port_name(port_name):
@@ -55,7 +55,7 @@ class ServerInterface(object):
 
     @property
     def interface(self):
-        return _normalize_mac(str(self._mac))
+        return _normalize_mac(unicode(self._mac))
 
     @property
     def vendor(self):
