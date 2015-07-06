@@ -1,9 +1,39 @@
 from __future__ import unicode_literals
 
 import netaddr
-from cmdb.settings import logger
 
+from cmdb.settings import logger
 from resources.models import Resource, ResourceOption
+
+
+class RegionResource(Resource):
+    """
+    Resource grouping by region.
+    """
+
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return self.name
+
+
+class Datacenter(Resource):
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def support_email(self):
+        return self.get_option_value('support_email', default='')
+
+    @support_email.setter
+    def support_email(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('support_email', value)
 
 
 class PhysicalAssetMixin(object):
@@ -51,7 +81,7 @@ class AssetResource(Resource):
 
     @property
     def serial(self):
-        return self.get_option_value('serial', default=str(self.id))
+        return self.get_option_value('serial', default=unicode(self.id))
 
     @serial.setter
     def serial(self, value):
@@ -91,7 +121,7 @@ class NetworkPort(Resource):
 
         _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
 
-        self.set_option('mac', str(_mac).upper())
+        self.set_option('mac', unicode(_mac).upper())
 
     @property
     def uplink(self):
@@ -102,18 +132,6 @@ class NetworkPort(Resource):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('uplink', value, format=ResourceOption.FORMAT_INT)
-
-
-class RegionResource(Resource):
-    """
-    Resource grouping by region.
-    """
-
-    class Meta:
-        proxy = True
-
-    def __str__(self):
-        return self.name
 
 
 class PortConnection(Resource):
@@ -136,10 +154,10 @@ class PortConnection(Resource):
         self.set_option('linked_port_id', value, format=ResourceOption.FORMAT_INT)
 
         port_object = Resource.objects.get(pk=value)
-        self.set_option('linked_port_mac', str(port_object))
+        self.set_option('linked_port_mac', unicode(port_object))
 
         if port_object.parent:
-            self.set_option('linked_port_parent', str(port_object.parent.as_leaf_class()))
+            self.set_option('linked_port_parent', unicode(port_object.parent.as_leaf_class()))
 
     @property
     def link_speed_mbit(self):

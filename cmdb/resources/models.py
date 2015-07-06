@@ -176,7 +176,7 @@ class ResourceOption(models.Model):
         _value = ''
 
         def __init__(self, value):
-            self._value = str(value)
+            self._value = unicode(value)
 
         def __str__(self):
             return "'%s'" % self.typed_value()

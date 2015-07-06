@@ -89,8 +89,8 @@ class Command(BaseCommand):
             has_port = True
             for connection in PortConnection.objects.active(linked_port_id=server_port.id):
                 has_connection = True
-                logger.info("    [id:%s] %s <-> %s (%s Mbit)" % (
-                    connection.id, server_port, connection.parent.as_leaf_class(), connection.link_speed_mbit))
+                logger.info("    [conn:%s] %s (%s) <-> %s (%s Mbit)" % (
+                    connection.id, server_port.id, server_port, connection.parent.as_leaf_class(), connection.link_speed_mbit))
 
             for ip_address in IPAddress.objects.active(parent=server_port):
                 has_ip = True

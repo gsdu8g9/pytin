@@ -79,7 +79,7 @@ class CmdbImporter(object):
                         server_port.cast_type(VirtualServerPort)
 
                 # adding IP
-                for ip_address in l3port.switch.get_mac_ips(str(connected_mac)):
+                for ip_address in l3port.switch.get_mac_ips(unicode(connected_mac)):
                     self._add_ip(ip_address, parent=server_port)
 
     def _add_server_and_port(self, connected_mac):
@@ -131,7 +131,7 @@ class CmdbImporter(object):
 
         # search for known guessed_role hypervisors
         for connected_mac in l3port.macs:
-            for port in ServerPort.objects.active(mac=str(connected_mac)):
+            for port in ServerPort.objects.active(mac=unicode(connected_mac)):
                 if port.parent and port.parent.get_option_value('guessed_role') == 'hypervisor':
                     return port.parent
 
