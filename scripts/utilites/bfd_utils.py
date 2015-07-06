@@ -4,10 +4,10 @@
 # RemiZOffAlex
 #
 # Description:
-# Парсинг журналов Apache и Nginx с выводом статистики
+#   Дополнение Brute Force Detection (BFD)
 #
 # Requirements:
-# CentOS 6
+#   CentOS 6
 
 import datetime
 import re
@@ -19,6 +19,7 @@ import sqlite3
 
 from iplist import IPList
 from ddos_stat import DDoSStat
+from data_provider import DataProvider
 from nginx_log_data_provider import NginxLogDataProvider
 from apache_log_data_provider import ApacheLogDataProvider
 from clsDDoSAnalizer import DDoSAnalizer
@@ -30,18 +31,21 @@ def main():
     parser = argparse.ArgumentParser(description='DDoS log parser',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("-o", "--outfile", dest="outfile", help="Файл для вывода")
-    parser.add_argument("-p", dest="pidfile", metavar="pid-file", help="Файл для вывода")
-    parser.add_argument("-B", "--block", dest="blockpath", help="Путь для блокировки")
-    parser.add_argument("-l", "--log", dest="log_file", required=True,
-        help="Лог-файл для анализа")
-    parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
-        required=True, help="Тип парсера")
-    parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
     parser.add_argument("--limit", dest="limitrequests", type=int, default=10,
         help="Лимит запросов с одного IP к одному домену")
-    parser.add_argument("-S", "--statistics", dest="statistics", action='store_true',
-        help="Вывести статистику")
+
+    args = parser.parse_args()
+
+#    print str(sys.stdin.readline())
+    dataprovider = NginxLogDataProvider(sys.stdin)
+    ddos_analizer = DDoSAnalizer(dataprovider)
+    ddos_analizer.start()
+    stat = ddos_analizer.stat
+    for log in stat.loglist:
+        if log[4] > args.limitrequests:
+            print stat.IPs.iplist[log[1]][1] + ":" + str(log[4]) + ":" + stat.Domains.domainlist[log[2]][1]
+
+    exit(0)
 
     args = parser.parse_args()
 

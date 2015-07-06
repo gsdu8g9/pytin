@@ -78,3 +78,15 @@ class IPList:
             if match:
                 result = True
         return result
+
+    def isIPv6(self, IP):
+        """
+        Проверка на принадлежность к IPv6
+        """
+        ippatterns = ["127\.\d{1,3}\.\d{1,3}\.\d{1,3}", "192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
+        result = False
+        for pattern in ippatterns:
+            match = re.findall(pattern, IP)
+            if match:
+                result = True
+        return result
