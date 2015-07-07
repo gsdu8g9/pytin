@@ -23,10 +23,10 @@
 # Description:
 #   Script used to convert existing system to CloudLinux
 #
-# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/cloudlinux/setup.sh)
+# wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/cloudlinux/setup.sh
+# bash setup.sh <activation_key>
 #
 
-set -e
 set -u
 
 if [ -z $1 ]; then
@@ -51,8 +51,8 @@ yum -y update cagefs lvemanager
 # restrictions associated with that product. If you believe that you are not subject to
 # such legal restrictions, or have a license to use ffmpeg licenses from the patent right
 # holders, you can install needed libraries by installing EPEL and RPM Fusion repositories.
-rpm -ivh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
-rpm -ivh http://download1.rpmfusion.org/free/el/updates/6/i386/rpmfusion-free-release-6-1.noarch.rpm
+#rpm -ivh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+#rpm -ivh http://download1.rpmfusion.org/free/el/updates/6/i386/rpmfusion-free-release-6-1.noarch.rpm
 
 yum -y install ffmpeg ffmpeg-libs lame-libs librtmp x264-libs xvidcore
 cagefsctl --force-update

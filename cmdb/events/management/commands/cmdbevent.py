@@ -26,7 +26,7 @@ class Command(BaseCommand):
         res_list_cmd = subparsers.add_parser('list', help="Get events list.")
         res_list_cmd.add_argument('--limit', type=int, default=0, help="Limit output.")
         res_list_cmd.add_argument('--page', type=int, default=1, help="Page number to paginate resource list (from 1).")
-        res_list_cmd.add_argument('filter', nargs=argparse.REMAINDER, help="Key=Value pairs.")
+        res_list_cmd.add_argument('filter', nargs=argparse.ZERO_OR_MORE, help="Key=Value pairs.")
         self._register_handler('list', self._handle_res_list)
 
     def handle(self, *args, **options):
