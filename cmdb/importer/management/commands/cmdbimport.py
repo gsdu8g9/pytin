@@ -13,7 +13,7 @@ from importer.providers.vendors.dlink import DSG3200Switch
 from importer.providers.vendors.hp import HP1910Switch
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
-from ipman.models import IPAddress
+from ipman.models import IPAddress, IPAddressPool
 from resources.models import Resource
 
 
@@ -73,11 +73,11 @@ class Command(BaseCommand):
                     connection.delete(cascade=True)
             vm.delete(cascade=True)
 
+        # Clean IP with parent=ip pool (free) with last_seen older that 100 days. It means that IP is not
+        # used and can be released.
         logger.info("Clean missing IP addresses: %s" % last_seen_old)
-        for ip in IPAddress.objects.active(last_seen__lt=last_seen_old):
-            ip_pool_id = ip.get_option_value('ipman_pool_id')
-
-            if ip_pool_id and Resource.objects.active(pk=ip_pool_id, status=Resource.STATUS_FREE).exists():
+        for free_ip_pool in Resource.objects.active(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
+            for ip in IPAddress.objects.active(last_seen__lt=last_seen_old, parent=free_ip_pool):
                 logger.warning("    ip %s from the FREE IP pool is not seen for 3 months. Removing..." % ip)
                 ip.delete(cascade=True)
 
@@ -86,6 +86,8 @@ class Command(BaseCommand):
             logger.warning("    server port %s have parent VirtualServer, change it..." % srv_port)
             srv_port.cast_type(VirtualServerPort)
 
+        # If there is more than 1 PortConnection from the physical port, sort by last_seen DESC and remove all
+        # except the first one.
         logger.info("Clean extra PortConnections")
         for server_port in ServerPort.objects.active():
             port_connections = PortConnection.objects.active(linked_port_id=server_port.id).order_by('-last_seen')

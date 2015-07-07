@@ -6,6 +6,27 @@ from cmdb.settings import logger
 from resources.models import Resource, ResourceOption
 
 
+class PhysicalAssetMixin(object):
+    """
+    Physical mixin, overrides delete() method - free instead of delete.
+    """
+
+    class Meta:
+        proxy = True
+
+    def delete(self, cascade=False, purge=False):
+        """
+        Override delete: free instead of delete
+        """
+
+        logger.debug("Removing physical object %s" % self)
+
+        if purge:
+            super(PhysicalAssetMixin, self).delete(cascade=cascade, purge=purge)
+        else:
+            self.free(cascade=cascade)
+
+
 class RegionResource(Resource):
     """
     Resource grouping by region.
@@ -34,27 +55,6 @@ class Datacenter(Resource):
         assert value is not None, "Parameter 'value' must be defined."
 
         self.set_option('support_email', value)
-
-
-class PhysicalAssetMixin(object):
-    """
-    Physical mixin, overrides delete() method - free instead of delete.
-    """
-
-    class Meta:
-        proxy = True
-
-    def delete(self, cascade=False, purge=False):
-        """
-        Override delete: free instead of delete
-        """
-
-        logger.debug("Removing physical object %s" % self)
-
-        if purge:
-            super(PhysicalAssetMixin, self).delete(cascade=cascade, purge=purge)
-        else:
-            self.free(cascade=True)
 
 
 class AssetResource(Resource):
