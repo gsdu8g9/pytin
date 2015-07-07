@@ -93,7 +93,7 @@ class IPAddress(Resource):
             need_save = False
 
         if self.parent and isinstance(self.parent, IPAddressPool):
-            self.set_option('ipman_pool_id', self.parent.id)
+            self.set_origin(self.parent.id)
 
         if need_save:
             super(IPAddress, self).save(*args, **kwargs)
