@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 import argparse
 
 from django.core.management.base import BaseCommand
-
 from django.apps import apps
 
 from django.utils import timezone
@@ -34,7 +33,7 @@ class Command(BaseCommand):
         self._register_handler('get', self._handle_res_get_options)
 
         res_set_cmd = subparsers.add_parser('set', help="Edit resource options.")
-        res_set_cmd.add_argument('resource-id', type=int, nargs='+', help="IDs of the resources.")
+        res_set_cmd.add_argument('resource-id', type=int, help="IDs of the resources.")
         res_set_cmd.add_argument('--format', '--option-format', help="Type of the values.",
                                  default=ResourceOption.FORMAT_STRING,
                                  choices=[choice[0] for choice in ResourceOption.FORMAT_CHOICES])
@@ -144,36 +143,35 @@ class Command(BaseCommand):
                 self._print_resource_data(resource)
 
     def _handle_res_set_options(self, *args, **options):
-        for res_id in options['resource-id']:
-            # res_id = options['resource-id']
-            resource = Resource.objects.get(pk=res_id)
+        res_id = options['resource-id']
+        resource = Resource.objects.get(pk=res_id)
 
-            update_query = self._parse_reminder_arg(options['fields'])
-            for field_name in update_query:
-                field_value = update_query[field_name]
+        update_query = self._parse_reminder_arg(options['fields'])
+        for field_name in update_query:
+            field_value = update_query[field_name]
 
-                if field_name in ['parent', 'parent_id']:
-                    field_name, field_value = self._prepare_parent_field(field_value)
+            if field_name in ['parent', 'parent_id']:
+                field_name, field_value = self._prepare_parent_field(field_value)
 
-                if field_name == 'type':
-                    requested_model = apps.get_model(field_value)
-                    resource = resource.cast_type(requested_model)
-                elif ModelFieldChecker.is_field_or_property(resource, field_name):
-                    setattr(resource, field_name, field_value)
-                    resource.save()
-                else:
-                    resource.set_option(name=field_name,
-                                        value=field_value,
-                                        format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
+            if field_name == 'type':
+                requested_model = apps.get_model(field_value)
+                resource = resource.cast_type(requested_model)
+            elif ModelFieldChecker.is_field_or_property(resource, field_name):
+                setattr(resource, field_name, field_value)
+                resource.save()
+            else:
+                resource.set_option(name=field_name,
+                                    value=field_value,
+                                    format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
 
-            if options['use']:
-                resource.use(cascade=True)
-            elif options['free']:
-                resource.free(cascade=True)
-            elif options['lock']:
-                resource.lock(cascade=True)
+        if options['use']:
+            resource.use(cascade=True)
+        elif options['free']:
+            resource.free(cascade=True)
+        elif options['lock']:
+            resource.lock(cascade=True)
 
-            self._print_resource_data(resource)
+        self._print_resource_data(resource)
 
     def _prepare_parent_field(self, parent_value):
         """
