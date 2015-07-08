@@ -3,14 +3,6 @@ from assets.models import PhysicalAssetMixin
 from resources.models import Resource, ResourceOption
 
 
-class DirectAdminLicensePool(PhysicalAssetMixin, Resource):
-    class Meta:
-        proxy = True
-
-    def __str__(self):
-        return '%s' % self.name
-
-
 class DirectAdminLicense(PhysicalAssetMixin, Resource):
     """
     Resource grouping by region.

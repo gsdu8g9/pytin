@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 
 from django.utils import timezone
 
-from assets.models import GatewaySwitch, Switch, VirtualServer, VirtualServerPort, PortConnection, ServerPort
+from assets.models import GatewaySwitch, Switch, VirtualServer, VirtualServerPort, PortConnection
 from cmdb.settings import logger
 from importer.importlib import CmdbImporter
 from importer.providers.l3_switch import L3Switch
@@ -80,23 +80,6 @@ class Command(BaseCommand):
             for ip in IPAddress.objects.active(last_seen__lt=last_seen_old, parent=free_ip_pool):
                 logger.warning("    ip %s from the FREE IP pool is not seen for 3 months. Removing..." % ip)
                 ip.delete(cascade=True)
-
-        logger.info("Fix ServerPort types (VirtualServer must have VirtualServerPort)")
-        for srv_port in ServerPort.objects.active(parent__type=VirtualServer.__name__):
-            logger.warning("    server port %s have parent VirtualServer, change it..." % srv_port)
-            srv_port.cast_type(VirtualServerPort)
-
-        # If there is more than 1 PortConnection from the physical port, sort by last_seen DESC and remove all
-        # except the first one.
-        logger.info("Clean extra PortConnections")
-        for server_port in ServerPort.objects.active():
-            port_connections = PortConnection.objects.active(linked_port_id=server_port.id).order_by('-last_seen')
-
-            if len(port_connections) > 1:
-                logger.warning("[W] Server port %s have >1 PortConnection" % server_port)
-                for port_connection in port_connections[1:]:
-                    logger.warning("    remove PortConnection %s" % port_connection)
-                    port_connection.delete()
 
     def _handle_auto(self, *args, **options):
         # update via snmp

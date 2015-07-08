@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import ipaddress
 
+from cmdb.settings import logger
 from resources.models import Resource, ResourceOption
 
 
@@ -67,6 +68,9 @@ class IPAddress(Resource):
 
         self.set_option('ipman_pool_id', pool_id, ResourceOption.FORMAT_INT)
 
+    def get_origin(self):
+        return self.get_option_value('ipman_pool_id')
+
     def delete(self, cascade=False, purge=False):
         """
         Override delete: free instead of delete
@@ -123,6 +127,9 @@ class IPAddressPool(Resource):
                 yield self.list[idx % len(self.list)]
                 idx += 1
 
+        def __len__(self):
+            return len(self.list)
+
     class Meta:
         proxy = True
 
@@ -134,21 +141,35 @@ class IPAddressPool(Resource):
         """
         Returns given number of IPs from different IP address pools.
         """
-
         assert ip_pool_ids
         assert count > 0
 
+        pool_id_infinite_list = IPAddressPool.InfiniteList(ip_pool_ids)
+
         rented_ips = []
-        for ip_pool_id in IPAddressPool.InfiniteList(ip_pool_ids):
+        changed = False
+        iterations = len(pool_id_infinite_list)
+        for ip_pool_id in pool_id_infinite_list:
             if len(rented_ips) >= count:
                 break
 
+            if iterations <= 0 and not changed:
+                raise Exception("There is no available IPs in pools: %s" % ip_pool_ids)
+
+            iterations -= 1
+
             ip_pool_resource = Resource.objects.get(pk=ip_pool_id)
+            if ip_pool_resource.usage >= 95:
+                logger.warning("IP pool %s usage >95%%" % ip_pool_resource.id)
 
-            ip = ip_pool_resource.available().next()
-            ip.lock()
+            try:
+                ip = ip_pool_resource.available().next()
+                ip.lock()
 
-            rented_ips.append(ip)
+                rented_ips.append(ip)
+                changed = True
+            except Exception, ex:
+                logger.error("Error while getting IP from IP pool: %s" % ex.message)
 
         return rented_ips
 
@@ -195,20 +216,35 @@ class IPAddressPool(Resource):
         total = float(self.total_addresses)
         used = float(self.used_addresses)
 
-        return int(round((float(used) / total) * 100))
+        usage_value = int(round((float(used) / total) * 100)) if total > 0 else 0
+
+        self.set_option('ipman_usage', usage_value, ResourceOption.FORMAT_INT)
+
+        return usage_value
 
     def browse(self):
         """
         Iterate through all IP in this pool, even that are not allocated.
         """
-        for addr in IPAddress.objects.active(ipman_pool_id=self.id, status=Resource.STATUS_FREE):
+        for addr in IPAddress.objects.active(ipman_pool_id=self.id):
             yield addr.address
+
+    def is_reserved(self, ip_address):
+        assert ip_address
+
+        if ip_address.endswith('.0') or ip_address.endswith('.1') or ip_address.endswith('.255'):
+            return True
+
+        return False
 
     def available(self):
         """
         Check availability of the specific IP and return IPAddress that can be used.
         """
         for address in self.browse():
+            if self.is_reserved(unicode(address)):
+                continue
+
             # search in the current pool
             ips = IPAddress.objects.active(address=address, ipman_pool_id=self.id)
             if len(ips) > 0:

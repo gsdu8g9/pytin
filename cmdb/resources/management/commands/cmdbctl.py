@@ -43,7 +43,7 @@ class Command(BaseCommand):
         stat_group.add_argument('--free', action='store_true', help="Mark resource and its childs as free.")
         stat_group.add_argument('--lock', action='store_true', help="Mark resource and its childs as locked.")
 
-        res_set_cmd.add_argument('fields', nargs=argparse.ONE_OR_MORE, help="Key=Value pairs.")
+        res_set_cmd.add_argument('fields', nargs=argparse.ZERO_OR_MORE, help="Key=Value pairs.")
         self._register_handler('set', self._handle_res_set_options)
 
         res_list_cmd = subparsers.add_parser('search', help="Search for resources.")

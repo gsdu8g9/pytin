@@ -97,6 +97,9 @@ class IPmanTest(TestCase):
     def test_ip_list_usage(self):
         ipset = IPAddressPool.objects.create(name='Test ip set')
 
+        # Test empty IP set usage
+        self.assertEqual(0, ipset.usage)
+
         for x in range(1, 100):
             ipset += IPAddress.objects.create(address='172.27.27.%s' % x)
 
@@ -140,13 +143,13 @@ class IPmanTest(TestCase):
         self.assertFalse(iprange.can_add('172.1.2.10'))
 
         usable_ip = iprange.available().next()
-        self.assertEqual('172.1.1.1', usable_ip.address)
+        self.assertEqual('172.1.1.2', usable_ip.address)
 
         usable_ip.use()
         usable_ip.save()
 
         usable_ip = iprange.available().next()
-        self.assertEqual('172.1.1.2', usable_ip.address)
+        self.assertEqual('172.1.1.3', usable_ip.address)
 
     def test_pool_set_owns_acquire(self):
         ipset = IPAddressPool.objects.create(name='Set of IPs, used by JustHost.ru, Kazan')
@@ -194,10 +197,10 @@ class IPmanTest(TestCase):
         ip1 = ipnet.available().next()
         ip2 = ipnet.available().next()
 
-        self.assertEqual('192.168.1.1', str(ip1))
+        self.assertEqual('192.168.1.2', str(ip1))
         self.assertEqual(4, ip1.version)
 
-        self.assertEqual('192.168.1.1', str(ip2))
+        self.assertEqual('192.168.1.2', str(ip2))
         self.assertEqual(4, ip2.version)
 
         # use IP elsewhere
@@ -206,7 +209,7 @@ class IPmanTest(TestCase):
 
         ip3 = ipnet.available().next()
 
-        self.assertEqual('192.168.1.2', str(ip3))
+        self.assertEqual('192.168.1.3', str(ip3))
         self.assertEqual(4, ip3.version)
 
     def test_pool_network_ipv4_acquire(self):
@@ -221,10 +224,10 @@ class IPmanTest(TestCase):
         self.assertEqual('192.168.1.0/24', ipnet.network)
         self.assertEqual(4, ipnet.version)
 
-        self.assertEqual('192.168.1.1', str(ip1))
+        self.assertEqual('192.168.1.2', str(ip1))
         self.assertEqual(4, ip1.version)
 
-        self.assertEqual('192.168.1.1', str(ip2))
+        self.assertEqual('192.168.1.2', str(ip2))
         self.assertEqual(4, ip2.version)
 
         # Acquire IP
@@ -233,7 +236,7 @@ class IPmanTest(TestCase):
 
         ip2 = ipnet.available().next()
 
-        self.assertEqual('192.168.1.2', str(ip2))
+        self.assertEqual('192.168.1.3', str(ip2))
         self.assertEqual(4, ip2.version)
 
     def test_pool_network_polymorphic(self):

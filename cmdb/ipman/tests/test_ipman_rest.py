@@ -29,14 +29,14 @@ class ResourcesAPITests(APITestCase):
         items = response.data['results']
 
         self.assertEqual(3, items[0]['id'])
-        self.assertEqual('192.168.1.1', items[0]['address'])
+        self.assertEqual('192.168.1.2', items[0]['address'])
         self.assertEqual(6, items[0]['beauty'])
         self.assertEqual(Resource.STATUS_LOCKED, items[0]['status'])
 
         self.assertEqual(4, items[1]['id'])
-        self.assertEqual('192.169.1.1', items[1]['address'])
+        self.assertEqual('192.169.1.2', items[1]['address'])
         self.assertEqual(Resource.STATUS_LOCKED, items[1]['status'])
 
         self.assertEqual(5, items[2]['id'])
-        self.assertEqual('192.168.1.2', items[2]['address'])
+        self.assertEqual('192.168.1.3', items[2]['address'])
         self.assertEqual(Resource.STATUS_LOCKED, items[2]['status'])

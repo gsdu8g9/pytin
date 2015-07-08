@@ -82,6 +82,24 @@ class CmdbImporter(object):
                 for ip_address in l3port.switch.get_mac_ips(unicode(connected_mac)):
                     self._add_ip(ip_address, parent=server_port)
 
+        # If there is more than 1 PortConnection from the physical port, sort by last_seen DESC and remove all
+        # except the first one.
+        logger.info("Clean extra PortConnections")
+        for server_port in ServerPort.objects.active():
+            port_connections = PortConnection.objects.active(linked_port_id=server_port.id).order_by('-last_seen')
+
+            if len(port_connections) > 1:
+                logger.warning("Server port %s have >1 PortConnection" % server_port)
+                for port_connection in port_connections[1:]:
+                    logger.warning("    remove PortConnection %s" % port_connection)
+                    port_connection.delete()
+
+        # Fixing ServerPort objects
+        logger.info("Fix ServerPort types (VirtualServer must have VirtualServerPort)")
+        for srv_port in ServerPort.objects.active(parent__type=VirtualServer.__name__):
+            logger.warning("    server port %s have parent VirtualServer, change it..." % srv_port)
+            srv_port.cast_type(VirtualServerPort)
+
     def _add_server_and_port(self, connected_mac):
         assert connected_mac
 
@@ -167,7 +185,8 @@ class CmdbImporter(object):
         for ip_pool in self.available_ip_pools:
             if ip_pool.can_add(ip_address):
                 added_ip, created = IPAddress.objects.active().get_or_create(address__exact=ip_address,
-                                                                    defaults=dict(address=ip_address, parent=ip_pool))
+                                                                             defaults=dict(address=ip_address,
+                                                                                           parent=ip_pool))
                 added_ip.use()
 
                 if created:

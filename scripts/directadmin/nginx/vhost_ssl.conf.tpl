@@ -13,6 +13,11 @@ server {
     ssl_certificate		{sslcrt};
     ssl_certificate_key	{sslkey};
 
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
     set $user "{user}";
     set $domain "{domain}";
 
