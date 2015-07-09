@@ -7,7 +7,9 @@ from software.models import DirectAdminLicense
 
 class SoftwareAppTest(TestCase):
     def test_directadmin_delete(self):
-        dalic1 = DirectAdminLicense.objects.create(name='Test LIC', cid=1234, lid=12345,
+        dalic1 = DirectAdminLicense.objects.create(name='Test LIC',
+                                                   cid=1234,
+                                                   lid=12345,
                                                    status=Resource.STATUS_INUSE)
         ip2 = IPAddress.objects.create(address='46.17.40.29', status=Resource.STATUS_INUSE)
 
@@ -19,6 +21,26 @@ class SoftwareAppTest(TestCase):
 
         # IP deleted with related objects
         ip2.delete()
+
+        ip2.refresh_from_db()
+        dalic1.refresh_from_db()
+
+        self.assertTrue(ip2.is_free)
+        self.assertTrue(dalic1.is_free)
+
+    def test_directadmin_free(self):
+        ip2 = IPAddress.objects.create(address='46.17.40.29', status=Resource.STATUS_INUSE)
+        dalic1 = DirectAdminLicense.objects.create(name='Test LIC',
+                                                   cid=1234,
+                                                   lid=12345,
+                                                   parent=ip2,
+                                                   status=Resource.STATUS_INUSE)
+
+        self.assertEqual(Resource.STATUS_INUSE, dalic1.status)
+        self.assertEqual(Resource.STATUS_INUSE, ip2.status)
+
+        # IP deleted with related objects
+        ip2.free(cascade=True)
 
         ip2.refresh_from_db()
         dalic1.refresh_from_db()

@@ -34,6 +34,8 @@ class Command(BaseCommand):
 
         res_set_cmd = subparsers.add_parser('set', help="Edit resource options.")
         res_set_cmd.add_argument('resource-id', type=int, help="IDs of the resources.")
+        res_set_cmd.add_argument('--cascade', action='store_true',
+                                 help="Use cascade  updates, where appropriate.")
         res_set_cmd.add_argument('--format', '--option-format', help="Type of the values.",
                                  default=ResourceOption.FORMAT_STRING,
                                  choices=[choice[0] for choice in ResourceOption.FORMAT_CHOICES])
@@ -164,12 +166,13 @@ class Command(BaseCommand):
                                     value=field_value,
                                     format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
 
+        cascade = options['cascade']
         if options['use']:
-            resource.use(cascade=True)
+            resource.use(cascade=cascade)
         elif options['free']:
-            resource.free(cascade=True)
+            resource.free(cascade=cascade)
         elif options['lock']:
-            resource.lock(cascade=True)
+            resource.lock(cascade=cascade)
 
         self._print_resource_data(resource)
 
