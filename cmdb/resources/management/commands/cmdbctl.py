@@ -18,7 +18,6 @@ class Command(BaseCommand):
         """
         Add custom arguments and subcommands
         """
-
         subparsers = parser.add_subparsers(title="Resource low level management commands",
                                            help="Commands help",
                                            dest='manager_name',

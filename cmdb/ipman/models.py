@@ -136,6 +136,10 @@ class IPAddressPool(Resource):
     def __str__(self):
         return self.name
 
+    def __iter__(self):
+        for ip_address in IPAddress.objects.active(ipman_pool_id=self.id):
+            yield ip_address
+
     @staticmethod
     def globally_available(ip_pool_ids, count=1):
         """

@@ -187,7 +187,7 @@ class CmdbImporter(object):
                 added_ip, created = IPAddress.objects.active().get_or_create(address__exact=ip_address,
                                                                              defaults=dict(address=ip_address,
                                                                                            parent=ip_pool))
-                added_ip.use()
+                added_ip.use(cascade=True)
 
                 if created:
                     logger.info("Added %s to %s" % (ip_address, ip_pool))

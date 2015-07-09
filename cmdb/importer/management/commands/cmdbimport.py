@@ -77,7 +77,7 @@ class Command(BaseCommand):
         # used and can be released.
         logger.info("Clean missing IP addresses: %s" % last_seen_old)
         for free_ip_pool in Resource.objects.active(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
-            for ip in IPAddress.objects.active(last_seen__lt=last_seen_old, parent=free_ip_pool):
+            for ip in IPAddress.objects.active(last_seen__lt=last_seen_old, ipman_pool_id=free_ip_pool.id):
                 logger.warning("    ip %s from the FREE IP pool is not seen for 3 months. Removing..." % ip)
                 ip.delete(cascade=True)
 

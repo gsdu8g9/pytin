@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 from __future__ import unicode_literals
+import os
 
 from django.core.management.base import BaseCommand
 
@@ -10,18 +11,16 @@ from software.models import DirectAdminLicense
 
 
 class Command(BaseCommand):
-    def _find_free_pool_for_ip(self, ip_address):
-        assert ip_address
-
-        for ip_pool in Resource.objects.active(type__in=IPAddressPool.ip_pool_types,
-                                               status=Resource.STATUS_FREE):
-            if ip_pool.can_add(ip_address):
-                return ip_pool
-
-        return None
+    def add_arguments(self, parser):
+        parser.description = 'Utility used to import DirectAdmin licenses from TSV file.'
+        parser.add_argument('licenses-list',
+                            help="File with tab separated list of DirectAdmin licenses (da_lic, da_ip, da_target, da_status).")
 
     def handle(self, *args, **options):
-        da_file = '/Users/dmitry/Downloads/da_lic_list.txt'
+        da_licenses_list_file = options['licenses-list']
+
+        if not os.path.exists(da_licenses_list_file):
+            raise Exception("File must exist: %s" % da_licenses_list_file)
 
         # Read rec from da lic list
         # Check IP from the free DA license
@@ -29,7 +28,7 @@ class Command(BaseCommand):
         # Create DA license in DA lic pool in state free/inuse
         # Move IP to DA IP pool (set ipman_pool_id)
         # Set DA lic target system (arch, distrib)
-        for da_file_rec in file(da_file):
+        for da_file_rec in file(da_licenses_list_file):
             print "-------"
 
             (da_lic, da_ip, da_target, da_status) = da_file_rec.split('\t')
@@ -72,10 +71,13 @@ class Command(BaseCommand):
                             .exclude(pk=ip_pool.id)
                         ip_pool = free_ip_pools[0]
 
-                ip_address = ip_pool.available().next()
-                ip_address.lock()
+                    ip_address = ip_pool.available().next()
+                    ip_address.lock()
 
-                print '[!]    update IP: %s -> %s' % (da_ip, ip_address)
+                    print '[!]    update IP: %s -> %s' % (da_ip, ip_address)
+                else:
+                    print '    IP %s free and DA %s free, locking' % (da_ip, da_lic)
+                    ip_address.lock()
             else:
                 print '    license %s is used' % da_lic
                 if ip_address.is_free:
@@ -115,3 +117,13 @@ class Command(BaseCommand):
             da_license.free() if da_status == 'free' else da_license.use()
 
             print "DA LIC %s s created with IP %s" % (da_license.lid, ip_address)
+
+    def _find_free_pool_for_ip(self, ip_address):
+        assert ip_address
+
+        for ip_pool in Resource.objects.active(type__in=IPAddressPool.ip_pool_types,
+                                               status=Resource.STATUS_FREE):
+            if ip_pool.can_add(ip_address):
+                return ip_pool
+
+        return None
