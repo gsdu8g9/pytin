@@ -21,9 +21,9 @@ class CmdbImporter(object):
 
             if l3port.is_local:
                 switch_local_port, created = SwitchPort.objects.active().get_or_create(
-                    name=l3port.number,
                     number=l3port.number,
-                    parent=source_switch
+                    parent=source_switch,
+                    defaults=dict(name=l3port.number)
                 )
                 if created:
                     logger.info("Added switch port: %s:%s (cmdbid:%s)" % (
