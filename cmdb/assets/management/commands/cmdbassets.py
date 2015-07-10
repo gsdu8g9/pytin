@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from assets.models import PortConnection, SwitchPort, ServerPort, Server, AssetResource, Rack
+from assets.models import PortConnection, SwitchPort, ServerPort, Server, AssetResource, Rack, RackMountable
 from cmdb.settings import logger
 from ipman.models import IPAddress
 from resources.models import Resource
@@ -54,7 +54,12 @@ class Command(BaseCommand):
                 print "*** {:^37} ***".format(
                     "%s::%s (id:%s)" % (rack.parent if rack.parent else 'global', rack, rack.id))
 
-                unsorted_servers = Server.objects.active(parent=rack)
+                rack_resources = Resource.objects.active(parent=rack)
+                unsorted_servers = []
+                for rack_resource in rack_resources:
+                    if hasattr(rack_resource, 'is_rack_mountable') and rack_resource.is_rack_mountable:
+                        unsorted_servers.append(rack_resource)
+
                 sorted_servers = sorted(unsorted_servers, key=lambda s: s.position, reverse=True)
 
                 if len(sorted_servers) <= 0:

@@ -89,6 +89,10 @@ class AssetResource(Resource):
 
         self.set_option('serial', value.lower())
 
+    @property
+    def is_rack_mountable(self):
+        return isinstance(self, RackMountable)
+
 
 class RackMountable(AssetResource):
     """
