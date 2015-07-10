@@ -71,6 +71,11 @@ class Command(BaseCommand):
                         print "[{:>3s}|  {:<35s}  ]".format(str(server.position), server)
                         curr_position -= 1
 
+                # print free space
+                while curr_position > 0:
+                    print "[{:>3s}|{:-^39s}]".format(str(curr_position), '')
+                    curr_position -= 1
+
                 print "\n"
 
     def _update_server_parent_rack(self, server):
@@ -86,7 +91,7 @@ class Command(BaseCommand):
                     if server.parent_id != switch.parent_id:
                         logger.info("Update server %s parent %s->%s" % (server, server.parent_id, switch.parent_id))
 
-                        server.mount(switch.parent)
+                        server.mount(switch.parent.as_leaf_class())
 
     def _handle_server(self, *args, **options):
         if len(options['ip-or-id']) > 0:
