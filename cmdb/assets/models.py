@@ -104,6 +104,16 @@ class RackMountable(AssetResource):
         proxy = True
 
     @property
+    def on_rails(self):
+        return self.get_option_value('on_rails', default=0)
+
+    @on_rails.setter
+    def on_rails(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('on_rails', value, format=ResourceOption.FORMAT_INT)
+
+    @property
     def position(self):
         return self.get_option_value('rack_position', default=0)
 

@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from assets.models import PortConnection, SwitchPort, ServerPort, Server, AssetResource, Rack, RackMountable
+from assets.models import PortConnection, SwitchPort, ServerPort, Server, AssetResource, Rack
 from cmdb.settings import logger
 from ipman.models import IPAddress
 from resources.models import Resource
@@ -65,16 +65,30 @@ class Command(BaseCommand):
                 if len(sorted_servers) <= 0:
                     continue
 
-                curr_position = rack.size  # max position
-                for server in sorted_servers:
-                    if server.position > 0:
-                        while curr_position > server.position:
-                            print "[{:>3s}|{:-^39s}]".format(str(curr_position), '')
-                            curr_position -= 1
+                # sorted_servers must be sorted by position in reverse order
+                rack_layout_map = {}
+                for sorted_server in sorted_servers:
+                    curr_pos = sorted_server.position
 
-                    if server.position == 0 or server.position == curr_position:
-                        print "[{:>3s}|  {:<35s}  ]".format(str(server.position), server)
-                        curr_position -= 1
+                    if curr_pos in rack_layout_map:
+                        while curr_pos in rack_layout_map:
+                            curr_pos += 1
+
+                        sorted_server.position = curr_pos
+
+                    rack_layout_map[sorted_server.position] = sorted_server
+
+                curr_position = rack.size  # max position
+                while curr_position > 0:
+                    if curr_position in rack_layout_map:
+                        server = rack_layout_map[curr_position]
+
+                        print "[{:>3s}|  {:<33s}  |{:s}]".format(str(server.position), server,
+                                                                 'o' if server.on_rails else ' ')
+                    else:
+                        print "[{:>3s}|{:-^39s}]".format(str(curr_position), '')
+
+                    curr_position -= 1
 
                 # print free space
                 while curr_position > 0:
