@@ -32,7 +32,7 @@ class Command(BaseCommand):
         self._register_handler('get', self._handle_res_get_options)
 
         res_set_cmd = subparsers.add_parser('set', help="Edit resource options.")
-        res_set_cmd.add_argument('resource-id', type=int, help="IDs of the resources.")
+        res_set_cmd.add_argument('resource-id', type=int, help="ID of the resource.")
         res_set_cmd.add_argument('--cascade', action='store_true',
                                  help="Use cascade  updates, where appropriate.")
         res_set_cmd.add_argument('--format', '--option-format', help="Type of the values.",

@@ -21,6 +21,7 @@ class CmdbImporter(object):
 
             if l3port.is_local:
                 switch_local_port, created = SwitchPort.objects.active().get_or_create(
+                    name=l3port.number,
                     number=l3port.number,
                     parent=source_switch
                 )

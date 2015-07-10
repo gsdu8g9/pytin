@@ -16,21 +16,21 @@ class DirectAdminLicense(PhysicalAssetMixin, Resource):
 
     @property
     def cid(self):
-        return self.get_option_value('cid', default='')
+        return self.get_option_value('directadmin_cid', default='')
 
     @cid.setter
     def cid(self, value):
         assert value is not None, "Parameter 'value' must be defined."
-        self.set_option('cid', value, format=ResourceOption.FORMAT_INT)
+        self.set_option('directadmin_cid', value, format=ResourceOption.FORMAT_INT)
 
     @property
     def lid(self):
-        return self.get_option_value('lid', default='')
+        return self.get_option_value('directadmin_lid', default='')
 
     @lid.setter
     def lid(self, value):
         assert value is not None, "Parameter 'value' must be defined."
-        self.set_option('lid', value, format=ResourceOption.FORMAT_INT)
+        self.set_option('directadmin_lid', value, format=ResourceOption.FORMAT_INT)
 
     def delete(self, cascade=False, purge=False):
         """

@@ -36,7 +36,7 @@ class Command(BaseCommand):
 
             print "Check LIC %s, IP %s (%s)" % (da_lic, da_ip, da_status)
 
-            da_license, created = DirectAdminLicense.objects.get_or_create(lid=da_lic)
+            da_license, created = DirectAdminLicense.objects.get_or_create(directadmin_lid=da_lic)
             if not created and da_license.parent:
                 continue
 

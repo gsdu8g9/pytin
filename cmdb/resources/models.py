@@ -250,7 +250,7 @@ class ResourceOption(models.Model):
         self.value = self._value_handler().raw_value()
 
     def __str__(self):
-        return "%s:%s = %s (%s)" % (self.namespace, self.name, self._value_handler(), self.format)
+        return "%s:%s = %s" % (self.namespace, self.name, self._value_handler())
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

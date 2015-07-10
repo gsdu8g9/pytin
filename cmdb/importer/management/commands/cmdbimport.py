@@ -15,6 +15,7 @@ from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
 from ipman.models import IPAddress, IPAddressPool
 from resources.models import Resource
+from software.models import DirectAdminLicense
 
 
 class Command(BaseCommand):
@@ -64,6 +65,19 @@ class Command(BaseCommand):
 
     def _handle_household(self, *args, **options):
         last_seen_old = timezone.now() - datetime.timedelta(days=100)
+
+        # fix DirectAdminLicense field names
+        logger.info("Fix import bugs")
+        for da_lic in DirectAdminLicense.objects.active():
+            cid = da_lic.get_option('directadmin_cid')
+            lid = da_lic.get_option('directadmin_lid')
+
+            da_lic.cid = cid.typed_value()
+            da_lic.lid = lid.typed_value()
+
+            cid.delete()
+            lid.delete()
+            print "DA da_lic %s updated" % da_lic.lid
 
         logger.info("Clean missing virtual servers: %s" % last_seen_old)
         for vm in VirtualServer.objects.active(last_seen__lt=last_seen_old):

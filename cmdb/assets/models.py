@@ -90,6 +90,53 @@ class AssetResource(Resource):
         self.set_option('serial', value.lower())
 
 
+class RackMountable(AssetResource):
+    """
+    Physical resource, that can be mounted in Rack.
+    Such is server, switch.
+    """
+
+    class Meta:
+        proxy = True
+
+    @property
+    def position(self):
+        return self.get_option_value('rack_position', default=0)
+
+    @position.setter
+    def position(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('rack_position', value, format=ResourceOption.FORMAT_INT)
+
+    @property
+    def unit_size(self):
+        return self.get_option_value('unit_size', default=0)
+
+    @unit_size.setter
+    def unit_size(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('unit_size', value, format=ResourceOption.FORMAT_INT)
+
+    @property
+    def is_mounted(self):
+        if not self.parent or not isinstance(self.parent.as_leaf_class(), Rack):
+            self.position = 0
+
+        return self.position > 0
+
+    def mount(self, rack):
+        assert rack
+        assert isinstance(rack, Rack)
+
+        if self.parent_id != rack.id:
+            self.parent_id = rack.id
+            self.save()
+
+            self.position = 0
+
+
 class NetworkPort(Resource):
     """
     Network port
@@ -194,7 +241,7 @@ class ServerPort(PhysicalAssetMixin, NetworkPort):
         return "eth%s:%s" % (self.number, self.mac)
 
 
-class Switch(PhysicalAssetMixin, AssetResource):
+class Switch(PhysicalAssetMixin, RackMountable):
     """
     Switch object
     """
@@ -215,7 +262,7 @@ class GatewaySwitch(Switch):
         proxy = True
 
 
-class Server(PhysicalAssetMixin, AssetResource):
+class Server(PhysicalAssetMixin, RackMountable):
     """
     Server object
     """
@@ -225,6 +272,15 @@ class Server(PhysicalAssetMixin, AssetResource):
 
     def __str__(self):
         return "i-%s %s" % (self.id, self.label)
+
+    @property
+    def switch_port(self):
+        server_port = ServerPort.objects.get(parent=self.id)
+        connections = PortConnection.objects.active(linked_port_id=server_port.id)
+        if len(connections) > 0:
+            return connections[0].parent
+
+        return None
 
 
 class Rack(PhysicalAssetMixin, AssetResource):
@@ -236,7 +292,17 @@ class Rack(PhysicalAssetMixin, AssetResource):
         proxy = True
 
     def __str__(self):
-        return "%s" % self.label
+        return "%s (%s, %sU)" % (self.label, self.name, self.size)
+
+    @property
+    def size(self):
+        return self.get_option_value('rack_size', default=45)
+
+    @size.setter
+    def size(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('rack_size', value, format=ResourceOption.FORMAT_INT)
 
 
 class VirtualServerPort(NetworkPort):
