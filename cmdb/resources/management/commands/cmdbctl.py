@@ -80,7 +80,7 @@ class Command(BaseCommand):
 
     def _handle_res_delete(self, *args, **options):
         for res_id in options['resource-id']:
-            resource = Resource.objects.get(pk=res_id)
+            resource = Resource.active.get(pk=res_id)
             resource.delete(purge=options['purge'], cascade=options['cascade'])
 
     def _handle_res_add(self, *args, **options):
@@ -98,7 +98,7 @@ class Command(BaseCommand):
                 del parsed_data['parent_id']
             parsed_data[field_name] = field_value
 
-        if 'id' in parsed_data and Resource.objects.active(pk=parsed_data['id']).exists():
+        if 'id' in parsed_data and Resource.active.filter(pk=parsed_data['id']).exists():
             raise Exception("Item with ID %s is already exists." % parsed_data['id'])
 
         resource = requested_model.objects.create(**parsed_data)
@@ -113,7 +113,7 @@ class Command(BaseCommand):
         offset = (options['page'] - 1) * limit
 
         if not options['status']:
-            resource_set = Resource.objects.active(**query)
+            resource_set = Resource.active.filter(**query)
         else:
             query['status'] = options['status']
             resource_set = Resource.objects.filter(**query)
@@ -145,7 +145,7 @@ class Command(BaseCommand):
 
     def _handle_res_set_options(self, *args, **options):
         res_id = options['resource-id']
-        resource = Resource.objects.get(pk=res_id)
+        resource = Resource.active.get(pk=res_id)
 
         update_query = self._parse_reminder_arg(options['fields'])
         for field_name in update_query:

@@ -91,11 +91,12 @@ class AssetsTest(TestCase):
 
         port6 = ServerPort.objects.create(mac='92:31:cc:a1:94:d8', number=1, parent=server4)
 
-        self.assertEqual(15, Resource.objects.active().count())
-        self.assertEqual(3, RegionResource.objects.active().count())
-        self.assertEqual(2, Rack.objects.active().count())
-        self.assertEqual(4, Server.objects.active().count())
-        self.assertEqual(6, ServerPort.objects.active().count())
+        self.assertEqual(15, Resource.objects.count())
+        self.assertEqual(15, Resource.active.count())
+        self.assertEqual(3, RegionResource.active.count())
+        self.assertEqual(2, Rack.active.count())
+        self.assertEqual(4, Server.active.count())
+        self.assertEqual(6, ServerPort.active.count())
 
     def _create_test_data(self):
 

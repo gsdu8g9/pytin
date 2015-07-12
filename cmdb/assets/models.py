@@ -214,7 +214,7 @@ class PortConnection(Resource):
     def linked_port_id(self, value):
         self.set_option('linked_port_id', value, format=ResourceOption.FORMAT_INT)
 
-        port_object = Resource.objects.get(pk=value)
+        port_object = Resource.active.get(pk=value)
         self.set_option('linked_port_mac', unicode(port_object))
 
         if port_object.parent:
@@ -289,8 +289,8 @@ class Server(PhysicalAssetMixin, RackMountable):
 
     @property
     def switch_port(self):
-        server_port = ServerPort.objects.get(parent=self.id)
-        connections = PortConnection.objects.active(linked_port_id=server_port.id)
+        server_port = ServerPort.active.get(parent=self.id)
+        connections = PortConnection.active.filter(linked_port_id=server_port.id)
         if len(connections) > 0:
             return connections[0].parent
 

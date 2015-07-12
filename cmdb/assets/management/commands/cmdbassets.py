@@ -46,7 +46,7 @@ class Command(BaseCommand):
         query = {}
         if len(rack_ids) > 0:
             query['pk__in'] = rack_ids
-        for rack in Rack.objects.active(**query):
+        for rack in Rack.active.filter(**query):
 
             if options['set_size']:
                 rack.size = options['set_size']
@@ -54,7 +54,7 @@ class Command(BaseCommand):
                 print "*** {:^37} ***".format(
                     "%s::%s (id:%s)" % (rack.parent if rack.parent else 'global', rack, rack.id))
 
-                rack_resources = Resource.objects.active(parent=rack)
+                rack_resources = Resource.active.filter(parent=rack)
                 unsorted_servers = []
                 for rack_resource in rack_resources:
                     if hasattr(rack_resource, 'is_rack_mountable') and rack_resource.is_rack_mountable:
@@ -101,8 +101,8 @@ class Command(BaseCommand):
         assert server
         assert isinstance(server, Server)
 
-        for server_port in ServerPort.objects.active(parent=server):
-            for port_connection in PortConnection.objects.active(linked_port_id=server_port.id):
+        for server_port in ServerPort.active.filter(parent=server):
+            for port_connection in PortConnection.active.filter(linked_port_id=server_port.id):
                 switch_port = port_connection.parent
                 switch = switch_port.parent.as_leaf_class()
 
@@ -117,14 +117,14 @@ class Command(BaseCommand):
             for server_ip_id in options['ip-or-id']:
                 server = None
                 if server_ip_id.find('.') > -1:
-                    ips = IPAddress.objects.active(address=server_ip_id)
+                    ips = IPAddress.active.filter(address=server_ip_id)
                     if len(ips) > 0 and isinstance(ips[0].parent.parent.as_leaf_class(), AssetResource):
                         print ips[0].parent.parent.type
                         server = ips[0].parent.parent.as_leaf_class()
                     else:
                         logger.warning("IP %s is not assigned to any server." % server_ip_id)
                 else:
-                    server = Server.objects.get(pk=server_ip_id)
+                    server = Server.active.get(pk=server_ip_id)
 
                 if server:
                     if options['update_parent_rack']:
@@ -136,7 +136,7 @@ class Command(BaseCommand):
                     self._dump_server(server, options['with_options'])
                     logger.info("")
         else:
-            for server in Server.objects.active():
+            for server in Server.active.filter():
 
                 if options['update_parent_rack']:
                     self._update_server_parent_rack(server)
@@ -146,7 +146,7 @@ class Command(BaseCommand):
 
     def _handle_switch(self, *args, **options):
         device_id = options['switch-id']
-        switch = Resource.objects.get(pk=device_id)
+        switch = Resource.active.get(pk=device_id)
 
         logger.info("*** %s ***" % switch)
         query = dict(parent=switch)
@@ -154,11 +154,11 @@ class Command(BaseCommand):
         if options['port'] and len(options['port']) > 0:
             query['number__in'] = options['port']
 
-        for switch_port in SwitchPort.objects.active(**query).order_by('-name'):
+        for switch_port in SwitchPort.active.filter(**query).order_by('-name'):
             logger.info("%s", switch_port)
-            for port_connection in PortConnection.objects.active(parent=switch_port):
+            for port_connection in PortConnection.active.filter(parent=switch_port):
                 linked_server_port_id = port_connection.linked_port_id
-                server_ports = Resource.objects.active(pk=linked_server_port_id)
+                server_ports = Resource.active.filter(pk=linked_server_port_id)
                 if len(server_ports) > 0:
                     server_port = server_ports[0]
                 else:
@@ -196,15 +196,15 @@ class Command(BaseCommand):
         has_port = False
         has_connection = False
         has_ip = False
-        for server_port in ServerPort.objects.active(parent=server):
+        for server_port in ServerPort.active.filter(parent=server):
             has_port = True
-            for connection in PortConnection.objects.active(linked_port_id=server_port.id):
+            for connection in PortConnection.active.filter(linked_port_id=server_port.id):
                 has_connection = True
                 logger.info("    [conn:%s] %s (%s) <-> %s (%s Mbit)" % (
                     connection.id, server_port.id, server_port, connection.parent.as_leaf_class(),
                     connection.link_speed_mbit))
 
-            for ip_address in IPAddress.objects.active(parent=server_port):
+            for ip_address in IPAddress.active.filter(parent=server_port):
                 has_ip = True
                 logger.info("    %s" % ip_address)
 

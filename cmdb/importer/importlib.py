@@ -16,11 +16,11 @@ class CmdbImporter(object):
         :param l3switch: L3Switch
         """
         hypervisor_server = None
-        source_switch = Resource.objects.get(pk=switch_cmdb_id)
+        source_switch = Resource.active.get(pk=switch_cmdb_id)
         for l3port in l3switch.ports:
 
             if l3port.is_local:
-                switch_local_port, created = SwitchPort.objects.active().get_or_create(
+                switch_local_port, created = SwitchPort.active.get_or_create(
                     number=l3port.number,
                     parent=source_switch,
                     defaults=dict(name=l3port.number)
@@ -30,7 +30,7 @@ class CmdbImporter(object):
                         source_switch.id, l3port.number, switch_local_port.id))
                 elif switch_local_port.uplink:
                     logger.info("Port %s marked as UPLINK, purge port connections" % switch_local_port)
-                    PortConnection.objects.active(parent=switch_local_port).delete()
+                    PortConnection.active.filter(parent=switch_local_port).delete()
                     return
 
                 if len(l3port.macs) > 0:
@@ -47,7 +47,7 @@ class CmdbImporter(object):
                 server, server_port = self._add_server_and_port(connected_mac)
 
                 if l3port.is_local:
-                    port_connection, created = PortConnection.objects.active().get_or_create(
+                    port_connection, created = PortConnection.active.get_or_create(
                         parent=switch_local_port,
                         linked_port_id=server_port.id
                     )
@@ -86,8 +86,8 @@ class CmdbImporter(object):
         # If there is more than 1 PortConnection from the physical port, sort by last_seen DESC and remove all
         # except the first one.
         logger.info("Clean extra PortConnections")
-        for server_port in ServerPort.objects.active():
-            port_connections = PortConnection.objects.active(linked_port_id=server_port.id).order_by('-last_seen')
+        for server_port in ServerPort.active.filter():
+            port_connections = PortConnection.active.filter(linked_port_id=server_port.id).order_by('-last_seen')
 
             if len(port_connections) > 1:
                 logger.warning("Server port %s have >1 PortConnection" % server_port)
@@ -97,7 +97,7 @@ class CmdbImporter(object):
 
         # Fixing ServerPort objects
         logger.info("Fix ServerPort types (VirtualServer must have VirtualServerPort)")
-        for srv_port in ServerPort.objects.active(parent__type=VirtualServer.__name__):
+        for srv_port in ServerPort.active.filter(parent__type=VirtualServer.__name__):
             logger.warning("    server port %s have parent VirtualServer, change it..." % srv_port)
             srv_port.cast_type(VirtualServerPort)
 
@@ -106,7 +106,7 @@ class CmdbImporter(object):
 
         logger.debug("Add mac: %s" % connected_mac)
 
-        server_port, created = Resource.objects.active().get_or_create(
+        server_port, created = Resource.active.get_or_create(
             mac=connected_mac.interface,
             type__in=[ServerPort.__name__, VirtualServerPort.__name__],
             defaults={
@@ -150,7 +150,7 @@ class CmdbImporter(object):
 
         # search for known guessed_role hypervisors
         for connected_mac in l3port.macs:
-            for port in ServerPort.objects.active(mac=unicode(connected_mac)):
+            for port in ServerPort.active.filter(mac=unicode(connected_mac)):
                 if port.parent and port.parent.get_option_value('guessed_role') == 'hypervisor':
                     return port.parent
 
@@ -185,7 +185,7 @@ class CmdbImporter(object):
         added = False
         for ip_pool in self.available_ip_pools:
             if ip_pool.can_add(ip_address):
-                added_ip, created = IPAddress.objects.active().get_or_create(address__exact=ip_address,
+                added_ip, created = IPAddress.active.get_or_create(address__exact=ip_address,
                                                                              defaults=dict(address=ip_address,
                                                                                            parent=ip_pool))
                 added_ip.use(cascade=True)

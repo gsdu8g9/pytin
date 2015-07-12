@@ -36,11 +36,11 @@ class Command(BaseCommand):
 
             print "Check LIC %s, IP %s (%s)" % (da_lic, da_ip, da_status)
 
-            da_license, created = DirectAdminLicense.objects.get_or_create(directadmin_lid=da_lic)
+            da_license, created = DirectAdminLicense.active.get_or_create(directadmin_lid=da_lic)
             if not created and da_license.parent:
                 continue
 
-            ip_addresses = IPAddress.objects.active(address=da_ip)
+            ip_addresses = IPAddress.active.filter(address=da_ip)
             if len(ip_addresses) > 1:
                 raise Exception('There are more than 1 IP: %s' % da_ip)
             elif len(ip_addresses) > 0:
@@ -50,7 +50,7 @@ class Command(BaseCommand):
                 if not ip_pool:
                     raise Exception('There is no IP pool for IP %s' % da_ip)
 
-                ip_address, created = IPAddress.objects.get_or_create(
+                ip_address, created = IPAddress.active.get_or_create(
                     address=da_ip,
                     defaults=dict(
                         parent=ip_pool,
@@ -61,13 +61,13 @@ class Command(BaseCommand):
                 if not ip_address.is_free:
                     print '    IP %s is not free but DA license is free, rent new' % da_ip
 
-                    ip_pool = Resource.objects.get(pk=ip_address.get_origin())
+                    ip_pool = Resource.active.get(pk=ip_address.get_origin())
 
                     if ip_pool.usage > 98:
                         print "[!!!] IP pool %s is >98%% full. Find new pool." % ip_pool.id
 
-                        free_ip_pools = IPNetworkPool.objects \
-                            .active(parent=ip_pool.parent, status=Resource.STATUS_FREE) \
+                        free_ip_pools = IPNetworkPool.active \
+                            .filter(parent=ip_pool.parent, status=Resource.STATUS_FREE) \
                             .exclude(pk=ip_pool.id)
                         ip_pool = free_ip_pools[0]
 
@@ -84,10 +84,10 @@ class Command(BaseCommand):
                     print "[???] IP %s is free, but DA license is USED" % da_ip
 
             # find origin pool of the IP
-            ip_pool = Resource.objects.get(pk=ip_address.get_origin())
+            ip_pool = Resource.active.get(pk=ip_address.get_origin())
 
             # find DA IP pool
-            da_ip_pools = Resource.objects.active(parent=ip_pool.parent, daimport=1)
+            da_ip_pools = Resource.active.filter(parent=ip_pool.parent, daimport=1)
             if not da_ip_pools:
                 raise Exception('No DA IP pool for IP %s' % da_ip)
             da_ip_pool = da_ip_pools[0]
@@ -121,8 +121,8 @@ class Command(BaseCommand):
     def _find_free_pool_for_ip(self, ip_address):
         assert ip_address
 
-        for ip_pool in Resource.objects.active(type__in=IPAddressPool.ip_pool_types,
-                                               status=Resource.STATUS_FREE):
+        for ip_pool in Resource.active.filter(type__in=IPAddressPool.ip_pool_types,
+                                              status=Resource.STATUS_FREE):
             if ip_pool.can_add(ip_address):
                 return ip_pool
 

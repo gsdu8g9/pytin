@@ -14,7 +14,7 @@ class ResourceFilter(django_filters.FilterSet):
 
 
 class ResourcesViewSet(viewsets.ModelViewSet):
-    queryset = Resource.objects.active()
+    queryset = Resource.active.filter()
     serializer_class = ResourceSerializer
     filter_class = ResourceFilter
     pagination_class = PageNumberPagination
@@ -28,4 +28,4 @@ class ResourcesViewSet(viewsets.ModelViewSet):
 
             params[field_name] = self.request.query_params.get(field_name)
 
-        return Resource.objects.active(**params)
+        return Resource.active.filter(**params)

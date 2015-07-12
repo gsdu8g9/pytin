@@ -28,7 +28,7 @@ class IPmanTest(TestCase):
     def test_add_wrong_network(self):
         self.assertRaises(Exception, IPNetworkPool.objects.create, network='192.168.1/24')
 
-        pools = Resource.objects.active(type=IPNetworkPool.__name__)
+        pools = Resource.active.filter(type=IPNetworkPool.__name__)
         self.assertEqual(1, len(pools))
         self.assertEqual('0.0.0.0/0', str(pools[0]))
 
@@ -52,7 +52,7 @@ class IPmanTest(TestCase):
         IPAddressRangePool.objects.create(name='IP range', range_from='172.1.1.1', range_to='172.1.2.1')
         IPNetworkPool.objects.create(network='192.168.1.1/24')
 
-        pools = Resource.objects.active(type__in=ip_pool_types)
+        pools = Resource.active.filter(type__in=ip_pool_types)
 
         self.assertEqual(3, len(pools))
         self.assertEqual('IPAddressPool', pools[0].type)
@@ -249,11 +249,11 @@ class IPmanTest(TestCase):
         self.assertFalse(ipnet.can_add(ip2))
 
         # polymorphic
-        polipnet = Resource.objects.get(pk=ipnet.id)
+        polipnet = Resource.active.get(pk=ipnet.id)
         self.assertTrue(polipnet.can_add(ip1))
         self.assertFalse(polipnet.can_add(ip2))
 
-        polipnets = Resource.objects.filter(network='192.168.1.0/24')
+        polipnets = Resource.active.filter(network='192.168.1.0/24')
         self.assertEqual(1, len(polipnets))
         self.assertTrue(polipnets[0].can_add(ip1))
         self.assertFalse(polipnets[0].can_add(ip2))

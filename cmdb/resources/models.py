@@ -155,15 +155,13 @@ class ResourcesWithOptionsManager(models.Manager):
     def get_queryset(self):
         return SubclassingQuerySet(self.model)
 
-    def active(self, *args, **kwargs):
-        """
-        Search for Resources with Options (only on active resources)
-        search_fields keys can be specified with lookups:
-        https://docs.djangoproject.com/en/1.7/ref/models/querysets/#field-lookups
 
-        Resource fields has higher priority than ResourceOption fields
-        """
-        return self.filter(*args, **kwargs).exclude(status=Resource.STATUS_DELETED)
+class ResourcesActiveWithOptionsManager(models.Manager):
+    """
+    Query manager with support for query by options.
+    """
+    def get_queryset(self):
+        return SubclassingQuerySet(self.model).filter().exclude(status=Resource.STATUS_DELETED)
 
 
 class ResourceOption(models.Model):
@@ -306,6 +304,7 @@ class Resource(models.Model):
     last_seen = models.DateTimeField('Date last seen', db_index=True, default=timezone.now)
 
     objects = ResourcesWithOptionsManager()
+    active = ResourcesActiveWithOptionsManager()
 
     class Meta:
         db_table = "resources"
@@ -314,7 +313,7 @@ class Resource(models.Model):
         return self.name
 
     def __contains__(self, item):
-        return Resource.objects.active(pk=item.id, parent=self).exists()
+        return Resource.active.filter(pk=item.id, parent=self).exists()
 
     def __add__(self, other):
         """
@@ -343,7 +342,7 @@ class Resource(models.Model):
         """
         Iterate through resource childs
         """
-        for resource in Resource.objects.active(parent=self):
+        for resource in Resource.active.filter(parent=self):
             yield resource
 
     def cast_type(self, new_class_type):
@@ -487,7 +486,7 @@ class Resource(models.Model):
         if model == Resource or self.__class__ == model:
             return self
 
-        return model.objects.get(pk=self.id)
+        return model.active.get(pk=self.id)
 
     def save(self, *args, **kwargs):
         if not self.content_type:
@@ -511,7 +510,7 @@ class Resource(models.Model):
         """
         Iterate through available related resources. Override this method for custom behavior.
         """
-        for res in Resource.objects.active(parent=self, status=Resource.STATUS_FREE):
+        for res in Resource.active.filter(parent=self, status=Resource.STATUS_FREE):
             yield res
 
     def _change_status(self, new_status, method_name, cascade=False):

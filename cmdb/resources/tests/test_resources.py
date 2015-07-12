@@ -37,18 +37,18 @@ class ResourceTest(TestCase):
         new_res1 = Resource.objects.create(somekey1='someval1', somekey='someval')
         new_res2 = Resource.objects.create(somekey1='someval2', somekey='someval')
 
-        found1 = Resource.objects.active(somekey1='someval1', somekey='someval')
+        found1 = Resource.active.filter(somekey1='someval1', somekey='someval')
         self.assertEqual(1, len(found1))
         self.assertEqual(new_res1.id, found1[0].id)
 
-        found2 = Resource.objects.active(somekey1='someval2', somekey='someval')
+        found2 = Resource.active.filter(somekey1='someval2', somekey='someval')
         self.assertEqual(1, len(found2))
         self.assertEqual(new_res2.id, found2[0].id)
 
-        found3 = Resource.objects.active(somekey1='someval3', somekey='someval')
+        found3 = Resource.active.filter(somekey1='someval3', somekey='someval')
         self.assertEqual(0, len(found3))
 
-        found4 = Resource.objects.active(somekey='someval')
+        found4 = Resource.active.filter(somekey='someval')
         self.assertEqual(2, len(found4))
 
     def test_delete(self):
@@ -66,7 +66,7 @@ class ResourceTest(TestCase):
         resource2.delete(cascade=True)
 
         self.assertEqual(3, len(Resource.objects.all()))
-        self.assertEqual(1, len(Resource.objects.active()))
+        self.assertEqual(1, len(Resource.active.all()))
 
     def test_static_create_with_fields(self):
         """
@@ -109,11 +109,13 @@ class ResourceTest(TestCase):
         resource1.set_option('g_field1', 155, format=ResourceOption.FORMAT_INT)
         resource1.set_option('g_field2', 155.551, format=ResourceOption.FORMAT_FLOAT)
         resource1.set_option('g_field3', {'name1': 'val1', 'name2': 'val2'}, format=ResourceOption.FORMAT_DICT)
+        self.assertEqual(Resource.STATUS_FREE, resource1.status)
 
-        del resource1
+        resource1.delete()
 
         resource1 = Resource.objects.get(pk=res_id)
 
+        self.assertEqual(Resource.STATUS_DELETED, resource1.status)
         self.assertEqual(155, resource1.get_option_value('g_field1'))
         self.assertEqual(155.551, resource1.get_option_value('g_field2'))
         self.assertEqual({'name1': 'val1', 'name2': 'val2'}, resource1.get_option_value('g_field3'))
@@ -145,7 +147,7 @@ class ResourceTest(TestCase):
         resource3.save()
 
         self.assertEqual(3, len(Resource.objects.all()))
-        self.assertEqual(2, len(Resource.objects.active()))
+        self.assertEqual(2, len(Resource.active.all()))
 
     def test_filter_queryset_active(self):
         resource1 = Resource()
@@ -157,12 +159,12 @@ class ResourceTest(TestCase):
         resource3 = Resource(status=Resource.STATUS_LOCKED)
         resource3.save()
 
-        self.assertEqual(0, len(Resource.objects.active(status=Resource.STATUS_DELETED)))
-        self.assertEqual(1, len(Resource.objects.active(status=Resource.STATUS_LOCKED)))
+        self.assertEqual(0, len(Resource.active.filter(status=Resource.STATUS_DELETED)))
+        self.assertEqual(1, len(Resource.active.filter(status=Resource.STATUS_LOCKED)))
 
-        self.assertEqual(2, len(Resource.objects.active()))
-        self.assertEqual(1, len(Resource.objects.active(status=Resource.STATUS_LOCKED)))
-        self.assertEqual(0, len(Resource.objects.active(type='unknown')))
+        self.assertEqual(2, len(Resource.active.all()))
+        self.assertEqual(1, len(Resource.active.filter(status=Resource.STATUS_LOCKED)))
+        self.assertEqual(0, len(Resource.active.filter(type='unknown')))
 
     def test_set_get_options(self):
         resource1 = Resource()

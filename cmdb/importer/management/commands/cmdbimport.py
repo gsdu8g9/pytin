@@ -67,24 +67,24 @@ class Command(BaseCommand):
         last_seen_old = timezone.now() - datetime.timedelta(days=100)
 
         logger.info("Clean missing virtual servers: %s" % last_seen_old)
-        for vm in VirtualServer.objects.active(last_seen__lt=last_seen_old):
+        for vm in VirtualServer.active.filter(last_seen__lt=last_seen_old):
             logger.warning("    server %s not seen for 3 months. Removing..." % vm)
-            for vm_port in VirtualServerPort.objects.active(parent=vm):
-                for connection in PortConnection.objects.active(linked_port_id=vm_port.id):
+            for vm_port in VirtualServerPort.active.filter(parent=vm):
+                for connection in PortConnection.active.filter(linked_port_id=vm_port.id):
                     connection.delete(cascade=True)
             vm.delete(cascade=True)
 
         # Clean IP with parent=ip pool (free) with last_seen older that 100 days. It means that IP is not
         # used and can be released.
         logger.info("Clean missing IP addresses: %s" % last_seen_old)
-        for free_ip_pool in Resource.objects.active(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
-            for ip in IPAddress.objects.active(last_seen__lt=last_seen_old, ipman_pool_id=free_ip_pool.id):
+        for free_ip_pool in Resource.active.filter(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
+            for ip in IPAddress.active.filter(last_seen__lt=last_seen_old, ipman_pool_id=free_ip_pool.id):
                 logger.warning("    ip %s from the FREE IP pool is not seen for 3 months. Removing..." % ip)
                 ip.delete(cascade=True)
 
     def _handle_auto(self, *args, **options):
         # update via snmp
-        for switch in Resource.objects.active(type__in=[GatewaySwitch.__name__, Switch.__name__]):
+        for switch in Resource.active.filter(type__in=[GatewaySwitch.__name__, Switch.__name__]):
             logger.info("Found switch: %s" % switch)
             if switch.has_option('snmp_provider_key'):
                 snmp_provider_key = switch.get_option_value('snmp_provider_key')
@@ -106,7 +106,7 @@ class Command(BaseCommand):
         hostname = options['hostname']
         community = options['community']
 
-        source_switch = Resource.objects.get(pk=device_id)
+        source_switch = Resource.active.get(pk=device_id)
 
         provider = self.registered_providers[provider_key]()
         provider.from_snmp(hostname, community)

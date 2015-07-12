@@ -85,7 +85,7 @@ class Command(BaseCommand):
 
     def _handle_pool_get_next(self, *args, **options):
         for pool_id in options['pool-id']:
-            ip_set = Resource.objects.get(pk=pool_id)
+            ip_set = Resource.active.get(pk=pool_id)
             ip_count = options['count']
             beauty_idx = options['beauty']
 
@@ -101,13 +101,13 @@ class Command(BaseCommand):
                 logger.warning("Pool '%s' have no such many IPs (%d IPs unavailable)" % (ip_set, ip_count + 1))
 
     def _handle_address_add(self, *args, **options):
-        ip_set = Resource.objects.get(pk=options['pool-id'])
+        ip_set = Resource.active.get(pk=options['pool-id'])
 
         for ip_address in options['ip']:
             if not IPAddress.is_valid_address(ip_address):
                 raise ValueError("Invalid ip address: %s" % ip_address)
 
-            ips = IPAddress.objects.active(address=ip_address)
+            ips = IPAddress.active.filter(address=ip_address)
             ip_object = ips[0] if len(ips) > 0 else IPAddress.objects.create(address=ip_address)
 
             ip_set += ip_object
@@ -142,7 +142,7 @@ class Command(BaseCommand):
         self._list_pools()
 
     def _handle_delete_pool(self, *args, **options):
-        Resource.objects.active(pk=options['pool-id']).delete()
+        Resource.active.filter(pk=options['pool-id']).delete()
 
         self._list_pools()
 

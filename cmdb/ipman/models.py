@@ -137,7 +137,7 @@ class IPAddressPool(Resource):
         return self.name
 
     def __iter__(self):
-        for ip_address in IPAddress.objects.active(ipman_pool_id=self.id):
+        for ip_address in IPAddress.active.filter(ipman_pool_id=self.id):
             yield ip_address
 
     @staticmethod
@@ -162,7 +162,7 @@ class IPAddressPool(Resource):
 
             iterations -= 1
 
-            ip_pool_resource = Resource.objects.get(pk=ip_pool_id)
+            ip_pool_resource = Resource.active.get(pk=ip_pool_id)
             if ip_pool_resource.usage >= 95:
                 logger.warning("IP pool %s usage >95%%" % ip_pool_resource.id)
 
@@ -188,7 +188,7 @@ class IPAddressPool(Resource):
 
     @staticmethod
     def get_all_pools():
-        return Resource.objects.active(type__in=IPAddressPool.ip_pool_types)
+        return Resource.active.filter(type__in=IPAddressPool.ip_pool_types)
 
     @property
     def version(self):
@@ -200,11 +200,11 @@ class IPAddressPool(Resource):
 
     @property
     def total_addresses(self):
-        return IPAddress.objects.active(ipman_pool_id=self.id).count()
+        return IPAddress.active.filter(ipman_pool_id=self.id).count()
 
     @property
     def used_addresses(self):
-        return IPAddress.objects.active(ipman_pool_id=self.id, status=Resource.STATUS_INUSE).count()
+        return IPAddress.active.filter(ipman_pool_id=self.id, status=Resource.STATUS_INUSE).count()
 
     def delete(self, cascade=False, purge=False):
         """
@@ -214,7 +214,7 @@ class IPAddressPool(Resource):
         super(IPAddressPool, self).delete(cascade=True)
 
         # delete allocated IPs
-        IPAddress.objects.active(ipman_pool_id=self.id).delete()
+        IPAddress.active.filter(ipman_pool_id=self.id).delete()
 
     def get_usage(self):
         total = float(self.total_addresses)
@@ -230,7 +230,7 @@ class IPAddressPool(Resource):
         """
         Iterate through all IP in this pool, even that are not allocated.
         """
-        for addr in IPAddress.objects.active(ipman_pool_id=self.id):
+        for addr in IPAddress.active.filter(ipman_pool_id=self.id):
             yield addr.address
 
     def is_reserved(self, ip_address):
@@ -250,7 +250,7 @@ class IPAddressPool(Resource):
                 continue
 
             # search in the current pool
-            ips = IPAddress.objects.active(address=address, ipman_pool_id=self.id)
+            ips = IPAddress.active.filter(address=address, ipman_pool_id=self.id)
             if len(ips) > 0:
                 for ip in ips:
                     if ip.is_free:
@@ -259,7 +259,7 @@ class IPAddressPool(Resource):
                         continue
             else:
                 # guarantee the uniq IPs, search in other pools
-                existing_ips = IPAddress.objects.active(address=address)
+                existing_ips = IPAddress.active.filter(address=address)
                 if len(existing_ips) <= 0:
                     yield IPAddress.objects.create(address=address, parent=self)
                 else:
