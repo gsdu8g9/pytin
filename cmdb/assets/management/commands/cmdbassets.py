@@ -129,12 +129,11 @@ class Command(BaseCommand):
                 if server:
                     if options['update_parent_rack']:
                         self._update_server_parent_rack(server)
-
-                    if options['set_position']:
+                    elif options['set_position']:
                         server.position = options['set_position']
-
-                    self._dump_server(server, options['with_options'])
-                    logger.info("")
+                    else:
+                        self._dump_server(server, options['with_options'])
+                        logger.info("")
         else:
             for server in Server.active.filter():
 

@@ -28,6 +28,7 @@
 #
 
 set -u
+set -e
 
 if [ -z $1 ]; then
 	echo "activation_key?"
@@ -36,27 +37,35 @@ fi
 
 activation_key=$1
 
-bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+if [ ! -e ./firstrun ]; then
+    bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
 
-wget http://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy
-sh cldeploy -k ${activation_key}
-yum -y install lvemanager
-yum -y install cagefs
-/usr/sbin/cagefsctl --init
-yum -y groupinstall alt-php
-yum -y update cagefs lvemanager
+    wget http://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy
+    sh cldeploy -k ${activation_key}
+    yum -y install lvemanager
+    yum -y install cagefs
+    echo "[!] Don't forget to reboot and run this script again."
+
+    echo "1" > ./firstrun
+else
+    /usr/sbin/cagefsctl --init
+    yum -y groupinstall alt-php
+    yum -y update cagefs lvemanager
 
 
-# CloudLinux doesn't provide support for ffmpeg related libraries due to legal/patent
-# restrictions associated with that product. If you believe that you are not subject to
-# such legal restrictions, or have a license to use ffmpeg licenses from the patent right
-# holders, you can install needed libraries by installing EPEL and RPM Fusion repositories.
-#rpm -ivh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
-#rpm -ivh http://download1.rpmfusion.org/free/el/updates/6/i386/rpmfusion-free-release-6-1.noarch.rpm
+    # CloudLinux doesn't provide support for ffmpeg related libraries due to legal/patent
+    # restrictions associated with that product. If you believe that you are not subject to
+    # such legal restrictions, or have a license to use ffmpeg licenses from the patent right
+    # holders, you can install needed libraries by installing EPEL and RPM Fusion repositories.
+    #rpm -ivh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+    #rpm -ivh http://download1.rpmfusion.org/free/el/updates/6/i386/rpmfusion-free-release-6-1.noarch.rpm
 
-yum -y install ffmpeg ffmpeg-libs lame-libs librtmp x264-libs xvidcore
-cagefsctl --force-update
+    yum -y install ffmpeg ffmpeg-libs lame-libs librtmp x264-libs xvidcore
+    cagefsctl --force-update
 
-echo "Don't forget to reboot"
+    echo "[!] Don't forget to reboot."
+
+    rm -f ./firstrun
+fi
 
 exit 0

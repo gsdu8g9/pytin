@@ -15,7 +15,6 @@ from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
 from ipman.models import IPAddress, IPAddressPool
 from resources.models import Resource
-from software.models import DirectAdminLicense
 
 
 class Command(BaseCommand):
@@ -58,6 +57,7 @@ class Command(BaseCommand):
         self._register_handler('snmp', self._handle_snmp)
 
         auto_cmd_parser = subparsers.add_parser('auto', help='Import and update CMDB data based on resources.')
+        auto_cmd_parser.add_argument('--switch-id', help="ID of the switch to get SNMP data from.")
         self._register_handler('auto', self._handle_auto)
 
         household_cmd_parser = subparsers.add_parser('household', help='Cleanup unused resources.')
@@ -84,7 +84,11 @@ class Command(BaseCommand):
 
     def _handle_auto(self, *args, **options):
         # update via snmp
-        for switch in Resource.active.filter(type__in=[GatewaySwitch.__name__, Switch.__name__]):
+        query = dict(type__in=[GatewaySwitch.__name__, Switch.__name__])
+        if options['switch_id']:
+            query['pk'] = options['switch_id']
+
+        for switch in Resource.active.filter(**query):
             logger.info("Found switch: %s" % switch)
             if switch.has_option('snmp_provider_key'):
                 snmp_provider_key = switch.get_option_value('snmp_provider_key')
