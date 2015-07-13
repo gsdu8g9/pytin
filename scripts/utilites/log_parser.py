@@ -33,8 +33,6 @@ def main():
     parser.add_argument("-o", "--outfile", dest="outfile", help="Файл для вывода")
     parser.add_argument("-p", dest="pidfile", metavar="pid-file", help="Файл для вывода")
     parser.add_argument("-B", "--block", dest="blockpath", help="Путь для блокировки")
-    parser.add_argument("-l", "--log", dest="log_file", required=True,
-        help="Лог-файл для анализа")
     parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
         required=True, help="Тип парсера")
     parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
@@ -42,6 +40,10 @@ def main():
         help="Лимит запросов с одного IP к одному домену")
     parser.add_argument("-S", "--statistics", dest="statistics", action='store_true',
         help="Вывести статистику")
+    group1 = parser.add_argument_group('Команды')
+    mutex_group1 = group1.add_mutually_exclusive_group()
+    mutex_group1.add_argument("--raw", dest="raw", action='store_true', help="Сырые данные")
+    mutex_group1.add_argument("-l", "--log", dest="log_file", help="Лог-файл для анализа")
 
     args = parser.parse_args()
 
@@ -52,8 +54,6 @@ def main():
             sys.exit()
         else:
             file(args.pidfile, 'w').write(pid)
-    if not os.path.exists(args.log_file):
-        raise Exception("Лог-файл не существует: %s" % args.log_file)
     if args.database:
         if os.path.exists(args.database):
             raise Exception("Файл БД существует: %s" % args.database)
@@ -64,9 +64,36 @@ def main():
 
     iplist = []
     hostlist = []
-
     # Инициализация провайдера данных
     dataprovider = None
+
+    # Анализ сырых данных
+    if args.raw:
+        if args.type_file == 'nginx':
+            dataprovider = NginxLogDataProvider(sys.stdin)
+        elif args.type_file == 'apache':
+            dataprovider = ApacheLogDataProvider(sys.stdin)
+        ddos_analizer = DDoSAnalizer(dataprovider)
+        ddos_analizer.start()
+        stat = ddos_analizer.stat
+        tmplist = []
+        for log in stat.loglist:
+            if log[4] > args.limitrequests:
+                if len(tmplist) == 0:
+                    tmplist.append([stat.IPs.iplist[log[1]][1], str(log[4])])
+                if stat.IPs.iplist[log[1]][1] == tmplist[len(tmplist)-1][0]:
+                    if str(log[4]) > tmplist[len(tmplist)-1][1]:
+                        tmplist.append([stat.IPs.iplist[log[1]][1], str(log[4])])
+                else:
+                    tmplist.append([stat.IPs.iplist[log[1]][1], str(log[4])])
+        for line in tmplist:
+            print line[0] + ":" + str(line[1])
+
+        exit(0)
+    else:
+        if not os.path.exists(args.log_file):
+            raise Exception("Лог-файл не существует: %s" % args.log_file)
+
     if args.type_file == 'nginx':
         dataprovider = NginxLogDataProvider(args.log_file)
     elif args.type_file == 'apache':

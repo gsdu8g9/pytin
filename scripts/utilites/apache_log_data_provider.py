@@ -3,15 +3,15 @@
 
 import re
 import datetime
+from data_provider import DataProvider
 
 class ApacheLogDataProvider():
-    def __init__(self, logfile):
+    def __init__(self, dataprovider):
         """
         Инициализация класса доступа к лог-файлу nginx
         """
-        self.logfile = logfile
-        self.fdesc = open(self.logfile, 'r')
-        self.iterator = iter(self.fdesc)
+        self.dataprovider = dataprovider
+        self.iterator = dataprovider
 
     def __iter__(self):
         """
