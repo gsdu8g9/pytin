@@ -66,7 +66,7 @@ fi
 echo "Update KS file:"
 KSFILENAME="centos.${CENT_OS_VER}.ks.tpl"
 rm -f ${SCRIPTDIR}/${KSFILENAME}
-wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/kickstart/${KSFILENAME}
+wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/kickstart/virt/kvm/${KSFILENAME}
 
 KSRTFILENAME="vmcurr"
 
