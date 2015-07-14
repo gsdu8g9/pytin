@@ -16,7 +16,7 @@ echo "* Install UnixBench"
 yum -y install gcc gcc-c++ make libXext-devel
 yum -y groupinstall "Development Tools"
 yum -y install libX11-devel mesa-libGL-devel perl
-rpm -i http://pkgs.repoforge.org/perl-Time-HiRes/perl-Time-HiRes-1.9724-1.el6.rfx.x86_64.rpm
+rpm -i --force http://pkgs.repoforge.org/perl-Time-HiRes/perl-Time-HiRes-1.9724-1.el6.rfx.x86_64.rpm
 
 wget -c http://byte-unixbench.googlecode.com/files/unixbench-5.1.3.tgz
 tar xvzf unixbench-5.1.3.tgz
@@ -30,12 +30,13 @@ yum -y install zabbix-agent
 chkconfig zabbix-agent on
 service zabbix-agent restart
 
-perl -pi -e 's/Server=127.0.0.1/Server=zabbix.justhost.ru/g' /etc/zabbix/zabbix_agent.conf
+if [ -e /etc/zabbix/zabbix_agent.conf ]; then
+    perl -pi -e 's/Server=127.0.0.1/Server=zabbix.justhost.ru/g' /etc/zabbix/zabbix_agent.conf
+fi
+
 perl -pi -e 's/Server=127.0.0.1/Server=zabbix.justhost.ru/g' /etc/zabbix/zabbix_agentd.conf
 
-zbx_host=$(hostname)
-echo "Set zabbix hostname: ${zbx_host}"
-perl -pi -e 's/Hostname=Zabbix server/Hostname=${zbx_host}/g' /etc/zabbix/zabbix_agentd.conf
+perl -pi -e 's/Hostname=Zabbix server/# Hostname=/g' /etc/zabbix/zabbix_agentd.conf
 
 # add user parameter
 echo "* Add to cron"
