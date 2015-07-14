@@ -20,7 +20,7 @@ rpm -i http://pkgs.repoforge.org/perl-Time-HiRes/perl-Time-HiRes-1.9724-1.el6.rf
 
 wget -c http://byte-unixbench.googlecode.com/files/unixbench-5.1.3.tgz
 tar xvzf unixbench-5.1.3.tgz
-cp unixbench-5.1.3 ${TARGET}
+cp -r unixbench-5.1.3 ${TARGET}
 cd ${TARGET}
 make
 
