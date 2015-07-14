@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #
-# Install UnixBench environment
+# Install UnixBench environment on CentOS 6.x
 #
 
 TARGET=/usr/local/unixbench

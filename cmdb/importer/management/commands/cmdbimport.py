@@ -64,10 +64,11 @@ class Command(BaseCommand):
         self._register_handler('household', self._handle_household)
 
     def _handle_household(self, *args, **options):
-        last_seen_old = timezone.now() - datetime.timedelta(days=100)
+        last_seen_100days = timezone.now() - datetime.timedelta(days=100)
+        last_seen_5days = timezone.now() - datetime.timedelta(days=5)
 
-        logger.info("Clean missing virtual servers: %s" % last_seen_old)
-        for vm in VirtualServer.active.filter(last_seen__lt=last_seen_old):
+        logger.info("Clean missing virtual servers: %s" % last_seen_100days)
+        for vm in VirtualServer.active.filter(last_seen__lt=last_seen_100days):
             logger.warning("    server %s not seen for 3 months. Removing..." % vm)
             for vm_port in VirtualServerPort.active.filter(parent=vm):
                 for connection in PortConnection.active.filter(linked_port_id=vm_port.id):
@@ -76,10 +77,20 @@ class Command(BaseCommand):
 
         # Clean IP with parent=ip pool (free) with last_seen older that 100 days. It means that IP is not
         # used and can be released.
-        logger.info("Clean missing IP addresses: %s" % last_seen_old)
+        logger.info("Clean missing IP addresses: %s" % last_seen_100days)
         for free_ip_pool in Resource.active.filter(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
-            for ip in IPAddress.active.filter(last_seen__lt=last_seen_old, ipman_pool_id=free_ip_pool.id):
-                logger.warning("    ip %s from the FREE IP pool is not seen for 3 months. Removing..." % ip)
+            for ip in IPAddress.active.filter(
+                    status=Resource.STATUS_INUSE,
+                    last_seen__lt=last_seen_100days,
+                    ipman_pool_id=free_ip_pool.id):
+                logger.warning("    used ip %s from the FREE IP pool is not seen for 3 months. Free it." % ip)
+                ip.delete(cascade=True)
+
+            for ip in IPAddress.active.filter(
+                    status=Resource.STATUS_LOCKED,
+                    last_seen__lt=last_seen_5days,
+                    ipman_pool_id=free_ip_pool.id):
+                logger.warning("    locked ip %s from the FREE IP pool is not seen for 5 days. Free it." % ip)
                 ip.delete(cascade=True)
 
     def _handle_auto(self, *args, **options):
