@@ -3,6 +3,9 @@
 #
 # Install UnixBench environment on CentOS 6.x
 #
+# Usage:
+# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/bench/unixbench/install_ub_env_centos.sh)
+#
 
 TARGET=/usr/local/unixbench
 rm -rf ${TARGET}
@@ -26,7 +29,7 @@ make
 
 echo "* Install Zabbix Agent"
 rpm -Uvh http://repo.zabbix.com/zabbix/2.2/rhel/6/x86_64/zabbix-release-2.2-1.el6.noarch.rpm
-yum -y install zabbix-agent
+yum -y install zabbix-agent zabbix-sender
 chkconfig zabbix-agent on
 service zabbix-agent restart
 
