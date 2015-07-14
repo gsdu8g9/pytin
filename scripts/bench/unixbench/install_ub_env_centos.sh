@@ -4,6 +4,9 @@
 # Install UnixBench environment on CentOS 6.x
 #
 
+set -u
+set -e
+
 TARGET=/usr/local/unixbench
 rm -rf ${TARGET}
 

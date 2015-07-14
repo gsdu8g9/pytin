@@ -52,44 +52,46 @@ DNS2=<dns2_of_the_vm>
 
 ################## do not change #################
 SCRIPTDIR=$(pwd)
+WORKDIR=${SCRIPTDIR}/${VMID}-$(date +"%S")
 
-if [ ! -e ${SCRIPTDIR}/initrd.img ]
+mkdir -p ${WORKDIR}
+cd ${WORKDIR}
+
+if [ ! -e initrd.img ]
 then
     wget http://mirror.yandex.ru/centos/${CENT_OS_VER}/os/x86_64/images/pxeboot/initrd.img
 fi
 
-if [ ! -e ${SCRIPTDIR}/vmlinuz ]
+if [ ! -e vmlinuz ]
 then
     wget http://mirror.yandex.ru/centos/${CENT_OS_VER}/os/x86_64/images/pxeboot/vmlinuz
 fi
 
 echo "Update KS file:"
-KSFILENAME="centos.${CENT_OS_VER}.ks.tpl"
-rm -f ${SCRIPTDIR}/${KSFILENAME}
-wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/kickstart/virt/kvm/${KSFILENAME}
+KICKSTART_TEMPLATE_NAME="centos.${CENT_OS_VER}.ks.tpl"
+wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/kickstart/virt/kvm/${KICKSTART_TEMPLATE_NAME}
 
-KSRTFILENAME="vmcurr"
+KICKSTART_FILE_NAME="centos.ks"
 
-KSTPL="${SCRIPTDIR}/${KSFILENAME}"
-KSFILE="${SCRIPTDIR}/${KSRTFILENAME}"
+KICKSTART_TEMPLATE="${WORKDIR}/${KICKSTART_TEMPLATE_NAME}"
+KICKSTART_FILE="${WORKDIR}/${KICKSTART_FILE_NAME}"
 
 ISOPATH="/var/lib/vz/template/iso"
-KSRTFILE="cdrom:/${KSRTFILENAME}"
 
 # update KS
-cp -f ${KSTPL} ${KSFILE}
-perl -pi -e "s/\|IPADDR\|/${IPADDR}/g" ${KSFILE}
-perl -pi -e "s/\|GW\|/${GW}/g" ${KSFILE}
-perl -pi -e "s/\|HOSTNAME\|/${VMNAME}/g" ${KSFILE}
-perl -pi -e "s/\|NETMASK\|/${NETMASK}/g" ${KSFILE}
-perl -pi -e "s/\|DNS1\|/${DNS1}/g" ${KSFILE}
-perl -pi -e "s/\|DNS2\|/${DNS2}/g" ${KSFILE}
+cp -f ${KICKSTART_TEMPLATE} ${KICKSTART_FILE}
+perl -pi -e "s/\|IPADDR\|/${IPADDR}/g" ${KICKSTART_FILE}
+perl -pi -e "s/\|GW\|/${GW}/g" ${KICKSTART_FILE}
+perl -pi -e "s/\|HOSTNAME\|/${VMNAME}/g" ${KICKSTART_FILE}
+perl -pi -e "s/\|NETMASK\|/${NETMASK}/g" ${KICKSTART_FILE}
+perl -pi -e "s/\|DNS1\|/${DNS1}/g" ${KICKSTART_FILE}
+perl -pi -e "s/\|DNS2\|/${DNS2}/g" ${KICKSTART_FILE}
 
 #create iso
-genisoimage -o ksboot.iso ${KSFILE}
+genisoimage -o ksboot.iso ${KICKSTART_FILE}
 mv ksboot.iso ${ISOPATH}/
 
-qm create ${VMID} --args "-append ks=${KSRTFILE} -kernel ${SCRIPTDIR}/vmlinuz -initrd ${SCRIPTDIR}/initrd.img" --ide2 local:iso/ksboot.iso,media=cdrom --name ${VMNAME} --net0 rtl8139,rate=50,bridge=vmbr0 --virtio0 local:${HDDGB},format=qcow2,cache=writeback,mbps_rd=5,mbps_wr=5 --bootdisk virtio0 --ostype l26 --memory ${MEMMB} --onboot yes --cores ${VCPU} --sockets 1
+qm create ${VMID} --args "-append ks=cdrom:/${KICKSTART_FILE_NAME} -kernel ${WORKDIR}/vmlinuz -initrd ${WORKDIR}/initrd.img" --ide2 local:iso/ksboot.iso,media=cdrom --name ${VMNAME} --net0 rtl8139,rate=50,bridge=vmbr0 --virtio0 local:${HDDGB},format=qcow2,cache=writeback,mbps_rd=5,mbps_wr=5 --bootdisk virtio0 --ostype l26 --memory ${MEMMB} --onboot yes --cores ${VCPU} --sockets 1
 qm start ${VMID}
 
 qm wait ${VMID}
