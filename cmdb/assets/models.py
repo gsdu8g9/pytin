@@ -306,7 +306,7 @@ class Server(PhysicalAssetMixin, RackMountable):
         proxy = True
 
     def __str__(self):
-        return "i-%s %s" % (self.id, self.label)
+        return "i%s %s (%sU, %s)" % (self.id, self.label, self.unit_size, self.position)
 
     @staticmethod
     def is_server(resource):
