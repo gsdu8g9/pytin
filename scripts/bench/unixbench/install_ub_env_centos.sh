@@ -39,7 +39,7 @@ fi
 
 perl -pi -e 's/Server=127.0.0.1/Server=zabbix.justhost.ru/g' /etc/zabbix/zabbix_agentd.conf
 
-perl -pi -e 's/Hostname=Zabbix server/# Hostname=/g' /etc/zabbix/zabbix_agentd.conf
+perl -pi -e 's/Hostname=Zabbix server/Hostname=/g' /etc/zabbix/zabbix_agentd.conf
 
 # add user parameter
 echo "* Add to cron"

@@ -89,10 +89,6 @@ class AssetResource(Resource):
 
         self.set_option('serial', value.lower())
 
-    @property
-    def is_rack_mountable(self):
-        return isinstance(self, RackMountable)
-
 
 class RackMountable(AssetResource):
     """
@@ -103,19 +99,23 @@ class RackMountable(AssetResource):
     class Meta:
         proxy = True
 
+    @staticmethod
+    def is_rack_mountable(resource):
+        return isinstance(resource, RackMountable)
+
     @property
     def on_rails(self):
-        return self.get_option_value('on_rails', default=0)
+        return self.get_option_value('on_rails', default=False)
 
     @on_rails.setter
     def on_rails(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        self.set_option('on_rails', value, format=ResourceOption.FORMAT_INT)
+        self.set_option('on_rails', value, format=ResourceOption.FORMAT_BOOL)
 
     @property
     def position(self):
-        return self.get_option_value('rack_position', default=0)
+        return int(self.get_option_value('rack_position', default=0))
 
     @position.setter
     def position(self, value):
@@ -125,7 +125,7 @@ class RackMountable(AssetResource):
 
     @property
     def unit_size(self):
-        return self.get_option_value('unit_size', default=0)
+        return self.get_option_value('unit_size', default=1)
 
     @unit_size.setter
     def unit_size(self, value):
@@ -162,6 +162,11 @@ class NetworkPort(Resource):
     def __str__(self):
         return "%s:%s%s" % (self.parent.id, self.number, " (uplink)" if self.uplink else "")
 
+    @staticmethod
+    def normalize_mac(mac):
+        mac = netaddr.EUI(mac, dialect=netaddr.mac_bare)
+        return unicode(mac).upper()
+
     @property
     def number(self):
         return self.get_option_value('number', default=0)
@@ -180,9 +185,7 @@ class NetworkPort(Resource):
     def mac(self, value):
         assert value is not None, "Parameter 'value' must be defined."
 
-        _mac = netaddr.EUI(value, dialect=netaddr.mac_bare)
-
-        self.set_option('mac', unicode(_mac).upper())
+        self.set_option('mac', NetworkPort.normalize_mac(value))
 
     @property
     def uplink(self):
@@ -230,8 +233,12 @@ class PortConnection(Resource):
 
         self.set_option('link_speed_mbit', value, format=ResourceOption.FORMAT_INT)
 
-    def save(self, *args, **kwargs):
-        super(PortConnection, self).save(*args, **kwargs)
+    @staticmethod
+    def create(switch_port, server_port):
+        assert switch_port
+        assert server_port
+
+        return PortConnection.active.create(parent=switch_port, linked_port_id=server_port.id)
 
 
 class SwitchPort(PhysicalAssetMixin, NetworkPort):
@@ -254,6 +261,14 @@ class ServerPort(PhysicalAssetMixin, NetworkPort):
     def __str__(self):
         return "eth%s:%s" % (self.number, self.mac)
 
+    @property
+    def switch_port(self):
+        try:
+            conn = PortConnection.active.get(linked_port_id=self.id)
+            return conn.parent.as_leaf_class()
+        except:
+            return None
+
 
 class Switch(PhysicalAssetMixin, RackMountable):
     """
@@ -265,6 +280,11 @@ class Switch(PhysicalAssetMixin, RackMountable):
 
     def __str__(self):
         return "sw-%s %s" % (self.id, self.label)
+
+    def get_port(self, number):
+        assert number > 0
+
+        return SwitchPort.active.get(parent=self, number=number)
 
 
 class GatewaySwitch(Switch):
@@ -287,14 +307,13 @@ class Server(PhysicalAssetMixin, RackMountable):
     def __str__(self):
         return "i-%s %s" % (self.id, self.label)
 
-    @property
-    def switch_port(self):
-        server_port = ServerPort.active.get(parent=self.id)
-        connections = PortConnection.active.filter(linked_port_id=server_port.id)
-        if len(connections) > 0:
-            return connections[0].parent
+    @staticmethod
+    def is_server(resource):
+        return isinstance(resource, Server)
 
-        return None
+    @property
+    def ethernet_ports(self):
+        return ServerPort.active.filter(parent=self)
 
 
 class Rack(PhysicalAssetMixin, AssetResource):

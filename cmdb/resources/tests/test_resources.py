@@ -120,6 +120,32 @@ class ResourceTest(TestCase):
         self.assertEqual(155.551, resource1.get_option_value('g_field2'))
         self.assertEqual({'name1': 'val1', 'name2': 'val2'}, resource1.get_option_value('g_field3'))
 
+    def test_option_bool_type(self):
+        resource1 = Resource()
+        resource1.save()
+
+        resource1.set_option('g_field1', True)
+        resource1.set_option('g_field2', False)
+        resource1.set_option('g_field3', 1, format=ResourceOption.FORMAT_BOOL)
+        resource1.set_option('g_field4', 0, format=ResourceOption.FORMAT_BOOL)
+        resource1.set_option('g_field5', '0', format=ResourceOption.FORMAT_BOOL)
+        resource1.set_option('g_field6', '1', format=ResourceOption.FORMAT_BOOL)
+        resource1.set_option('g_field7', 'False', format=ResourceOption.FORMAT_BOOL)
+        resource1.set_option('g_field8', 'True', format=ResourceOption.FORMAT_BOOL)
+        resource1.set_option('g_field9', 'Yes', format=ResourceOption.FORMAT_BOOL)
+        resource1.set_option('g_field10', 'No', format=ResourceOption.FORMAT_BOOL)
+
+        self.assertEqual(True, resource1.get_option_value('g_field1'))
+        self.assertEqual(False, resource1.get_option_value('g_field2'))
+        self.assertEqual(True, resource1.get_option_value('g_field3'))
+        self.assertEqual(False, resource1.get_option_value('g_field4'))
+        self.assertEqual(False, resource1.get_option_value('g_field5'))
+        self.assertEqual(True, resource1.get_option_value('g_field6'))
+        self.assertEqual(False, resource1.get_option_value('g_field7'))
+        self.assertEqual(True, resource1.get_option_value('g_field8'))
+        self.assertEqual(True, resource1.get_option_value('g_field9'))
+        self.assertEqual(False, resource1.get_option_value('g_field10'))
+
     def test_option_type_guessed_format(self):
         resource1 = Resource()
         resource1.save()
@@ -129,12 +155,15 @@ class ResourceTest(TestCase):
         resource1.set_option('g_field2', 155)
         resource1.set_option('g_field3', 155.551)
         resource1.set_option('g_field4', {'name1': 'val1', 'name2': 'val2'})
+        resource1.set_option('g_field5', True)
 
         self.assertEqual(ResourceOption.FORMAT_STRING, resource1.get_option('g_field0').format)
         self.assertEqual(ResourceOption.FORMAT_STRING, resource1.get_option('g_field1').format)
         self.assertEqual(ResourceOption.FORMAT_INT, resource1.get_option('g_field2').format)
         self.assertEqual(ResourceOption.FORMAT_FLOAT, resource1.get_option('g_field3').format)
         self.assertEqual(ResourceOption.FORMAT_DICT, resource1.get_option('g_field4').format)
+        self.assertEqual(ResourceOption.FORMAT_BOOL, resource1.get_option('g_field5').format)
+        self.assertEqual(True, resource1.get_option_value('g_field5'))
 
     def test_create(self):
         resource1 = Resource()

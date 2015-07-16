@@ -160,6 +160,7 @@ class ResourcesActiveWithOptionsManager(models.Manager):
     """
     Query manager with support for query by options.
     """
+
     def get_queryset(self):
         return SubclassingQuerySet(self.model).filter().exclude(status=Resource.STATUS_DELETED)
 
@@ -192,6 +193,19 @@ class ResourceOption(models.Model):
         def typed_value(self):
             return int(self._value)
 
+    class BooleanValue(StringValue):
+        true_vals = ['yes', 'true', '1']
+
+        def __init__(self, value):
+            value_str = str(value).lower()
+            self._value = True if value_str in self.true_vals else False
+
+        def __str__(self):
+            return "%s" % self.typed_value()
+
+        def typed_value(self):
+            return bool(self._value)
+
     class FloatValue(StringValue):
         def __str__(self):
             return "%f" % self.typed_value()
@@ -214,17 +228,20 @@ class ResourceOption(models.Model):
 
     FORMAT_DICT = 'dict'
     FORMAT_INT = 'int'
+    FORMAT_BOOL = 'bool'
     FORMAT_FLOAT = 'float'
     FORMAT_STRING = 'string'
     FORMAT_CHOICES = (
         (FORMAT_DICT, 'Dictionary string'),
         (FORMAT_INT, 'Integer value'),
+        (FORMAT_BOOL, 'Boolean value'),
         (FORMAT_FLOAT, 'Float value'),
         (FORMAT_STRING, 'String value'),
     )
     FORMAT_HANDLERS = {
         FORMAT_DICT: DictionaryValue,
         FORMAT_INT: IntegerValue,
+        FORMAT_BOOL: BooleanValue,
         FORMAT_FLOAT: FloatValue,
         FORMAT_STRING: StringValue,
     }
@@ -264,7 +281,9 @@ class ResourceOption(models.Model):
     def guess_format(value):
         ret_format = ResourceOption.FORMAT_STRING
 
-        if isinstance(value, int):
+        if isinstance(value, bool):
+            ret_format = ResourceOption.FORMAT_BOOL
+        elif isinstance(value, int):
             ret_format = ResourceOption.FORMAT_INT
         elif isinstance(value, float):
             ret_format = ResourceOption.FORMAT_FLOAT
