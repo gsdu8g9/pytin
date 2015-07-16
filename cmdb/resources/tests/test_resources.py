@@ -2,10 +2,20 @@
 
 from django.test import TestCase
 
+from assets.models import ServerPort, VirtualServer
 from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
 class ResourceTest(TestCase):
+    def test_cast_type(self):
+        resource = Resource.objects.create(number=15, name='Test cast')
+        self.assertEqual('Resource', resource.type)
+        self.assertEqual('resource', str(resource.content_type))
+
+        server_port = resource.cast_type(VirtualServer)
+        self.assertEqual('VirtualServer', server_port.type)
+        self.assertEqual('virtual server', str(server_port.content_type))
+
     def test_model_query_delete(self):
         Resource.objects.create(name='res1')
         Resource.objects.create(name='res2')

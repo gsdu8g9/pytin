@@ -265,6 +265,7 @@ class ServerPort(PhysicalAssetMixin, NetworkPort):
     def switch_port(self):
         try:
             conn = PortConnection.active.get(linked_port_id=self.id)
+
             return conn.parent.as_leaf_class()
         except:
             return None

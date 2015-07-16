@@ -364,22 +364,6 @@ class Resource(models.Model):
         for resource in Resource.active.filter(parent=self):
             yield resource
 
-    def cast_type(self, new_class_type):
-        assert new_class_type
-
-        if self.type == new_class_type.__name__:
-            return self
-
-        self.content_type = ContentType.objects.get_for_model(new_class_type,
-                                                              for_concrete_model=not self._meta.proxy)
-
-        self.type = new_class_type.__name__
-
-        super(Resource, self).save()
-        new_object = self.as_leaf_class()
-
-        return new_object
-
     def touch(self, recursive=False):
         """
         Update last_seen date of the resource
@@ -499,9 +483,27 @@ class Resource(models.Model):
     def get_type_name(self):
         return self.__class__.__name__ if not self.content_type else self.content_type.model_class().__name__
 
+    def cast_type(self, new_class_type):
+        assert new_class_type
+
+        self.content_type = ContentType.objects.get_for_model(new_class_type,
+                                                              for_concrete_model=not new_class_type._meta.proxy)
+
+        if self.content_type.model_class == new_class_type:
+            return self
+
+        self.type = new_class_type.__name__
+
+        super(Resource, self).save()
+
+        new_object = self.as_leaf_class()
+
+        return new_object
+
     def as_leaf_class(self):
         content_type = self.content_type
         model = content_type.model_class()
+
         if model == Resource or self.__class__ == model:
             return self
 
@@ -512,10 +514,10 @@ class Resource(models.Model):
             self.content_type = ContentType.objects.get_for_model(self.__class__,
                                                                   for_concrete_model=not self._meta.proxy)
 
+        self.type = self.get_type_name()
+
         if not self.last_seen:
             self.last_seen = timezone.now()
-
-        self.type = self.get_type_name()
 
         super(Resource, self).save(*args, **kwargs)
 

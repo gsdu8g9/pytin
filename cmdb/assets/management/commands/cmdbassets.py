@@ -196,6 +196,9 @@ class Command(BaseCommand):
 
         for server_port in ServerPort.active.filter(parent=server):
             switch_port = server_port.switch_port
+            if not switch_port:
+                continue
+
             switch = switch_port.parent.as_leaf_class()
 
             if switch.is_mounted:
@@ -259,6 +262,7 @@ class Command(BaseCommand):
                 logger.info("    %s" % server_port)
                 for connection in PortConnection.active.filter(linked_port_id=server_port.id):
                     has_connection = True
+
                     logger.info("    [conn:%s] %s (%s) <-> %s (%s Mbit)" % (
                         connection.id, server_port.id, server_port, connection.parent.as_leaf_class(),
                         connection.link_speed_mbit))
