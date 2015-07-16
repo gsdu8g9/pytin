@@ -6,7 +6,7 @@ from ipman.models import IPAddress, IPAddressPool
 from resources.models import Resource
 
 
-class CmdbImporter(object):
+class GenericCmdbImporter(object):
     def __init__(self):
         self.available_ip_pools = IPAddressPool.get_all_pools()
 

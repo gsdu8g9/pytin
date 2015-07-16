@@ -349,6 +349,15 @@ class VirtualServerPort(NetworkPort):
     def __str__(self):
         return "veth%s:%s" % (self.number, self.mac)
 
+    def delete(self, cascade=False, purge=False):
+        """
+        Remove linked resources
+        """
+        for connection in PortConnection.active.filter(linked_port_id=self.id):
+            connection.delete(cascade=True, purge=purge)
+
+        super(VirtualServerPort, self).delete(cascade=cascade, purge=purge)
+
 
 class VirtualServer(AssetResource):
     """

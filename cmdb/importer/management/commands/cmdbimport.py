@@ -5,9 +5,9 @@ from django.core.management.base import BaseCommand
 
 from django.utils import timezone
 
-from assets.models import GatewaySwitch, Switch, VirtualServer, VirtualServerPort, PortConnection
+from assets.models import GatewaySwitch, Switch, VirtualServer
 from cmdb.settings import logger
-from importer.importlib import CmdbImporter
+from importer.importlib import GenericCmdbImporter
 from importer.providers.l3_switch import L3Switch
 from importer.providers.vendors.dlink import DSG3200Switch
 from importer.providers.vendors.hp import HP1910Switch
@@ -18,7 +18,7 @@ from resources.models import Resource
 
 
 class Command(BaseCommand):
-    cmdb_importer = CmdbImporter()
+    cmdb_importer = GenericCmdbImporter()
 
     registered_handlers = {}
 
@@ -70,9 +70,6 @@ class Command(BaseCommand):
         logger.info("Clean missing virtual servers: %s" % last_seen_100days)
         for vm in VirtualServer.active.filter(last_seen__lt=last_seen_100days):
             logger.warning("    server %s not seen for 3 months. Removing..." % vm)
-            for vm_port in VirtualServerPort.active.filter(parent=vm):
-                for connection in PortConnection.active.filter(linked_port_id=vm_port.id):
-                    connection.delete(cascade=True)
             vm.delete(cascade=True)
 
         # Clean IP with parent=ip pool (free) with last_seen older that 100 days. It means that IP is not

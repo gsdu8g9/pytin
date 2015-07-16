@@ -4,7 +4,7 @@ from django.test import TestCase
 
 from assets.models import RegionResource, ServerPort, Server, VirtualServer, GatewaySwitch, PortConnection, Switch, \
     VirtualServerPort
-from importer.importlib import CmdbImporter
+from importer.importlib import GenericCmdbImporter
 
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from ipman.models import IPNetworkPool, IPAddress
@@ -17,7 +17,7 @@ class QSW8300ImportDataTest(TestCase):
         arp_file_path = os.path.join(self.DATA_DIR, 'arp-table.txt')
         mac_file_path = os.path.join(self.DATA_DIR, 'mac-table.txt')
 
-        cmdb_importer = CmdbImporter()
+        cmdb_importer = GenericCmdbImporter()
 
         # create IP pools and basic structure
         dc_anders = RegionResource.objects.create(name="Anders")
