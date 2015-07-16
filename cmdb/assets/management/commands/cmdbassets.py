@@ -46,7 +46,8 @@ class Command(BaseCommand):
         server_cmd_parser.add_argument('--add-port', metavar='MAC', help="Add new server port by MAC.")
         server_cmd_parser.add_argument('--number', metavar='NUM', help="Specify port number.")
         server_cmd_parser.add_argument('--link', metavar='MAC', help='Link server port to switch port.')
-        server_cmd_parser.add_argument('--to-switch-port', metavar='SWITCH:PORT', help="SWITCH:PORT of the switch and port: switch_id:port.")
+        server_cmd_parser.add_argument('--to-switch-port', metavar='SWITCH:PORT',
+                                       help="SWITCH:PORT of the switch and port: switch_id:port.")
         self._register_handler('server', self._handle_server)
 
         # rack
@@ -93,7 +94,7 @@ class Command(BaseCommand):
             if options['set_size']:
                 rack.size = options['set_size']
             elif options['layout']:
-                print "*** {:^37} ***".format(
+                print "*** {:^44} ***".format(
                     "%s::%s (id:%s)" % (rack.parent if rack.parent else 'global', rack, rack.id))
 
                 unsorted_servers = []
@@ -108,8 +109,11 @@ class Command(BaseCommand):
 
                 # sorted_servers must be sorted by position in reverse order
                 rack_layout_map = {}
+                curr_position = rack.size  # max position
                 for sorted_server in sorted_servers:
                     curr_pos = sorted_server.position
+                    if not curr_pos:
+                        logger.warning("Server %s position is not set." % sorted_server)
 
                     if curr_pos in rack_layout_map:
                         while curr_pos in rack_layout_map:
@@ -119,21 +123,23 @@ class Command(BaseCommand):
 
                     rack_layout_map[sorted_server.position] = sorted_server
 
-                curr_position = rack.size  # max position
+                    if sorted_server.position > curr_position:
+                        curr_position = sorted_server.position
+
                 while curr_position > 0:
                     if curr_position in rack_layout_map:
                         server = rack_layout_map[curr_position]
 
-                        print "[{:>3s}|  {:<33s}  |{:s}]".format(str(server.position), server,
+                        print "[{:>3s}|  {:<40s}  |{:s}]".format(str(server.position), server,
                                                                  'o' if server.on_rails else ' ')
                     else:
-                        print "[{:>3s}|{:-^39s}]".format(str(curr_position), '')
+                        print "[{:>3s}|{:-^46s}]".format(str(curr_position), '')
 
                     curr_position -= 1
 
                 # print free space
                 while curr_position > 0:
-                    print "[{:>3s}|{:-^39s}]".format(str(curr_position), '')
+                    print "[{:>3s}|{:-^46s}]".format(str(curr_position), '')
                     curr_position -= 1
 
                 print "\n"
