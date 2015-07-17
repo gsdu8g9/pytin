@@ -12,7 +12,7 @@ class TestDDoSAnalizer(unittest.TestCase):
     def test_get_log_value(self):
         line = '5.61.38.35 - - [08/May/2015:03:32:59 +0300] "GET /contact.html HTTP/1.1" "200" 4902 "seotron.ru/contact.html" "URLGrabber" "-" seotron.ru'
         analize = DDoSAnalizer(None, 'nginx', 10)
-        self.assertEqual(analize.get_log_value(line), ['5.61.38.35',
+        self.assertEqual(analize._get_log_value(line), ['5.61.38.35',
             '-',
             '-',
             '[08/May/2015:03:32:59 +0300]',
