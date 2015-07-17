@@ -33,9 +33,9 @@ TRIG="350"
 REQ="/path/to/nginx_access.log"
 
 if [ -f "$REQ" ]; then
- LP=${REQ}
- TLOG_TF="nginx"
+    LP=${REQ}
+    TLOG_TF="nginx"
 
- ## nginx
- ARG_VAL=`${TLOG_PATH} ${LP} ${TLOG_TF} | sed -e 's/::ffff://' | grep -E '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | sed -n -e "s/\(.*\) - -.*\" \(.*\)/\1:\2/p"`
+    ## nginx
+    ARG_VAL=`${TLOG_PATH} ${LP} ${TLOG_TF} | sed -e 's/::ffff://' | python nginx_bfd.py -p /tmp/bfdpid -f nginx --stdin`
 fi
