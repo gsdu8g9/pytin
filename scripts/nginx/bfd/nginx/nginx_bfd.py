@@ -79,7 +79,7 @@ def main():
         for filtered_ip in filtered_ips:
             # repeat IP in the output
             for x in range(0, filtered_ips[filtered_ip]):
-                sys.stdout.write("%s:%s\n" % (filtered_ips, filtered_ips[filtered_ip]))
+                sys.stdout.write("%s:%s\n" % (filtered_ip, filtered_ips[filtered_ip]))
 
         # end wrap ---
 
