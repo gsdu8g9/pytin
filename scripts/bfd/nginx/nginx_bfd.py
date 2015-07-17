@@ -2,7 +2,6 @@ import sys
 import argparse
 import traceback
 import os
-import operator
 
 from lib.data_providers import StdInDataProvider, FileDataProvider
 from lib.nginx_log_parser import NginxLogParser
@@ -56,6 +55,7 @@ def main():
 
         log_parser = parser_impl_class(data_provider)
 
+        # --- wrap this up in log analyzer
         parsed_data_map = {}
         for log_record in log_parser:
             if log_record.domain not in parsed_data_map:
@@ -67,17 +67,21 @@ def main():
             parsed_data_map[log_record.domain][log_record.ip] += 1
 
         # find top request IPs
-        sorted_ips = {}
+        filtered_ips = {}
         for ip_list_item in parsed_data_map.values():
             for ip in ip_list_item:
-                if ip not in sorted_ips:
-                    sorted_ips[ip] = ip_list_item[ip]
-                elif sorted_ips[ip] < ip_list_item[ip]:
-                    sorted_ips[ip] = ip_list_item[ip]
+                if ip not in filtered_ips:
+                    filtered_ips[ip] = ip_list_item[ip]
+                elif filtered_ips[ip] < ip_list_item[ip]:
+                    filtered_ips[ip] = ip_list_item[ip]
 
-        # print resulting touples
-        for sorted_ip_touple in sorted(sorted_ips.items(), key=operator.itemgetter(1), reverse=True):
-            sys.stdout.write("%s:%s\n" % (sorted_ip_touple[0], sorted_ip_touple[1]))
+        # print results
+        for filtered_ip in filtered_ips:
+            # repeat IP in the output
+            for x in range(0, filtered_ips[filtered_ip]):
+                sys.stdout.write("%s:%s\n" % (filtered_ips, filtered_ips[filtered_ip]))
+
+        # end wrap ---
 
     finally:
         exit_pid_lock(args.pidfile)

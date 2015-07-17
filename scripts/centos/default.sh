@@ -30,7 +30,7 @@ sed -e "s/\e\[6~/\e[B/g" /tmp/inputrc > /etc/inputrc
 ### Install BFD and APF
 mkdir secdistr && cd secdistr
 
-mkdir apf && cd apf
+mkdir -p apf && cd apf
 wget http://www.rfxn.com/downloads/apf-current.tar.gz
 tar --strip-components=1 -xzf apf-current.tar.gz
 ./install.sh
@@ -55,7 +55,7 @@ fi
 echo "10.0.0.0/24" >> /etc/apf/allow_hosts.rules
 
 
-mkdir bfd && cd bfd
+mkdir -p bfd && cd bfd
 wget http://www.rfxn.com/downloads/bfd-current.tar.gz
 tar --strip-components=1 -xzf bfd-current.tar.gz
 ./install.sh

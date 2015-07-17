@@ -27,15 +27,15 @@
 
 # too many connections
 # uncomment to override conf.bfd trig value
-TRIG="350"
+TRIG="150"
 
 # file must exist for rule to be active
-REQ="/path/to/nginx_access.log"
+REQ="/var/log/nginx/access.log"
 
 if [ -f "$REQ" ]; then
     LP=${REQ}
     TLOG_TF="nginx"
 
     ## nginx
-    ARG_VAL=`${TLOG_PATH} ${LP} ${TLOG_TF} | sed -e 's/::ffff://' | python nginx_bfd.py -p /tmp/bfdpid -f nginx --stdin`
+    ARG_VAL=`${TLOG_PATH} ${LP} ${TLOG_TF} | sed -e 's/::ffff://' | python /usr/local/bfd/nginx/nginx_bfd.py -p /tmp/bfdpid -f nginx --stdin`
 fi
