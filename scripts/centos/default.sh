@@ -60,3 +60,6 @@ wget http://www.rfxn.com/downloads/bfd-current.tar.gz
 tar --strip-components=1 -xzf bfd-current.tar.gz
 ./install.sh
 cd ..
+
+# Off attack tracker in BFD
+perl -pi -e 's/MAX_LINES=50/MAX_LINES=0/g' /usr/local/bfd/bfd
