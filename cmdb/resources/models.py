@@ -140,7 +140,7 @@ class SubclassingQuerySet(QuerySet):
         for related_query_item in related_query:
             query_set = super(SubclassingQuerySet, query_set).filter(*args, **related_query_item)
 
-        return query_set.distinct()
+        return query_set.distinct().order_by('-last_seen')
 
     def get(self, *args, **kwargs):
         logger.debug("%s, %s" % (args, kwargs))

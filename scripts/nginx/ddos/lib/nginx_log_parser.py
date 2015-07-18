@@ -1,7 +1,7 @@
 import re
 
 
-class NginxLogRecord:
+class AccessLogRecord:
     def __init__(self):
         self.date = ''
         self.domain = ''
@@ -36,7 +36,7 @@ class NginxLogParser:
 
         mt = re.match(self.pattern, log_line)
         if mt:
-            record = NginxLogRecord()
+            record = AccessLogRecord()
             record.date = mt.group(2)
             record.ip = mt.group(1)
             record.http_code = int(mt.group(5))

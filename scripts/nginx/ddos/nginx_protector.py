@@ -5,6 +5,8 @@ import os
 
 from lib.data_providers import StdInDataProvider, FileDataProvider
 from lib.nginx_log_parser import NginxLogParser
+from lib.analyzers import GenericDDoSAnalyzer
+from lib.blockers import ApfBlocker
 
 
 def enter_pid_lock(lock_file):
@@ -43,9 +45,8 @@ def main():
 
     args = parser.parse_args()
 
+    enter_pid_lock(args.pidfile)
     try:
-        enter_pid_lock(args.pidfile)
-
         parser_impl_class = known_formats[args.log_format]
 
         if args.stdin:
@@ -55,33 +56,11 @@ def main():
 
         log_parser = parser_impl_class(data_provider)
 
-        # --- wrap this up in log analyzer
-        parsed_data_map = {}
-        for log_record in log_parser:
-            if log_record.domain not in parsed_data_map:
-                parsed_data_map[log_record.domain] = {}
-
-            if log_record.ip not in parsed_data_map[log_record.domain]:
-                parsed_data_map[log_record.domain][log_record.ip] = 0
-
-            parsed_data_map[log_record.domain][log_record.ip] += 1
-
-        # find top request IPs
-        filtered_ips = {}
-        for ip_list_item in parsed_data_map.values():
-            for ip in ip_list_item:
-                if ip not in filtered_ips:
-                    filtered_ips[ip] = ip_list_item[ip]
-                elif filtered_ips[ip] < ip_list_item[ip]:
-                    filtered_ips[ip] = ip_list_item[ip]
-
-        # print results
-        for filtered_ip in filtered_ips:
-            # repeat IP in the output
-            for x in range(0, filtered_ips[filtered_ip]):
-                sys.stdout.write("%s:%s\n" % (filtered_ip, filtered_ips[filtered_ip]))
-
-        # end wrap ---
+        analyzer = GenericDDoSAnalyzer(log_parser, threshold=100)
+        blocker = ApfBlocker()
+        for attacker_ip in analyzer.attacker_ip_list():
+            blocker.block(attacker_ip)
+            sys.stdout.write("IP %s blocked.\n" % attacker_ip)
 
     finally:
         exit_pid_lock(args.pidfile)
