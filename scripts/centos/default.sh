@@ -47,8 +47,8 @@ fi
 ip link | grep venet
 if [ $? -eq 0 ];
 then
-    perl -pi -e 's/IFACE_IN="eth0"/IFACE_IN="venet0:0"/g' /etc/apf/conf.apf
-    perl -pi -e 's/IFACE_OUT="eth0"/IFACE_OUT="venet0:0"/g' /etc/apf/conf.apf
+    perl -pi -e 's/IFACE_IN="eth0"/IFACE_IN="venet0"/g' /etc/apf/conf.apf
+    perl -pi -e 's/IFACE_OUT="eth0"/IFACE_OUT="venet0"/g' /etc/apf/conf.apf
     perl -pi -e 's/SET_MONOKERN="0"/SET_MONOKERN="1"/g' /etc/apf/conf.apf
 fi
 
