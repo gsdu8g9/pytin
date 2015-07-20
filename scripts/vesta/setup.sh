@@ -7,7 +7,7 @@
 #
 # Usage:
 #   Debian/Ubuntu
-#       wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/vesta/setup.sh
+#       wget --no-check-certificate https://raw.githubusercontent.com/servancho/pytin/master/scripts/vesta/setup.sh
 #       bash setup.sh
 #
 #   CentOS
