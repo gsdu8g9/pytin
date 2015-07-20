@@ -21,6 +21,8 @@ perl -pi -e 's/IG_UDP_CPORTS="[^\"]*"/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.ap
 # Проблемы с лимитом на открытые файлы
 echo "*               soft    nofile          8192" >> /etc/security/limits.conf 
 echo "*               hard    nofile          8192" >> /etc/security/limits.conf 
+echo "root            soft    nofile          8192" >> /etc/security/limits.conf 
+echo "root            hard    nofile          8192" >> /etc/security/limits.conf 
 }
 
 # Detect OS
