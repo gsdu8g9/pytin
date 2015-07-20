@@ -19,6 +19,7 @@ perl -pi -e 's/IG_TCP_CPORTS="[^\"]*"/IG_TCP_CPORTS="21,22,25,80,110,143,443,465
 perl -pi -e 's/IG_UDP_CPORTS="[^\"]*"/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.apf
 
 # Проблемы с лимитом на открытые файлы
+# ulimit -n
 echo "*               soft    nofile          8192" >> /etc/security/limits.conf 
 echo "*               hard    nofile          8192" >> /etc/security/limits.conf 
 echo "root            soft    nofile          8192" >> /etc/security/limits.conf 
