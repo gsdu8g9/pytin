@@ -8,7 +8,7 @@
 # Usage:
 #   Debian/Ubuntu
 #       wget --no-check-certificate https://raw.githubusercontent.com/servancho/pytin/master/scripts/apache/virtual_cache_disk.sh
-#       bash setup.sh
+#       bash virtual_cache_disk.sh
 #
 #   CentOS
 #       bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/apache/virtual_cache_disk.sh)
@@ -19,10 +19,10 @@ Debian|Ubuntu)
 cat <<EOF > /etc/apache2/conf.d/httpd-cache.conf
 #   Cache Configuration
 
-LoadModule cache_module /usr/lib/apache2/modules/mod_dav.so/mod_cache.so
+LoadModule cache_module /usr/lib/apache2/modules/mod_cache.so
 
 <IfModule mod_cache.c>
-LoadModule disk_cache_module /usr/lib/apache2/modules/mod_dav.so/mod_disk_cache.so
+LoadModule disk_cache_module /usr/lib/apache2/modules/mod_disk_cache.so
 <IfModule mod_disk_cache.c>
 CacheRoot /data/www/cacheroot
 CacheEnable disk /
