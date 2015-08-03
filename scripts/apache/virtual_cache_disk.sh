@@ -5,9 +5,13 @@
 # Description:
 #	Скрипт настройки кеширования
 #
-# Requirements:
-#	CentOS 6
+# Usage:
+#   Debian/Ubuntu
+#       wget --no-check-certificate https://raw.githubusercontent.com/servancho/pytin/master/scripts/apache/virtual_cache_disk.sh
+#       bash setup.sh
 #
+#   CentOS
+#       bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/apache/virtual_cache_disk.sh)
 
 # Detect OS
 case $(head -n1 /etc/issue | cut -f 1 -d ' ') in
