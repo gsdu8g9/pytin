@@ -60,6 +60,11 @@ bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/cen
 set_conf
 bash <(curl http://vestacp.com/pub/vst-install.sh)
 
+# Force install
+if [ $? -ne 0 ];
+then
+bash vst-install-rhel.sh --force
+fi
 ;;
 *)
 ;;

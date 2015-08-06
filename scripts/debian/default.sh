@@ -40,7 +40,7 @@ esac
 
 apt-get -y update
 apt-get -y upgrade
-apt-get -y install wget nano ntpdate ntp
+apt-get -y install wget nano ntpdate ntp mc
 
 ntpdate -d ntp1.vniiftri.ru
 
