@@ -47,6 +47,11 @@ ntpdate -d ntp1.vniiftri.ru
 sed -i 's/.*history-search-backward$/"\\e[A": history-search-backward/g' /etc/inputrc
 sed -i 's/.*history-search-forward$/"\\e[B": history-search-forward/g' /etc/inputrc
 
+### Begin: Not install security for OpenVZ
+ip link | grep venet
+if [ $? -ne 0 ];
+then
+
 ### Install BFD and APF
 mkdir secdistr && cd secdistr
 
@@ -76,3 +81,5 @@ wget http://www.rfxn.com/downloads/bfd-current.tar.gz
 tar --strip-components=1 -xzf bfd-current.tar.gz
 ./install.sh
 cd ..
+
+fi

@@ -27,6 +27,11 @@ chkconfig ntpd on
 sed -e "s/\e\[5~/\e\[A/g" /etc/inputrc > /tmp/inputrc
 sed -e "s/\e\[6~/\e[B/g" /tmp/inputrc > /etc/inputrc
 
+### Begin: Not install security for OpenVZ
+ip link | grep venet
+if [ $? -ne 0 ];
+then
+
 ### Install BFD and APF
 mkdir secdistr && cd secdistr
 
@@ -63,3 +68,6 @@ cd ..
 
 # Off attack tracker in BFD
 perl -pi -e 's/MAX_LINES=50/MAX_LINES=0/g' /usr/local/bfd/bfd
+
+fi
+### End: Not install security for OpenVZ
