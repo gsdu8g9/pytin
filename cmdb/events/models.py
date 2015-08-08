@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.db.models.signals import post_init
+from django.db.models.signals import post_init, pre_delete
 from django.db.models.signals import post_save
-from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.utils import timezone
 
 from resources.models import Resource, ResourceOption
@@ -34,11 +34,14 @@ class HistoryEvent(models.Model):
 
     @staticmethod
     def add_create(resource):
+        assert isinstance(resource, Resource)
+
         event = HistoryEvent(resource=resource, type=HistoryEvent.CREATE)
         event.save()
 
     @staticmethod
     def add_update(resource, field_name, field_old_value, field_new_value):
+        assert isinstance(resource, Resource)
         assert field_name
 
         event = HistoryEvent(resource=resource, type=HistoryEvent.UPDATE, field_name=field_name,
@@ -47,6 +50,8 @@ class HistoryEvent(models.Model):
 
     @staticmethod
     def add_delete(resource):
+        assert isinstance(resource, Resource)
+
         event = HistoryEvent(resource=resource, type=HistoryEvent.DELETE)
         event.save()
 
@@ -59,12 +64,17 @@ class HistoryEvent(models.Model):
 
 ####### Attach history models to the resources #######
 
+@receiver(post_init, sender=Resource)
 def resource_post_init(sender, instance, **kwargs):
     for field in RESOURCE_HISTORY_FIELDS:
         setattr(instance, '_original_%s' % field, getattr(instance, field))
 
 
+@receiver(post_save)
 def resource_post_save(sender, instance, created, **kwargs):
+    if not issubclass(sender, Resource):
+        return
+
     if created:
         HistoryEvent.add_create(instance)
     else:
@@ -77,14 +87,20 @@ def resource_post_save(sender, instance, created, **kwargs):
                     HistoryEvent.add_update(instance, field, orig_value, value)
 
 
+@receiver(pre_delete)
 def resource_post_delete(sender, instance, using, **kwargs):
+    if not issubclass(sender, Resource):
+        return
+
     HistoryEvent.add_delete(instance)
 
 
+@receiver(post_init, sender=ResourceOption)
 def resource_option_post_init(sender, instance, **kwargs):
     setattr(instance, '_original_value', instance.value)
 
 
+@receiver(post_save, sender=ResourceOption)
 def resource_option_post_save(sender, instance, created, **kwargs):
     field_name = instance.name
     field_new_value = instance.value
@@ -94,34 +110,3 @@ def resource_option_post_save(sender, instance, created, **kwargs):
         if unicode(field_new_value) != unicode(field_old_value) or created:
             field_old_value = None if created else field_old_value
             HistoryEvent.add_update(instance.resource, field_name, field_old_value, field_new_value)
-
-# Attach signal to the function
-post_init.connect(
-    resource_post_init,
-    sender=Resource,
-    dispatch_uid='cmdb.events.models.resource_post_init',
-)
-
-post_save.connect(
-    resource_post_save,
-    sender=Resource,
-    dispatch_uid='cmdb.events.models.resource_post_save',
-)
-
-post_delete.connect(
-    resource_post_delete,
-    sender=Resource,
-    dispatch_uid='cmdb.events.models.resource_post_delete',
-)
-
-post_init.connect(
-    resource_option_post_init,
-    sender=ResourceOption,
-    dispatch_uid='cmdb.events.models.resource_option_post_init',
-)
-
-post_save.connect(
-    resource_option_post_save,
-    sender=ResourceOption,
-    dispatch_uid='cmdb.events.models.resource_option_post_save',
-)

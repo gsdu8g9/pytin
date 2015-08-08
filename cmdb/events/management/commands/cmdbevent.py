@@ -50,7 +50,8 @@ class Command(BaseCommand):
             events_set = events_set[offset:limit]
 
         row_format = '%15s %5s %11s %15s %15s %25s %25s'
-        logger.info(row_format % ('DATE', 'TYPE', 'RES_ID', 'RES_TYPE', 'FIELD', 'OLD', 'NEW'))
+        logger.info(row_format % (
+        'created_at', 'type', 'resource_id', 'resource_type', 'field_name', 'field_old_value', 'field_new_value'))
         for event in events_set:
             logger.info(row_format % (
                 timezone.localtime(event.created_at).strftime('%d.%m.%Y %H:%M'), event.type, event.resource.id,

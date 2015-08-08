@@ -1,10 +1,28 @@
 from django.test import TestCase
 
 from events.models import HistoryEvent
+from ipman.models import IPAddress
 from resources.models import Resource
 
 
 class HistoryEventTest(TestCase):
+    def setUp(self):
+        super(HistoryEventTest, self).setUp()
+        HistoryEvent.objects.filter().delete()
+
+    def test_related_resource_option_change_history(self):
+        ip1 = IPAddress.objects.create(address='172.1.1.10')
+        self.assertEqual(1, len(HistoryEvent.objects.filter(type=HistoryEvent.CREATE)))
+
+        ip1.set_option('testfield', 'testval1')
+        self.assertEqual(5, len(HistoryEvent.objects.all()))
+
+        ip1.set_option('testfield', 'testval2')
+        self.assertEqual(6, len(HistoryEvent.objects.all()))
+
+        self.assertEqual(1, len(HistoryEvent.objects.filter(type=HistoryEvent.CREATE)))
+        self.assertEqual(5, len(HistoryEvent.objects.filter(type=HistoryEvent.UPDATE)))
+
     def test_resource_option_change_history(self):
         res1 = Resource.objects.create(name='res1')
 

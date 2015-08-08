@@ -179,6 +179,8 @@ Features
     # python manage.py cmdbimport fromfile --arpdump /path/to/file/arp-table.txt <gateway_id> QSW8300.arp
     python manage.py cmdbimport snmp <gateway_id> QSW8300.arp <IP> <community string>
 
+    # Debug api server
+    ./manage.py runserver 0.0.0.0:8018 >/apps/cmdb/logs/api.server.log 2>&1 &
 
 Use cases
 --------

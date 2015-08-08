@@ -4,8 +4,8 @@ from django.test import TestCase
 
 from assets.models import RegionResource, ServerPort, Server, VirtualServer, GatewaySwitch, PortConnection, Switch, \
     VirtualServerPort
+from events.models import HistoryEvent
 from importer.importlib import GenericCmdbImporter
-
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from ipman.models import IPNetworkPool, IPAddress
 
@@ -85,6 +85,7 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(0, len(ServerPort.active.filter(parent=None)))
         self.assertEqual(41, len(VirtualServerPort.active.filter()))
         self.assertEqual(54, len(PortConnection.active.filter()))
+        self.assertEqual(1328, len(IPAddress.active.filter()))
 
         # Linked VPS
         self.assertEqual(3, len(VirtualServer.active.filter(parent=619)))
@@ -99,3 +100,6 @@ class QSW8300ImportDataTest(TestCase):
 
         srv_port = ServerPort.active.filter(mac='001517E69D70')[0]
         self.assertEqual(4, len(VirtualServer.active.filter(parent=srv_port.parent)))
+
+        events = HistoryEvent.objects.filter(type=HistoryEvent.CREATE)
+        self.assertEqual(1677, len(events))
