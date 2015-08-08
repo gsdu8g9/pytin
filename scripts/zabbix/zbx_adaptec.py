@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import traceback
+import json
 
 dict_re = {'logdevnum': '^Logical device number ([0-9]+).*$',
     'status': '^\s*Status of logical device\s*:\s*(.*)$',
@@ -32,6 +33,7 @@ def main():
     parser.add_argument("--test", dest="test", action='store_true', help="Тестовый режим из файла")
     group1 = parser.add_argument_group('Команды')
     mutex_group1 = group1.add_mutually_exclusive_group(required=True)
+    mutex_group1.add_argument("--discovery", dest="discovery", action='store_true', help="Обнаружение")
     mutex_group1.add_argument("--model", dest="model", action='store_true', help="Модель контроллера")
     mutex_group1.add_argument("--status", dest="status", action='store_true', help="Статус логического устройства")
     mutex_group1.add_argument("--temperature", dest="temperature", action='store_true', help="Температура контроллера")
@@ -44,6 +46,11 @@ def main():
         outinfo = subprocess.Popen(['cat', 'test/output.txt'], stdout=subprocess.PIPE)
     else:
         outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', '1', 'al'], stdout=subprocess.PIPE)
+    if args.discovery:
+        jdump = json.dumps({'data': [{'{#FSNAME}': 'Name'},
+            {'{#FSTYPE}': 'Type'}]})
+        print str(jdump)
+        sys.exit(0)
     for line in outinfo.stdout.readlines():
         line = line.replace("\n", "")
         lstatus = None
