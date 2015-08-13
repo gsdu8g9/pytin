@@ -21,7 +21,11 @@ dict_re = {'logdevnum': '^Logical device number ([0-9]+).*$',
     'status': '^\s*Status of logical device\s*:\s*(.*)$',
     'temperature': '^\s*Temperature\s*:\s*([0-9]+).*$',
     'level': '^\s*RAID level\s*:\s*([0-9]+).*$',
-    'model': '^\s*Controller Model\s*:\s*(.*)$'}
+    'model': '^\s*Controller Model\s*:\s*(.*)$',
+    'controller': '^Controller \#([0-9]+)$',
+    'pdevice': '^\s*Device \#([0-9]+)$',
+    'pdevicestate': '^\s*State\s*:\s*(.*)$',
+    'pdevicesn': '^\s*Serial number\s*:\s*(.*)$'}
 
 cmd_arcconf = '/usr/bin/arcconf'
 cmd_arcconf = '/usr/bin/arcconf'
@@ -34,41 +38,128 @@ def main():
     group1 = parser.add_argument_group('Команды')
     mutex_group1 = group1.add_mutually_exclusive_group(required=True)
     mutex_group1.add_argument("--discovery", dest="discovery", action='store_true', help="Обнаружение")
-    mutex_group1.add_argument("--model", dest="model", action='store_true', help="Модель контроллера")
-    mutex_group1.add_argument("--status", dest="status", action='store_true', help="Статус логического устройства")
-    mutex_group1.add_argument("--temperature", dest="temperature", action='store_true', help="Температура контроллера")
-    mutex_group1.add_argument("--level", dest="level", action='store_true', help="Уровень RAID")
+    mutex_group1.add_argument("--model", dest="model", type=int, help="Модель контроллера")
+    mutex_group1.add_argument("--status", dest="status", type=int, help="Статус логического устройства")
+    mutex_group1.add_argument("--temperature", dest="temperature", type=int, help="Температура контроллера")
+    mutex_group1.add_argument("--level", dest="level", type=int, help="Уровень RAID")
+    mutex_group1.add_argument("--drivestate", dest="drivestate", nargs=2, type=int, metavar = ('Controller', 'Drive'), help="Состояние диска")
+    mutex_group1.add_argument("--drivesn", dest="drivesn", nargs=2, type=int, metavar = ('Controller', 'Drive'), help="Серийный номер диска")
 
     args = parser.parse_args()
 
     outinfo = None
+    if args.discovery:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getversion'], stdout=subprocess.PIPE)
+        controllers = []
+        """
+        Получить список контроллеров
+        """
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            result = re.findall(dict_re['controller'], line)
+            if len(result)>0:
+                controllers.append( [str(result[0]), []] )
+        """
+        Получить список дисков на каждом контроллере
+        """
+        for id_controller,controller in enumerate(controllers):
+            outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', controller[0], 'pd'], stdout=subprocess.PIPE)
+            for line in outinfo.stdout.readlines():
+                line = line.replace("\n", "")
+                result = re.findall(dict_re['pdevice'], line)
+                if len(result)>0:
+                    controller[1].append(result[0])
+        """
+        Сформировать пакет данных
+        """
+        str_jdump = '{"data": ['
+        for id_controller,controller in enumerate(controllers):
+            for id_device,device in enumerate(controller[1]):
+                str_jdump += '{"{#CONTROLLER}": "' + controller[0] + '",'
+                str_jdump += '"{#PDEVICE}": "' + device + '"}'
+                if id_device + 1 < len(controller[1]):
+                    str_jdump += ','
+            if id_controller + 1 < len(controllers):
+                str_jdump += ','
+        str_jdump += ']}'
+        jdump = json.loads(str_jdump)
+        gf = json.dumps(jdump, indent=4)
+        print gf
+        sys.exit(0)
+
     if args.test:
         outinfo = subprocess.Popen(['cat', 'test/output.txt'], stdout=subprocess.PIPE)
     else:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', '1', 'al'], stdout=subprocess.PIPE)
-    if args.discovery:
-        jdump = json.dumps({'data': [{'{#FSNAME}': 'Name'},
-            {'{#FSTYPE}': 'Type'}]})
-        print str(jdump)
-        sys.exit(0)
-    for line in outinfo.stdout.readlines():
-        line = line.replace("\n", "")
-        lstatus = None
-        if args.model:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.model), 'al'], stdout=subprocess.PIPE)
+
+    lstatus = None
+    result = None
+    if args.model:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.model), 'al'], stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
             lstatus = re.findall(dict_re['model'], line)
-        elif args.status:
+            if len(lstatus) > 0:
+                result = lstatus
+    elif args.status:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.status), 'al'], stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
             lstatus = re.findall(dict_re['status'], line)
-            if lstatus == 'Optimal':
-                lstatus = 1
-        elif args.temperature:
+            if len(lstatus) > 0:
+                if lstatus[0] == 'Optimal':
+                    result = '1'
+                elif lstatus[0] == 'Failed':
+                    result = '2'
+                elif lstatus[0] == 'Degraded':
+                    result = '3'
+    elif args.temperature:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.temperature), 'al'], stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
             lstatus = re.findall(dict_re['temperature'], line)
-        elif args.level:
+            if len(lstatus) > 0:
+                result = lstatus
+    elif args.level:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.level), 'al'], stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
             lstatus = re.findall(dict_re['level'], line)
-        if lstatus:
-            if str(lstatus[0]) == 'Optimal':
-                print '1'
-            else:
-                print str(lstatus[0])
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.drivestate:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.drivestate[0]), 'pd'], stdout=subprocess.PIPE)
+        outtext = outinfo.stdout.readlines()
+        for id_device,line in enumerate(outtext):
+            line = line.replace("\n", "")
+            device = re.findall(dict_re['pdevice'], line)
+            if len(device)>0:
+                if device[0] == str(args.drivestate[1]):
+                    for deviceline in outtext[id_device+2:id_device+25]:
+                        line = deviceline.replace("\n", "")
+                        devicestate = re.findall(dict_re['pdevicestate'], line)
+                        if len(devicestate):
+                            if devicestate[0] == 'Online':
+                                result = 1
+    elif args.drivesn:
+        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.drivesn[0]), 'pd'], stdout=subprocess.PIPE)
+        outtext = outinfo.stdout.readlines()
+        for id_device,line in enumerate(outtext):
+            line = line.replace("\n", "")
+            device = re.findall(dict_re['pdevice'], line)
+            if len(device)>0:
+                if device[0] == str(args.drivesn[1]):
+                    for deviceline in outtext[id_device+2:id_device+25]:
+                        line = deviceline.replace("\n", "")
+                        devicestate = re.findall(dict_re['pdevicesn'], line)
+                        if len(devicestate):
+                            result = devicestate
+
+    if result:
+        if len(result) > 0:
+            print str(result[0])
+        else:
+            print str(result)
 
 if __name__ == "__main__":
     try:

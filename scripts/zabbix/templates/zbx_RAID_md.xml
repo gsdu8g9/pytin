@@ -1,0 +1,980 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>2.0</version>
+    <date>2012-07-21T22:42:14Z</date>
+    <groups>
+        <group>
+            <name>Templates</name>
+        </group>
+    </groups>
+    <templates>
+        <template>
+            <template>Template App MD Raid</template>
+            <name>Template App MD Raid</name>
+            <groups>
+                <group>
+                    <name>Templates</name>
+                </group>
+            </groups>
+            <applications>
+                <application>
+                    <name>MD RAID</name>
+                </application>
+            </applications>
+            <items/>
+            <discovery_rules>
+                <discovery_rule>
+                    <name>MD Raid arrays</name>
+                    <type>0</type>
+                    <snmp_community></snmp_community>
+                    <snmp_oid></snmp_oid>
+                    <key>md.discovery</key>
+                    <delay>600</delay>
+                    <status>0</status>
+                    <allowed_hosts></allowed_hosts>
+                    <snmpv3_securityname></snmpv3_securityname>
+                    <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                    <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                    <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                    <delay_flex></delay_flex>
+                    <params></params>
+                    <ipmi_sensor></ipmi_sensor>
+                    <authtype>0</authtype>
+                    <username></username>
+                    <password></password>
+                    <publickey></publickey>
+                    <privatekey></privatekey>
+                    <port></port>
+                    <filter>:</filter>
+                    <lifetime>30</lifetime>
+                    <description></description>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Current synchronization progress on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},sync_completed]</key>
+                            <delay>300</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>sectors</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This shows the number of sectors that have been completed of whatever the current sync_action is, followed by the number of sectors in total that could need to be processed.  The two numbers are separated by a '/'  thus effectively showing one value, a fraction of the process that is complete.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Delay after writes before marking the array as clean on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},safe_mode_delay]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>0</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>s</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>When an md array has seen no write requests for a certain period of time, it will be marked as 'clean'.  When another write request arrives, the array is marked as 'dirty' before the write commences.  This is known as 'safe_mode'. The 'certain period' is controlled by this file which stores the period as a number of seconds.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Maximum speed for RAID rebuilts on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},sync_speed_max]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>kB</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description></description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Minimum speed for RAID rebuilts on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},sync_speed_min]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>kB</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description></description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Number is degraded components on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},degraded]</key>
+                            <delay>300</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This contains a count of the number of devices by which the arrays is degraded.  So an optimal array with show '0'.  A single failed/missing drive will show '1', etc.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Number of errors found while checking or repairing on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},mismatch_count]</key>
+                            <delay>300</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>When performing 'check' and 'repair', and possibly when performing 'resync', md will count the number of errors that are found.  The count in 'mismatch_cnt' is the number of sectors that were re-written, or (for 'check') would have been re-written.  As most raid levels work in units of pages rather than sectors, this my be larger than the number of actual errors by a factor of the number of sectors in a page.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Array state of {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},array_state]</key>
+                            <delay>300</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>1</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This file contains a single word which describes the current state of the array.&#13;
+clear / inactive / suspended  / readonly / read-auto / clean / active / write-pending / active-idle</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Array usable size of {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},array_size]</key>
+                            <delay>86400</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>kB</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This can be used to artificially constrain the available space in the array to be less than is actually available on the combined devices.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Raid chunk size on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},chunk_size]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>b</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This is the size in bytes for 'chunks' and is only relevant to raid levels that involve striping (0,4,5,6,10)</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Component size on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},component_size]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>sectors</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>The size of each component of the RAID array (for arrays with data redundancy)</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Raid disks on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},raid_disks]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>The number of devices in a fully functional array</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Raid layout of {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},layout]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>The &quot;layout&quot; for the array for the particular level.  This is simply a number that is interpretted differently by different levels.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Raid level of {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},level]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>1</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description></description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Metadata version of {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},metadata_version]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>1</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This indicates the format that is being used to record metadata about the array.  It can be 0.90 (traditional format), 1.0, 1.1, 1.2 (newer format in varying locations) or &quot;none&quot; indicating that the kernel isn't managing metadata at all. Alternately it can be &quot;external:&quot; followed by a string which is set by user-space.  This indicates that metadata is managed by a user-space program.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Reshape position on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},reshape_position]</key>
+                            <delay>300</delay>
+                            <history>30</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>sectors</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This is either &quot;none&quot; or a sector number within the devices of the array where &quot;reshape&quot; is up to.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Stripe cache in use on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},strip_cache_active]</key>
+                            <delay>300</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>stripes</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>RAID5/6 only: number of active entries in the stripe cache</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Stripe cache size on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},stripe_cache_size]</key>
+                            <delay>86400</delay>
+                            <history>365</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>stripes</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>RAID5/6 only: Number of entries in the stripe cache.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>RAID Sync status of {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},sync_action]</key>
+                            <delay>300</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>1</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units></units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>It contains one word which can be one of:&#13;
+       resync        - redundancy is being recalculated after unclean&#13;
+                       shutdown or creation&#13;
+       recover       - a hot spare is being built to replace a&#13;
+                       failed/missing device&#13;
+       idle          - nothing is happening&#13;
+       check         - A full check of redundancy was requested and is&#13;
+                       happening.  This reads all block and checks&#13;
+                       them. A repair may also happen for some raid&#13;
+                       levels.&#13;
+       repair        - A full check and repair is happening.  This is&#13;
+                       similar to 'resync', but was requested by the&#13;
+                       user, and the write-intent bitmap is NOT used to&#13;
+		       optimise the process.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Synchronization speed on {#MDDEV}</name>
+                            <type>0</type>
+                            <snmp_community></snmp_community>
+                            <multiplier>0</multiplier>
+                            <snmp_oid></snmp_oid>
+                            <key>md[{#MDDEV},sync_speed]</key>
+                            <delay>300</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts></allowed_hosts>
+                            <units>KB/s</units>
+                            <delta>0</delta>
+                            <snmpv3_securityname></snmpv3_securityname>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authpassphrase></snmpv3_authpassphrase>
+                            <snmpv3_privpassphrase></snmpv3_privpassphrase>
+                            <formula>1</formula>
+                            <delay_flex></delay_flex>
+                            <params></params>
+                            <ipmi_sensor></ipmi_sensor>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username></username>
+                            <password></password>
+                            <publickey></publickey>
+                            <privatekey></privatekey>
+                            <port></port>
+                            <description>This shows the current actual speed, in K/sec, of the current sync_action.  It is averaged over the last 30 seconds.</description>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                    </item_prototypes>
+                    <trigger_prototypes>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},array_state].str(inactive)}=1 | {Template App MD Raid:md[{#MDDEV},array_state].str(suspended)}=1 | {Template App MD Raid:md[{#MDDEV},array_state].str(readonly)}=1 | {Template App MD Raid:md[{#MDDEV},array_state].str(clear)}=1</expression>
+                            <name>Array state: {Template App MD Raid:md[{#MDDEV},array_state]</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>4</priority>
+                            <description>The RAID array is a problem state</description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},mismatch_count].last(0)}&gt;0 &amp; {Template App MD Raid:md[{#MDDEV},array_state].str(check)}=1</expression>
+                            <name>Errors found while checking {#MDDEV}</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>3</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},raid_disks].diff(0)}=1</expression>
+                            <name>Number of RAID disks in {#MDDEV} changed from {ITEM.LASTVALUE1} to {ITEM.VALUE1}</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>1</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},degraded].last(0)}&gt;0</expression>
+                            <name>RAID array {#MDDEV} has {ITEM.VALUE1} degraded devices</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>4</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},sync_action].str(check)}=1</expression>
+                            <name>RAID array {#MDDEV} is checking</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>1</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},sync_action].str(recover)}=1</expression>
+                            <name>RAID array {#MDDEV} is recovering</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>4</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},sync_action].str(resync)}=1</expression>
+                            <name>RAID array {#MDDEV} is repairing</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>2</priority>
+                            <description>A full check and repair is happening.  This is similar to 'resync', but was requested by the user, and the write-intent bitmap is NOT used to optimise the process.</description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},sync_action].str(resync)}=1</expression>
+                            <name>RAID array {#MDDEV} is resyncing</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>3</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},component_size].diff(0)}=1</expression>
+                            <name>RAID components re-sized to {ITEM.VALUE1}</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>1</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},level].diff(0)}=1</expression>
+                            <name>RAID level of {#MDDEV} changed from {ITEM.LASTVALUE1} to {ITEM.VALUE1}</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>1</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template App MD Raid:md[{#MDDEV},array_size].diff(0)}=1</expression>
+                            <name>RAID usage size changed from {ITEM.LASTVALUE1} to {ITEM.VALUE1}</name>
+                            <url></url>
+                            <status>0</status>
+                            <priority>1</priority>
+                            <description></description>
+                            <type>0</type>
+                        </trigger_prototype>
+                    </trigger_prototypes>
+                    <graph_prototypes>
+                        <graph_prototype>
+                            <name>Rebuild progress</name>
+                            <width>800</width>
+                            <height>200</height>
+                            <yaxismin>0.0000</yaxismin>
+                            <yaxismax>1111.0000</yaxismax>
+                            <show_work_period>1</show_work_period>
+                            <show_triggers>1</show_triggers>
+                            <type>0</type>
+                            <show_legend>1</show_legend>
+                            <show_3d>0</show_3d>
+                            <percent_left>0.0000</percent_left>
+                            <percent_right>0.0000</percent_right>
+                            <ymin_type_1>1</ymin_type_1>
+                            <ymax_type_1>0</ymax_type_1>
+                            <ymin_item_1>
+                                <host>Template App MD Raid</host>
+                                <key>md[{#MDDEV},sync_speed_max]</key>
+                            </ymin_item_1>
+                            <ymax_item_1>
+                                <host>Template App MD Raid</host>
+                                <key>md[{#MDDEV},sync_speed_max]</key>
+                            </ymax_item_1>
+                            <graph_items>
+                                <graph_item>
+                                    <sortorder>0</sortorder>
+                                    <drawtype>1</drawtype>
+                                    <color>00EE00</color>
+                                    <yaxisside>1</yaxisside>
+                                    <calc_fnc>4</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template App MD Raid</host>
+                                        <key>md[{#MDDEV},sync_completed]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <drawtype>4</drawtype>
+                                    <color>0000EE</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>4</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template App MD Raid</host>
+                                        <key>md[{#MDDEV},sync_speed_min]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>2</sortorder>
+                                    <drawtype>0</drawtype>
+                                    <color>FFFF33</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template App MD Raid</host>
+                                        <key>md[{#MDDEV},sync_speed]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                    </graph_prototypes>
+                </discovery_rule>
+            </discovery_rules>
+            <macros/>
+            <templates/>
+            <screens/>
+        </template>
+    </templates>
+</zabbix_export>
