@@ -27,8 +27,21 @@ dict_re = {'logdevnum': '^Logical device number ([0-9]+).*$',
     'pdevicestate': '^\s*State\s*:\s*(.*)$',
     'pdevicesn': '^\s*Serial number\s*:\s*(.*)$'}
 
-cmd_arcconf = '/usr/bin/arcconf'
-cmd_arcconf = '/usr/bin/arcconf'
+cmd_arcconf = ''
+
+"""
+Решение проблемы с нахождением утилиты
+"""
+if len(cmd_arcconf) == 0:
+    o = open('output','a') #open for append
+    outinfo = subprocess.Popen(['whereis', 'arcconf'], stdout=subprocess.PIPE)
+    var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
+    for line in open('/etc/zabbix/zbx_adaptec.py'):
+       line = line.replace("cmd_arcconf = ''", "cmd_arcconf = '" + var1[1] + "'")
+       o.write(line)
+    o.close()
+    os.rename('/etc/zabbix/output', '/etc/zabbix/zbx_adaptec.py')
+    os.chmod('/etc/zabbix/zbx_adaptec.py', 755)
 
 def main():
     parser = argparse.ArgumentParser(description='Adaptec parser',
@@ -48,6 +61,9 @@ def main():
     args = parser.parse_args()
 
     outinfo = None
+    """
+    Обнаружение контроллеров и дисков
+    """
     if args.discovery:
         outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getversion'], stdout=subprocess.PIPE)
         controllers = []
