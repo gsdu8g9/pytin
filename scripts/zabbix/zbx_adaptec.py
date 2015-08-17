@@ -113,6 +113,8 @@ def main():
                     result = '2'
                 elif lstatus[0] == 'Degraded':
                     result = '3'
+                elif lstatus[0] == 'Degraded, Rebuilding':
+                    result = '4'
     elif args.temperature:
         outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.temperature), 'al'], stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
@@ -140,7 +142,10 @@ def main():
                         devicestate = re.findall(dict_re['pdevicestate'], line)
                         if len(devicestate):
                             if devicestate[0] == 'Online':
-                                result = 1
+                                result = '1'
+                            elif devicestate[0] == 'Rebuilding':
+                                result = '2'
+
     elif args.drivesn:
         outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.drivesn[0]), 'pd'], stdout=subprocess.PIPE)
         outtext = outinfo.stdout.readlines()

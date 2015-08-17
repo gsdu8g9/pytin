@@ -43,6 +43,11 @@ set_conf
 wget http://vestacp.com/pub/vst-install.sh
 bash vst-install.sh
 
+# Force install
+if [ $? -ne 0 ];
+then
+bash vst-install-debian.sh --force
+fi
 ;;
 Ubuntu)
 
@@ -52,6 +57,11 @@ set_conf
 wget http://vestacp.com/pub/vst-install.sh
 bash vst-install.sh
 
+# Force install
+if [ $? -ne 0 ];
+then
+bash vst-install-ubuntu.sh --force
+fi
 ;;
 
 CentOS)
