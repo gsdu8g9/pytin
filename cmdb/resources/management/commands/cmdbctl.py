@@ -2,9 +2,12 @@ from argparse import ArgumentParser
 import argparse
 
 from django.core.management.base import BaseCommand
+
 from django.apps import apps
 
 from django.utils import timezone
+
+from prettytable import PrettyTable
 
 from cmdb.settings import logger
 from resources.iterators import PathIterator, TreeIterator
@@ -126,11 +129,17 @@ class Command(BaseCommand):
         if limit > 0:
             resource_set = resource_set[offset:limit]
 
-        row_format = '%5s%11s%35s%20s%10s'
-        logger.info(row_format % ('ID', 'parent_id', 'name', 'type', 'status'))
+        # tabular output
+        table = PrettyTable(['id', 'parent_id', 'name', 'type', 'status'])
+        table.align['id'] = 'r'
+        table.align['parent_id'] = 'r'
+        table.align['name'] = 'l'
+        table.padding_width = 1
+
         for resource in resource_set:
-            logger.info(row_format % (
-                resource.id, resource.parent_id, resource, resource.type, resource.status))
+            table.add_row([resource.id, resource.parent_id, resource, resource.type, resource.status])
+
+        logger.info(unicode(table))
 
     def _handle_res_get_options(self, *args, **options):
         for res_id in options['resource-id']:
