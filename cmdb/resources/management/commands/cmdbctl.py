@@ -50,11 +50,12 @@ class Command(BaseCommand):
         res_list_cmd = subparsers.add_parser('search', help="Search for resources.")
         res_list_cmd.add_argument('--limit', type=int, default=0, help="Limit the resources output.")
         res_list_cmd.add_argument('--page', type=int, default=1, help="Page number to paginate resource list (from 1).")
+        res_list_cmd.add_argument('--order', default='id', help="Field name to order by.")
         res_list_cmd.add_argument('--status',
                                   help="Status of the resource. If status is used, you can search in deleted resources.",
                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
         res_list_cmd.add_argument('filter', nargs=argparse.ZERO_OR_MORE, help="Key=Value pairs.")
-        self._register_handler('search', self._handle_res_list)
+        self._register_handler('search', self._handle_res_search)
 
         res_add_cmd = subparsers.add_parser('add', help="Add the new resource.")
         res_add_cmd.add_argument('--type', default='resources.Resource',
@@ -106,7 +107,7 @@ class Command(BaseCommand):
 
         self._print_resource_data(resource)
 
-    def _handle_res_list(self, *args, **options):
+    def _handle_res_search(self, *args, **options):
         query = self._parse_reminder_arg(options['filter'])
 
         limit = options['limit']
@@ -117,6 +118,10 @@ class Command(BaseCommand):
         else:
             query['status'] = options['status']
             resource_set = Resource.objects.filter(**query)
+
+        if options['order']:
+            fields = options['order'].split(',')
+            resource_set = resource_set.order_by(*fields)
 
         if limit > 0:
             resource_set = resource_set[offset:limit]
