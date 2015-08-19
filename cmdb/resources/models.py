@@ -75,6 +75,8 @@ class SubclassingQuerySet(QuerySet):
         requested_model = self.model
         if 'type' in kwargs:
             requested_model = apps.get_model(kwargs['type'])
+        # else:
+        #     model_fields['type'] = requested_model.__name__
 
         new_object = requested_model(**model_fields)
         self._for_write = True
@@ -514,7 +516,8 @@ class Resource(models.Model):
             self.content_type = ContentType.objects.get_for_model(self.__class__,
                                                                   for_concrete_model=not self._meta.proxy)
 
-        self.type = self.get_type_name()
+        if self.type != self.get_type_name():
+            self.type = self.get_type_name()
 
         if not self.last_seen:
             self.last_seen = timezone.now()

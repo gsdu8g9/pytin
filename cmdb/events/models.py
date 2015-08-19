@@ -6,6 +6,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+from cmdb.settings import logger
+
 from resources.models import Resource, ResourceOption
 
 RESOURCE_HISTORY_FIELDS = ['parent_id', 'name', 'type', 'status']
@@ -64,10 +66,15 @@ class HistoryEvent(models.Model):
 
 ####### Attach history models to the resources #######
 
-@receiver(post_init, sender=Resource)
+@receiver(post_init)
 def resource_post_init(sender, instance, **kwargs):
+    if not issubclass(sender, Resource):
+        return
+
     for field in RESOURCE_HISTORY_FIELDS:
-        setattr(instance, '_original_%s' % field, getattr(instance, field))
+        value = getattr(instance, field)
+        setattr(instance, '_original_%s' % field, value)
+        logger.debug("POST INIT: %s %s %s" % (instance, field, value))
 
 
 @receiver(post_save)
@@ -81,10 +88,17 @@ def resource_post_save(sender, instance, created, **kwargs):
         for field in RESOURCE_HISTORY_FIELDS:
             value = getattr(instance, field)
             history_field = '_original_%s' % field
+
+            logger.debug("POST SAVE: %s %s %s" % (instance, field, value))
+
             if hasattr(instance, history_field):
                 orig_value = getattr(instance, history_field)
+
+                logger.debug("    original value: %s" % orig_value)
+
                 if unicode(value) != unicode(orig_value):
                     HistoryEvent.add_update(instance, field, orig_value, value)
+                    setattr(instance, '_original_%s' % field, value)
 
 
 @receiver(pre_delete)

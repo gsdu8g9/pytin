@@ -10,18 +10,34 @@ class HistoryEventTest(TestCase):
         super(HistoryEventTest, self).setUp()
         HistoryEvent.objects.filter().delete()
 
+    def test_core_fields_change(self):
+        ip1 = IPAddress.objects.create(address='172.1.1.10')
+        self.assertEqual(1, len(HistoryEvent.objects.filter(type=HistoryEvent.CREATE)))
+        self.assertEqual(5, len(HistoryEvent.objects.all()))
+
+        for event in HistoryEvent.objects.all():
+            print event.id, event.field_name, event.type, event.field_old_value, '->', event.field_new_value
+
+        print "---"
+
+        ip1.use()
+        self.assertEqual(6, len(HistoryEvent.objects.all()))
+
+        for event in HistoryEvent.objects.all():
+            print event.id, event.field_name, event.type, event.field_old_value, '->', event.field_new_value
+
     def test_related_resource_option_change_history(self):
         ip1 = IPAddress.objects.create(address='172.1.1.10')
         self.assertEqual(1, len(HistoryEvent.objects.filter(type=HistoryEvent.CREATE)))
 
         ip1.set_option('testfield', 'testval1')
-        self.assertEqual(5, len(HistoryEvent.objects.all()))
-
-        ip1.set_option('testfield', 'testval2')
         self.assertEqual(6, len(HistoryEvent.objects.all()))
 
+        ip1.set_option('testfield', 'testval2')
+        self.assertEqual(7, len(HistoryEvent.objects.all()))
+
         self.assertEqual(1, len(HistoryEvent.objects.filter(type=HistoryEvent.CREATE)))
-        self.assertEqual(5, len(HistoryEvent.objects.filter(type=HistoryEvent.UPDATE)))
+        self.assertEqual(6, len(HistoryEvent.objects.filter(type=HistoryEvent.UPDATE)))
 
     def test_resource_option_change_history(self):
         res1 = Resource.objects.create(name='res1')
