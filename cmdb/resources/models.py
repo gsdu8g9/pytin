@@ -47,6 +47,13 @@ class ModelFieldChecker:
         except models.FieldDoesNotExist:
             return False
 
+    @staticmethod
+    def get_field_value(resource, field_name, default=''):
+        if ModelFieldChecker.is_model_field(resource.__class__, field_name):
+            return getattr(resource, field_name, default)
+        else:
+            return resource.get_option_value(field_name, default=default)
+
 
 class SubclassingQuerySet(QuerySet):
     def __getitem__(self, k):
@@ -294,6 +301,7 @@ class ResourceOption(models.Model):
 
         return ret_format
 
+    @property
     def typed_value(self):
         return self._value_handler().typed_value()
 
@@ -476,7 +484,7 @@ class Resource(models.Model):
         option_value = default
         try:
             option = self.get_option(name, namespace=namespace)
-            option_value = option.typed_value()
+            option_value = option.typed_value
         except djexceptions.ObjectDoesNotExist:
             option_value = default
 

@@ -5,12 +5,8 @@ from django.core.management.base import BaseCommand
 
 from django.apps import apps
 
-from django.utils import timezone
-
-from prettytable import PrettyTable
-
-from cmdb.settings import logger
 from resources.iterators import PathIterator, TreeIterator
+from resources.lib.console import ConsoleResourceWriter
 from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
@@ -26,19 +22,22 @@ class Command(BaseCommand):
                                            dest='manager_name',
                                            parser_class=ArgumentParser)
 
-        # Common operatoins
+        # GET
         res_get_cmd = subparsers.add_parser('get', help="Get resource details.")
         res_get_cmd.add_argument('resource-id', type=int, nargs='+', help="ID of the resource.")
         res_get_cmd.add_argument('-p', '--path', action='store_true',
                                  help="Display path from the root node to resource-id.")
         res_get_cmd.add_argument('-t', '--tree', action='store_true', help="Display the tree of childs.")
-        self._register_handler('get', self._handle_res_get_options)
+        res_get_cmd.add_argument('-f', '--show-fields', default='id,name,status', help="Comma separated field list:\
+                                                    supported fields are from the resource.")
+        self._register_handler('get', self._handle_command_get)
 
+        # SET
         res_set_cmd = subparsers.add_parser('set', help="Edit resource options.")
         res_set_cmd.add_argument('resource-id', type=int, help="ID of the resource.")
-        res_set_cmd.add_argument('--cascade', action='store_true',
+        res_set_cmd.add_argument('-c', '--cascade', action='store_true',
                                  help="Use cascade  updates, where appropriate.")
-        res_set_cmd.add_argument('--format', '--option-format', help="Type of the values.",
+        res_set_cmd.add_argument('-f', '--format', '--option-format', help="Type of the values.",
                                  default=ResourceOption.FORMAT_STRING,
                                  choices=[choice[0] for choice in ResourceOption.FORMAT_CHOICES])
 
@@ -48,30 +47,36 @@ class Command(BaseCommand):
         stat_group.add_argument('--lock', action='store_true', help="Mark resource and its childs as locked.")
 
         res_set_cmd.add_argument('fields', nargs=argparse.ZERO_OR_MORE, help="Key=Value pairs.")
-        self._register_handler('set', self._handle_res_set_options)
+        self._register_handler('set', self._handle_command_set)
 
+        # SEARCH
         res_list_cmd = subparsers.add_parser('search', help="Search for resources.")
-        res_list_cmd.add_argument('--limit', type=int, default=0, help="Limit the resources output.")
-        res_list_cmd.add_argument('--page', type=int, default=1, help="Page number to paginate resource list (from 1).")
-        res_list_cmd.add_argument('--order', default='id', help="Field name to order by.")
-        res_list_cmd.add_argument('--status',
-                                  help="Status of the resource. If status is used, you can search in deleted resources.",
+        res_list_cmd.add_argument('-l', '--limit', type=int, default=0, help="Limit the resources output.")
+        res_list_cmd.add_argument('-p', '--page', type=int, default=1,
+                                  help="Page number to paginate resource list (from 1).")
+        res_list_cmd.add_argument('-o', '--order', default='id', help="Field name to order by.")
+        res_list_cmd.add_argument('-f', '--show-fields', default='id,name,status', help="Comma separated field list:\
+                                                    supported fields are from the resource.")
+        res_list_cmd.add_argument('-s', '--status',
+                                  help="Comma separated statuses of the resource. If status is used, you can search in deleted resources.",
                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
         res_list_cmd.add_argument('filter', nargs=argparse.ZERO_OR_MORE, help="Key=Value pairs.")
-        self._register_handler('search', self._handle_res_search)
+        self._register_handler('search', self._handle_command_search)
 
+        # ADD
         res_add_cmd = subparsers.add_parser('add', help="Add the new resource.")
-        res_add_cmd.add_argument('--type', default='resources.Resource',
+        res_add_cmd.add_argument('-t', '--type', default='resources.Resource',
                                  help="Type of the resource in format 'app.model'.")
         res_add_cmd.add_argument('fields', nargs=argparse.ONE_OR_MORE, help="Key=Value pairs.")
-        self._register_handler('add', self._handle_res_add)
+        self._register_handler('add', self._handle_command_add)
 
+        # DELETE
         res_delete_cmd = subparsers.add_parser('delete', help="Delete resource objects.")
         res_delete_cmd.add_argument('resource-id', type=int, nargs='+', help="IDs of the resources to delete.")
-        res_delete_cmd.add_argument('--purge', action='store_true', help="Remove object from DB.")
-        res_delete_cmd.add_argument('--cascade', action='store_true',
+        res_delete_cmd.add_argument('-p', '--purge', action='store_true', help="Remove object from DB.")
+        res_delete_cmd.add_argument('-c', '--cascade', action='store_true',
                                     help="Mark the resource as deleted and all its childs.")
-        self._register_handler('delete', self._handle_res_delete)
+        self._register_handler('delete', self._handle_command_delete)
 
     def handle(self, *args, **options):
         if 'subcommand_name' in options:
@@ -82,20 +87,20 @@ class Command(BaseCommand):
         # call handler
         self.registered_handlers[subcommand](*args, **options)
 
-    def _handle_res_delete(self, *args, **options):
+    def _handle_command_delete(self, *args, **options):
         for res_id in options['resource-id']:
             resource = Resource.active.get(pk=res_id)
             resource.delete(purge=options['purge'], cascade=options['cascade'])
 
-    def _handle_res_add(self, *args, **options):
-        parsed_data = self._parse_reminder_arg(options['fields'])
+    def _handle_command_add(self, *args, **options):
+        parsed_data = self._parse_reminder_arguments(options['fields'])
 
         requested_model = Resource
         if options['type']:
             requested_model = apps.get_model(options['type'])
 
         if 'parent' in parsed_data:
-            field_name, field_value = self._prepare_parent_field(parsed_data['parent'])
+            field_name, field_value = self._normalize_parent_field(parsed_data['parent'])
             if 'parent' in parsed_data:
                 del parsed_data['parent']
             if 'parent_id' in parsed_data:
@@ -108,65 +113,67 @@ class Command(BaseCommand):
         resource = requested_model.objects.create(**parsed_data)
         resource.refresh_from_db()
 
-        self._print_resource_data(resource)
+        ConsoleResourceWriter.dump_item(resource)
 
-    def _handle_res_search(self, *args, **options):
-        query = self._parse_reminder_arg(options['filter'])
+    def _handle_command_search(self, *args, **options):
+        query = self._parse_reminder_arguments(options['filter'])
 
-        limit = options['limit']
-        offset = (options['page'] - 1) * limit
-
+        # apply status
         if not options['status']:
             resource_set = Resource.active.filter(**query)
         else:
-            query['status'] = options['status']
+            query['status__in'] = options['status'].split(',')
             resource_set = Resource.objects.filter(**query)
 
+        # order by
+        table_sort_by_field = None
         if options['order']:
             fields = options['order'].split(',')
-            resource_set = resource_set.order_by(*fields)
+            for field_name in fields:
+                if not ModelFieldChecker.is_model_field(Resource, field_name):
+                    table_sort_by_field = field_name
+                    break
 
+            if not table_sort_by_field:
+                resource_set = resource_set.order_by(*fields)
+
+        # apply limits
+        limit = options['limit']
+        offset = (options['page'] - 1) * limit
         if limit > 0:
             resource_set = resource_set[offset:limit]
 
-        # tabular output
-        table = PrettyTable(['id', 'parent_id', 'name', 'type', 'status'])
-        table.align['id'] = 'r'
-        table.align['parent_id'] = 'r'
-        table.align['name'] = 'l'
-        table.padding_width = 1
+        # tabular output with column align
+        show_fields = options['show_fields'].split(',')
 
-        for resource in resource_set:
-            table.add_row([resource.id, resource.parent_id, resource, resource.type, resource.status])
+        console_writer = ConsoleResourceWriter(resource_set)
+        console_writer.print_table(show_fields, sort_by=table_sort_by_field)
 
-        logger.info(unicode(table))
+    def _handle_command_get(self, *args, **options):
+        show_fields = options['show_fields'].split(',')
 
-    def _handle_res_get_options(self, *args, **options):
         for res_id in options['resource-id']:
             resource = Resource.objects.get(pk=res_id)
 
             if options['path']:
-                indent = 0
-                for inner_resource in PathIterator(resource):
-                    self._print_resource_data(inner_resource, indent)
-                    indent += 8
+                console_printer = ConsoleResourceWriter(PathIterator(resource))
+                console_printer.print_path(show_fields)
             elif options['tree']:
-                for inner_resource, level in TreeIterator(resource):
-                    indent = (8 * (level - 1))
-                    self._print_resource_data(inner_resource, indent)
+                console_printer = ConsoleResourceWriter(TreeIterator(resource))
+                console_printer.print_tree(show_fields)
             else:
-                self._print_resource_data(resource)
+                ConsoleResourceWriter.dump_item(resource)
 
-    def _handle_res_set_options(self, *args, **options):
+    def _handle_command_set(self, *args, **options):
         res_id = options['resource-id']
         resource = Resource.active.get(pk=res_id)
 
-        update_query = self._parse_reminder_arg(options['fields'])
+        update_query = self._parse_reminder_arguments(options['fields'])
         for field_name in update_query:
             field_value = update_query[field_name]
 
             if field_name in ['parent', 'parent_id']:
-                field_name, field_value = self._prepare_parent_field(field_value)
+                field_name, field_value = self._normalize_parent_field(field_value)
 
             if field_name == 'type':
                 requested_model = apps.get_model(field_value)
@@ -187,9 +194,9 @@ class Command(BaseCommand):
         elif options['lock']:
             resource.lock(cascade=cascade)
 
-        self._print_resource_data(resource)
+        ConsoleResourceWriter.dump_item(resource)
 
-    def _prepare_parent_field(self, parent_value):
+    def _normalize_parent_field(self, parent_value):
         """
         Process field 'parent' and convert in to parent_id if necessary. Also translate value to None when appropriate.
         :param parent_value: Value of the field 'parent'
@@ -208,20 +215,13 @@ class Command(BaseCommand):
 
         return field_name, field_value
 
-    def _print_resource_data(self, resource, indent=0):
-        padding = "".ljust(indent, ' ')
-
-        logger.info("%s|-------------------" % padding)
-        logger.info("%s|%d\t%s\t%s\t%s\t%s]" % (
-            padding, resource.id, resource.parent_id, resource.type, resource, resource.status))
-        logger.info("%s|:created_at = %s" % (padding, timezone.localtime(resource.created_at)))
-        logger.info("%s|:updated_at = %s" % (padding, timezone.localtime(resource.updated_at)))
-        logger.info("%s|:last_seen = %s" % (padding, timezone.localtime(resource.last_seen)))
-
-        for option in resource.get_options():
-            logger.info("%s|%s" % (padding, option))
-
-    def _parse_reminder_arg(self, reminder_args):
+    def _parse_reminder_arguments(self, reminder_args):
+        """
+        Parses name=value arguments, such as filters and set attributes.
+            cmd --arg1=val1 --arg2=vl2 reminder_arg1=val1 ... reminder_argN=valN
+        :param reminder_args: array of reminder command line arguments
+        :return: name=value dict from arguments
+        """
         query = {}
         for filter_item in reminder_args:
             field_name, field_value = filter_item.split('=')

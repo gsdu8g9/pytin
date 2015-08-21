@@ -23,7 +23,7 @@ class TreeIterator(object):
         self.level = 0
 
         for res in self._iter_inner(self.resource):
-            yield res, self.level
+            yield res
 
     def _iter_inner(self, resource):
         self.level += 1
