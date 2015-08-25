@@ -25,9 +25,14 @@ class NginxMap:
         assert map_variable, "Map section variable must be specified"
 
         if map_key in self.items:
-            raise Exception("Key %s exists" % map_key)
+            self.del_item(map_key)
 
         self.items[map_key] = map_variable
+
+    def has_item(self, map_key):
+        assert map_key, "Map section key must be specified"
+
+        return map_key in self.items
 
     def del_item(self, map_key):
         assert map_key, "Map section key must be specified"

@@ -116,8 +116,9 @@ class NginxVhostsConfigManager:
         assert domain_name, "Domain name must be specified"
         assert user_name, "User name must be specified"
 
-        self.map_users.add_item(".%s" % domain_name, '"%s"' % user_name)
-        self.map_domains.add_item(".%s" % domain_name, '"%s"' % domain_name)
+        domain_key = ".%s" % domain_name
+        self.map_users.add_item(domain_key, '"%s"' % user_name)
+        self.map_domains.add_item(domain_key, '"%s"' % domain_name)
 
     def _add_domain_alias(self, domain_name, domain_alias, user_name):
         assert domain_name, "Domain name must be specified"
