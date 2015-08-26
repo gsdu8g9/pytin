@@ -8,6 +8,12 @@
 #
 # Requirements:
 #   Adaptec
+#
+# wget --no-check-certificate -P /etc/zabbix https://raw.githubusercontent.com/servancho/pytin/master/scripts/zabbix/zbx_adaptec.py
+#
+# File: /etc/sudoers.d/arcconf
+#   Cmnd_Alias ARCCONF_GETCONFIG = /sbin/arcconf getconfig *, /sbin/arcconf getversion
+#   zabbix ALL=(root) NOPASSWD: ARCCONF_GETCONFIG
 
 import argparse
 import os
@@ -41,7 +47,7 @@ if len(cmd_arcconf) == 0:
        o.write(line)
     o.close()
     os.rename('/etc/zabbix/output', '/etc/zabbix/zbx_adaptec.py')
-    os.chmod('/etc/zabbix/zbx_adaptec.py', 755)
+    os.chmod('/etc/zabbix/zbx_adaptec.py', 0550)
 
 def main():
     parser = argparse.ArgumentParser(description='Adaptec parser',
