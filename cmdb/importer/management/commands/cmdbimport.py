@@ -79,14 +79,16 @@ class Command(BaseCommand):
             for ip in IPAddress.active.filter(
                     status=Resource.STATUS_INUSE,
                     last_seen__lt=last_seen_100days,
-                    ipman_pool_id=free_ip_pool.id):
+                    ipman_pool_id=free_ip_pool.id,
+                    version=4):
                 logger.warning("    used ip %s from the FREE IP pool is not seen for 3 months. Free it." % ip)
                 ip.delete(cascade=True)
 
             for ip in IPAddress.active.filter(
                     status=Resource.STATUS_LOCKED,
                     last_seen__lt=last_seen_5days,
-                    ipman_pool_id=free_ip_pool.id):
+                    ipman_pool_id=free_ip_pool.id,
+                    version=4):
                 logger.warning("    locked ip %s from the FREE IP pool is not seen for 5 days. Free it." % ip)
                 ip.delete(cascade=True)
 

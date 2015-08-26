@@ -66,7 +66,7 @@ class SubclassingQuerySet(QuerySet):
     def create(self, **kwargs):
         """
         Create new model of calling class type. Model fields are only checked for Resource() model
-        to not interfere with proxy model properties.
+        to not interfere with proxy model properties. All extra options are saved as ResourceOption.
         :param kwargs: model parameters with model options
         :return: created model
         """
