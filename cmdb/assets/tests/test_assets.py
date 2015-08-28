@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from assets.models import RegionResource, Server, ServerPort, Rack, Switch, VirtualServer, VirtualServerPort
@@ -6,7 +7,7 @@ from resources.models import Resource, ModelFieldChecker
 
 
 class AssetsTest(TestCase):
-    def test_delete_virtual_hierarchy(self):
+    def test_delete_virtual_hierarchy_childs_control(self):
         vm1 = VirtualServer.objects.create(label="VM", status=Resource.STATUS_INUSE)
         vmport1 = VirtualServerPort.objects.create(number=15, mac='234567267845', parent=vm1,
                                                    status=Resource.STATUS_INUSE)
@@ -21,7 +22,16 @@ class AssetsTest(TestCase):
         self.assertEqual(vmport1.id, address1.parent.id)
         self.assertEqual(ippool1.id, address1.get_option_value('ipman_pool_id'))
 
-        vm1.delete(cascade=True)
+        # existing childs
+        try:
+            vm1.delete()
+            self.fail("Waiting for the exception.")
+        except ValidationError:
+            pass
+
+        address1.delete()
+        vmport1.delete()
+        vm1.delete()
 
         vm1.refresh_from_db()
         vmport1.refresh_from_db()
@@ -30,8 +40,8 @@ class AssetsTest(TestCase):
 
         self.assertEqual(Resource.STATUS_DELETED, vm1.status)
         self.assertEqual(Resource.STATUS_DELETED, vmport1.status)
-        self.assertEqual(Resource.STATUS_FREE, address1.status)
-        self.assertEqual(ippool1.id, address1.parent.id)
+        self.assertEqual(Resource.STATUS_DELETED, address1.status)
+        self.assertNotEquals(ippool1.id, address1.parent.id)
 
     def test_delete_resources(self):
         switch1 = Switch.objects.create(label="test switch", status=Resource.STATUS_INUSE)
@@ -43,7 +53,7 @@ class AssetsTest(TestCase):
         switch1.delete()
         resource1.delete()
 
-        self.assertEqual(Resource.STATUS_FREE, switch1.status)
+        self.assertEqual(Resource.STATUS_DELETED, switch1.status)
         self.assertEqual(Resource.STATUS_DELETED, resource1.status)
 
     def test_change_asset_type(self):

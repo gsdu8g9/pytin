@@ -82,7 +82,7 @@ class Command(BaseCommand):
                     ipman_pool_id=free_ip_pool.id,
                     version=4):
                 logger.warning("    used ip %s from the FREE IP pool is not seen for 3 months. Free it." % ip)
-                ip.delete(cascade=True)
+                ip.free(cascade=True)
 
             for ip in IPAddress.active.filter(
                     status=Resource.STATUS_LOCKED,
@@ -90,7 +90,7 @@ class Command(BaseCommand):
                     ipman_pool_id=free_ip_pool.id,
                     version=4):
                 logger.warning("    locked ip %s from the FREE IP pool is not seen for 5 days. Free it." % ip)
-                ip.delete(cascade=True)
+                ip.free(cascade=True)
 
     def _handle_auto(self, *args, **options):
         # update via snmp

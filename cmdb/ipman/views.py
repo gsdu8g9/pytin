@@ -12,7 +12,7 @@ class IpManagerRentIPs(generics.RetrieveAPIView):
     """
     Rent new IPs by locking them.
     """
-    queryset = Resource.objects.all()
+    queryset = Resource.active.all()
     serializer_class = IpAddressSerializer
 
     def get(self, request, format=None, *args, **kwargs):

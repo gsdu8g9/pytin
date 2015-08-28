@@ -2,13 +2,12 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-import assets.models
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('resources', '0009_auto_20150616_1319'),
+        ('resources', '0010_auto_20150716_1529'),
     ]
 
     operations = [
@@ -19,15 +18,6 @@ class Migration(migrations.Migration):
             options={
                 'proxy': True,
             },
-            bases=(assets.models.PhysicalAssetMixin, 'resources.resource'),
-        ),
-        migrations.CreateModel(
-            name='DirectAdminLicensePool',
-            fields=[
-            ],
-            options={
-                'proxy': True,
-            },
-            bases=(assets.models.PhysicalAssetMixin, 'resources.resource'),
+            bases=('resources.resource',),
         ),
     ]

@@ -3,10 +3,12 @@ from __future__ import unicode_literals
 import json
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.core import exceptions as djexceptions
 from django.db.models.query import QuerySet
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 from django.apps import apps
 
 from cmdb.settings import logger
@@ -153,6 +155,7 @@ class SubclassingQuerySet(QuerySet):
 
     def get(self, *args, **kwargs):
         logger.debug("%s, %s" % (args, kwargs))
+
         return super(SubclassingQuerySet, self).get(*args, **kwargs).as_leaf_class()
 
 
@@ -399,17 +402,32 @@ class Resource(models.Model):
     def free(self, cascade=False):
         self._change_status(self.STATUS_FREE, 'free', cascade)
 
-    def delete(self, cascade=False, purge=False):
+    def _change_status(self, new_status, method_name, cascade=False):
+        assert new_status, "new_status must be defined."
+        assert method_name, "method_name must be defined."
+
+        if cascade:
+            for child in self:
+                getattr(child, method_name)(cascade)
+
+        if self.status != new_status:
+            logger.debug("Setting resource ID:%s status: %s -> %s" % (self.id, self.status, new_status))
+
+            self.status = new_status
+            self.save()
+
+    def delete(self, using=None):
         """
         Override Model .delete() method. Instead of actual deleting object from the DB
         set status Deleted.
         """
         logger.debug("Removing resource ID:%s %s" % (self.id, self))
 
-        if purge:
-            super(Resource, self).delete()
-        else:
-            self._change_status(self.STATUS_DELETED, 'delete', cascade)
+        if len(list(self)) > 0:
+            raise ValidationError(_("Object have one or more childs."))
+
+        self.status = Resource.STATUS_DELETED
+        self.save()
 
     @property
     def is_locked(self):
@@ -517,7 +535,7 @@ class Resource(models.Model):
         if model == Resource or self.__class__ == model:
             return self
 
-        return model.active.get(pk=self.id)
+        return model.objects.get(pk=self.id)
 
     def save(self, *args, **kwargs):
         if not self.content_type:
@@ -544,20 +562,6 @@ class Resource(models.Model):
         """
         for res in Resource.active.filter(parent=self, status=Resource.STATUS_FREE):
             yield res
-
-    def _change_status(self, new_status, method_name, cascade=False):
-        assert new_status, "new_status must be defined."
-        assert method_name, "method_name must be defined."
-
-        if cascade:
-            for child in self:
-                getattr(child, method_name)(cascade)
-
-        if self.status != new_status:
-            logger.debug("Setting resource ID:%s status: %s -> %s" % (self.id, self.status, new_status))
-
-            self.status = new_status
-            self.save()
 
     def is_saved(self):
         return self.id is not None

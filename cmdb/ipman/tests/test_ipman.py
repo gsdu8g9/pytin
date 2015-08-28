@@ -1,32 +1,89 @@
+from django.core.exceptions import ValidationError
+
 from django.test import TestCase
 
+from assets.models import VirtualServer
 from ipman.models import IPAddress, IPNetworkPool, IPAddressPool, IPAddressRangePool
 from resources.models import Resource
 
 
 class IPmanTest(TestCase):
-    def test_delete_resources(self):
-        inventory1 = IPNetworkPool.objects.create(network='192.168.1.1/24', status=Resource.STATUS_INUSE)
-        ip1 = inventory1.available().next()
+    def setUp(self):
+        print self._testMethodName
+
+    def test_free_ip(self):
+        vm1 = VirtualServer.objects.create(label="VM", status=Resource.STATUS_INUSE)
+
+        ip_net_pool = IPNetworkPool.objects.create(network='192.168.1.1/24', status=Resource.STATUS_INUSE)
+        ip1 = ip_net_pool.available().next()
+        ip1.use()
+        ip1.refresh_from_db()
+
+        ip2 = ip_net_pool.available().next()
+        ip2.parent = ip1
+        ip2.use()
+        ip2.refresh_from_db()
+
+        self.assertEqual(ip_net_pool.id, ip1.parent_id)
+        self.assertEqual(Resource.STATUS_INUSE, ip1.status)
+
+        # assign IP
+        ip1.parent = vm1
+        ip1.save()
+        ip1.refresh_from_db()
+
+        self.assertEqual(vm1.id, ip1.parent_id)
+        self.assertEqual(ip_net_pool.id, ip1.get_origin())
+        self.assertEqual(Resource.STATUS_INUSE, ip1.status)
+
+        ip1.free()
+        ip1.refresh_from_db()
+
+        self.assertEqual(ip_net_pool.id, ip1.parent_id)
+        self.assertEqual(ip_net_pool.id, ip1.get_origin())
+        self.assertEqual(Resource.STATUS_FREE, ip1.status)
+        self.assertEqual(Resource.STATUS_INUSE, ip2.status)
+
+        ip1.free(cascade=True)
+        ip1.refresh_from_db()
+        ip2.refresh_from_db()
+        self.assertEqual(Resource.STATUS_FREE, ip1.status)
+        self.assertEqual(Resource.STATUS_FREE, ip2.status)
+
+    def test_delete_ips_and_pool(self):
+        ip_net_pool = IPNetworkPool.objects.create(network='192.168.1.1/24', status=Resource.STATUS_INUSE)
+        ip1 = ip_net_pool.available().next()
         ip1.use()
         ip2 = IPAddress.objects.create(address='46.17.40.29', status=Resource.STATUS_INUSE)
 
-        self.assertEqual(Resource.STATUS_INUSE, inventory1.status)
+        self.assertEqual(Resource.STATUS_INUSE, ip_net_pool.status)
         self.assertEqual(Resource.STATUS_INUSE, ip1.status)
         self.assertEqual(Resource.STATUS_INUSE, ip2.status)
 
-        # IP pool is completely deleted with related IPs
-        inventory1.delete()
+        # IP pool is not deleted until there is some IPs
+        try:
+            ip_net_pool.delete()
+            self.fail("Waiting for the exception.")
+        except ValidationError:
+            pass
 
-        # IP address is marked as free and not deleted
+        # IP addresses are normally deleted
+        ip1.delete()
         ip2.delete()
 
-        self.assertEqual(Resource.STATUS_DELETED, inventory1.status)
-        self.assertFalse(IPAddress.objects.filter(pk=ip1.id).exists())
-        self.assertEqual(Resource.STATUS_FREE, ip2.status)
+        ip_net_pool.delete()
+
+        ip1.refresh_from_db()
+        ip2.refresh_from_db()
+        ip_net_pool.refresh_from_db()
+
+        self.assertTrue(IPAddress.objects.filter(pk=ip1.id).exists())
+        self.assertEqual(Resource.STATUS_DELETED, ip_net_pool.status)
+        self.assertEqual(Resource.STATUS_DELETED, ip2.status)
+        self.assertEqual(Resource.STATUS_DELETED, ip1.status)
 
     def test_add_wrong_network(self):
-        self.assertRaises(Exception, IPNetworkPool.objects.create, network='192.168.1/24')
+        self.assertRaises(Exception, IPNetworkPool.active.create, network='192.168.1/24')
 
         pools = Resource.active.filter(type=IPNetworkPool.__name__)
         self.assertEqual(1, len(pools))

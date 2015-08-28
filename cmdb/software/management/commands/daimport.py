@@ -61,7 +61,7 @@ class Command(BaseCommand):
                 if not ip_address.is_free:
                     print '    IP %s is not free but DA license is free, rent new' % da_ip
 
-                    ip_pool = Resource.active.get(pk=ip_address.get_origin())
+                    ip_pool = Resource.objects.get(pk=ip_address.get_origin())
 
                     if ip_pool.usage > 98:
                         print "[!!!] IP pool %s is >98%% full. Find new pool." % ip_pool.id

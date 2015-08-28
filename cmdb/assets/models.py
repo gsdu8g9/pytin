@@ -2,29 +2,7 @@ from __future__ import unicode_literals
 
 import netaddr
 
-from cmdb.settings import logger
 from resources.models import Resource, ResourceOption
-
-
-class PhysicalAssetMixin(object):
-    """
-    Physical mixin, overrides delete() method - free instead of delete.
-    """
-
-    class Meta:
-        proxy = True
-
-    def delete(self, cascade=False, purge=False):
-        """
-        Override delete: free instead of delete
-        """
-
-        logger.debug("Removing physical object %s" % self)
-
-        if purge:
-            super(PhysicalAssetMixin, self).delete(cascade=cascade, purge=purge)
-        else:
-            self.free(cascade=cascade)
 
 
 class RegionResource(Resource):
@@ -197,6 +175,15 @@ class NetworkPort(Resource):
 
         self.set_option('uplink', value, format=ResourceOption.FORMAT_INT)
 
+    def delete(self, using=None):
+        """
+        Remove linked resources
+        """
+        for connection in PortConnection.active.filter(linked_port_id=self.id):
+            connection.delete()
+
+        super(NetworkPort, self).delete(using=using)
+
 
 class PortConnection(Resource):
     """
@@ -217,7 +204,7 @@ class PortConnection(Resource):
     def linked_port_id(self, value):
         self.set_option('linked_port_id', value, format=ResourceOption.FORMAT_INT)
 
-        port_object = Resource.active.get(pk=value)
+        port_object = Resource.objects.get(pk=value)
         self.set_option('linked_port_mac', unicode(port_object))
 
         if port_object.parent:
@@ -238,10 +225,10 @@ class PortConnection(Resource):
         assert switch_port
         assert server_port
 
-        return PortConnection.active.create(parent=switch_port, linked_port_id=server_port.id)
+        return PortConnection.objects.create(parent=switch_port, linked_port_id=server_port.id)
 
 
-class SwitchPort(PhysicalAssetMixin, NetworkPort):
+class SwitchPort(NetworkPort):
     """
     Network port
     """
@@ -250,7 +237,7 @@ class SwitchPort(PhysicalAssetMixin, NetworkPort):
         proxy = True
 
 
-class ServerPort(PhysicalAssetMixin, NetworkPort):
+class ServerPort(NetworkPort):
     """
     Network port
     """
@@ -271,7 +258,7 @@ class ServerPort(PhysicalAssetMixin, NetworkPort):
             return None
 
 
-class Switch(PhysicalAssetMixin, RackMountable):
+class Switch(RackMountable):
     """
     Switch object
     """
@@ -297,7 +284,7 @@ class GatewaySwitch(Switch):
         proxy = True
 
 
-class Server(PhysicalAssetMixin, RackMountable):
+class Server(RackMountable):
     """
     Server object
     """
@@ -317,7 +304,7 @@ class Server(PhysicalAssetMixin, RackMountable):
         return ServerPort.active.filter(parent=self)
 
 
-class Rack(PhysicalAssetMixin, AssetResource):
+class Rack(AssetResource):
     """
     Rack mount object
     """
@@ -349,15 +336,6 @@ class VirtualServerPort(NetworkPort):
 
     def __str__(self):
         return "veth%s:%s" % (self.number, self.mac)
-
-    def delete(self, cascade=False, purge=False):
-        """
-        Remove linked resources
-        """
-        for connection in PortConnection.active.filter(linked_port_id=self.id):
-            connection.delete(cascade=True, purge=purge)
-
-        super(VirtualServerPort, self).delete(cascade=cascade, purge=purge)
 
 
 class VirtualServer(AssetResource):

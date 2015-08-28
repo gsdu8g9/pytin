@@ -1,9 +1,8 @@
 from __future__ import unicode_literals
-from assets.models import PhysicalAssetMixin
 from resources.models import Resource, ResourceOption
 
 
-class DirectAdminLicense(PhysicalAssetMixin, Resource):
+class DirectAdminLicense(Resource):
     """
     Resource grouping by region.
     """
@@ -31,17 +30,3 @@ class DirectAdminLicense(PhysicalAssetMixin, Resource):
     def lid(self, value):
         assert value is not None, "Parameter 'value' must be defined."
         self.set_option('directadmin_lid', value, format=ResourceOption.FORMAT_INT)
-
-    def delete(self, cascade=False, purge=False):
-        """
-        Override delete: free instead of delete
-        """
-        if purge:
-            super(DirectAdminLicense, self).delete(cascade=cascade, purge=purge)
-        else:
-            self.free()
-            self.save()
-
-            # delete related objects
-            for child in self:
-                child.delete(cascade=cascade, purge=purge)

@@ -22,7 +22,7 @@ class ResourceSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         options_list = validated_data.pop('resourceoption_set', [])
 
-        resource, created = Resource.objects.update_or_create(
+        resource, created = Resource.active.update_or_create(
             id=instance.id,
             defaults=validated_data
         )

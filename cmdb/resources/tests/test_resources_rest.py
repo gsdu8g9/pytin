@@ -31,7 +31,7 @@ class ResourcesAPITests(APITestCase):
         res2.refresh_from_db()
 
         self.assertEqual('res2', res2.name)
-        self.assertEqual(Resource.STATUS_FREE, res2.status)
+        self.assertEqual(Resource.STATUS_DELETED, res2.status)
         self.assertEqual('Server', res2.type)
 
     def test_resource_create(self):

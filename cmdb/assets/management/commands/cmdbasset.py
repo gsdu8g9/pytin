@@ -70,7 +70,7 @@ class Command(BaseCommand):
             ports = ServerPort.active.filter(parent=server, mac=normalized_mac)
             if len(ports) > 0:
                 raise Exception('Port with mac %s already exists.' % normalized_mac)
-            ServerPort.active.create(mac=normalized_mac, parent=server, number=port_num)
+            ServerPort.objects.create(mac=normalized_mac, parent=server, number=port_num)
         elif options['link']:
             normalized_mac = NetworkPort.normalize_mac(options['link'])
             server_port = ServerPort.active.get(parent=server, mac=normalized_mac)
@@ -192,7 +192,7 @@ class Command(BaseCommand):
             else:
                 logger.warning("IP %s is not assigned to any server." % server_ip_id)
         else:
-            server = Resource.active.get(pk=server_ip_id)
+            server = Resource.objects.get(pk=server_ip_id)
 
         return server
 
@@ -215,7 +215,7 @@ class Command(BaseCommand):
 
     def _handle_switch(self, *args, **options):
         device_id = options['switch-id']
-        switch = Resource.active.get(pk=device_id)
+        switch = Resource.objects.get(pk=device_id)
 
         logger.info("*** %s ***" % switch)
         query = dict(parent=switch)
@@ -229,19 +229,14 @@ class Command(BaseCommand):
                 linked_server_port_id = port_connection.linked_port_id
                 server_ports = Resource.active.filter(pk=linked_server_port_id)
                 if len(server_ports) > 0:
-                    server_port = server_ports[0]
+                    for server_port in server_ports:
+                        logger.info("%s %s (%s, %s)" % (server_port.parent.id, server_port.parent.as_leaf_class().label,
+                                                        server_port.parent.get_option_value('group'),
+                                                        server_port.parent.get_option_value('guessed_role')))
                 else:
                     logger.warning("PortConnection %s linked to unexistent ServerPort %s" % (
                         port_connection, linked_server_port_id))
                     continue
-
-                if server_port.is_deleted:
-                    port_connection.delete()
-                    continue
-
-                logger.info("\t%s %s (%s, %s)" % (server_port.parent.id, server_port.parent.as_leaf_class().label,
-                                                  server_port.parent.get_option_value('group'),
-                                                  server_port.parent.get_option_value('guessed_role')))
 
     def _dump_server(self, server, with_options=False):
         assert server

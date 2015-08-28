@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from django.core.exceptions import ValidationError
 
 from django.test import TestCase
 
@@ -23,11 +24,11 @@ class ResourceTest(TestCase):
         Resource.objects.create(name='res4')
         Resource.objects.create(name='res5')
 
-        self.assertEqual(5, len(Resource.objects.filter()))
+        self.assertEqual(5, len(Resource.active.filter()))
 
-        Resource.objects.filter().delete()
+        Resource.active.filter().delete()
 
-        self.assertEqual(0, len(Resource.objects.filter()))
+        self.assertEqual(0, len(Resource.active.filter()))
 
     def test_model_field_checker(self):
         new_res1 = Resource.objects.create(somekey1='someval1', somekey='someval')
@@ -71,9 +72,16 @@ class ResourceTest(TestCase):
         resource3 = Resource(parent=resource2)
         resource3.save()
 
-        self.assertEqual(3, len(Resource.objects.all()))
+        self.assertEqual(3, len(Resource.active.all()))
 
-        resource2.delete(cascade=True)
+        try:
+            resource2.delete()
+            self.fail("Waiting for the exception.")
+        except ValidationError:
+            pass
+
+        resource3.delete()
+        resource2.delete()
 
         self.assertEqual(3, len(Resource.objects.all()))
         self.assertEqual(1, len(Resource.active.all()))
@@ -268,8 +276,8 @@ class ResourceTest(TestCase):
         resource_pool1.name = 'test pool'
 
         # search with target type
-        resource = Resource.objects.filter(status=Resource.STATUS_FREE)[0]
-        resource_pool = Resource.objects.filter(status=Resource.STATUS_INUSE)[0]
+        resource = Resource.active.filter(status=Resource.STATUS_FREE)[0]
+        resource_pool = Resource.active.filter(status=Resource.STATUS_INUSE)[0]
 
         self.assertEqual('Resource', resource.type)
         self.assertEqual('Resource', resource_pool.type)

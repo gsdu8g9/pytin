@@ -166,7 +166,7 @@ class Command(BaseCommand):
 
     def _handle_command_set(self, *args, **options):
         res_id = options['resource-id']
-        resource = Resource.active.get(pk=res_id)
+        resource = Resource.objects.get(pk=res_id)
 
         update_query = self._parse_reminder_arguments(options['fields'])
         for field_name in update_query:

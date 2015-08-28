@@ -71,20 +71,18 @@ class IPAddress(Resource):
     def get_origin(self):
         return self.get_option_value('ipman_pool_id')
 
-    def delete(self, cascade=False, purge=False):
+    def free(self, cascade=False):
         """
-        Override delete: free instead of delete
-        """
-        if purge:
-            super(IPAddress, self).delete(cascade=cascade, purge=purge)
-        else:
-            self.parent_id = self.get_option_value('ipman_pool_id')
-            self.free()
-            self.save()
+        Overriden implementation. Returns IP to the originated IP Pool.
 
-            # delete related objects
-            for child in self:
-                child.delete(cascade=cascade, purge=purge)
+        :param cascade:
+        :return:
+        """
+        self.parent_id = self.get_origin()
+        self.status = Resource.STATUS_FREE
+        self.save()
+
+        super(IPAddress, self).free(cascade=cascade)
 
     def save(self, *args, **kwargs):
         need_save = True
@@ -205,16 +203,6 @@ class IPAddressPool(Resource):
     @property
     def used_addresses(self):
         return IPAddress.active.filter(ipman_pool_id=self.id, status=Resource.STATUS_INUSE).count()
-
-    def delete(self, cascade=False, purge=False):
-        """
-        Override: delete allocated and other non deleted IPs from this Pool
-        """
-        # delete all related objects
-        super(IPAddressPool, self).delete(cascade=True)
-
-        # delete allocated IPs
-        IPAddress.active.filter(ipman_pool_id=self.id).delete()
 
     def get_usage(self):
         total = float(self.total_addresses)
