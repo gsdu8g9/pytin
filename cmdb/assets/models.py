@@ -132,10 +132,12 @@ class RackMountable(AssetResource):
             self.position = 0
 
     def save(self, *args, **kwargs):
-        if self.is_saved and self.name.lower() == 'Resource':
+        super(AssetResource, self).save(*args, **kwargs)
+
+        if self.is_saved and self.name.lower() == 'resource':
             self.name = "i%s" % self.id
 
-        super(AssetResource, self).save(*args, **kwargs)
+            super(AssetResource, self).save(*args, **kwargs)
 
 
 class NetworkPort(Resource):

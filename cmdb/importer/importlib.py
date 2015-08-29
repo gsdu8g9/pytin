@@ -23,7 +23,7 @@ class GenericCmdbImporter(object):
                 switch_local_port, created = SwitchPort.active.get_or_create(
                     number=l3port.number,
                     parent=source_switch,
-                    defaults=dict(name=l3port.number)
+                    defaults=dict(name=l3port.number, status=Resource.STATUS_INUSE)
                 )
                 if created:
                     logger.info("Added switch port: %s:%s (cmdbid:%s)" % (
@@ -37,8 +37,8 @@ class GenericCmdbImporter(object):
                     switch_local_port.use()
                     logger.info("Switch port %s marked used" % switch_local_port)
                 else:
-                    logger.info("Switch port %s marked free" % switch_local_port)
                     switch_local_port.free()
+                    logger.info("Switch port %s marked free" % switch_local_port)
 
                 # hvisor
                 hypervisor_server = self._find_hypervisor(l3port)
@@ -52,8 +52,7 @@ class GenericCmdbImporter(object):
                         linked_port_id=server_port.id
                     )
                     if created:
-                        logger.info("Added %d Mbit connection: %d <-> %d" % (
-                            port_connection.link_speed_mbit, switch_local_port.id, server_port.id))
+                        logger.info("Added %s" % port_connection)
                     else:
                         port_connection.touch()
 
@@ -64,13 +63,12 @@ class GenericCmdbImporter(object):
                     if hypervisor_server and hypervisor_server.id != server_port.parent.id:
                         if not server_port.parent.parent:
                             server_port.parent.parent = hypervisor_server
-                            logger.info("Vps i-%s linked to parent metal server i-%s" % (
-                                server_port.parent.id, hypervisor_server.id))
+                            logger.info("Vps %s linked to parent metal server %s" % (
+                                server_port.typed_parent, hypervisor_server))
                         elif server_port.parent.parent.id != hypervisor_server.id:
-                            old_parent_id = server_port.parent.parent.id
                             server_port.parent.parent = hypervisor_server
-                            logger.info("Vps i-%s moved from i-%s to parent metal server i-%s" % (
-                                server_port.parent.id, old_parent_id, hypervisor_server.id))
+                            logger.info("Vps %s moved from %s to parent metal server %s" % (
+                                server_port.typed_parent, server_port.parent.typed_parent, hypervisor_server))
 
                         # update server type
                         server_port.parent.cast_type(VirtualServer)
@@ -109,20 +107,21 @@ class GenericCmdbImporter(object):
         server_port, created = Resource.active.get_or_create(
             mac=connected_mac.interface,
             type__in=[ServerPort.__name__, VirtualServerPort.__name__],
-            defaults={
-                'mac': connected_mac.interface,
-                'type': "assets.%s" % (ServerPort.__name__ if connected_mac.vendor else VirtualServerPort.__name__)
-            }
+            defaults=dict(
+                mac=connected_mac.interface,
+                type="assets.%s" % (ServerPort.__name__ if connected_mac.vendor else VirtualServerPort.__name__),
+                status=Resource.STATUS_INUSE
+            )
         )
         if created:
             logger.info("Added server port %s (%s)" % (server_port.id, connected_mac.interface))
 
             if server_port.__class__ == VirtualServerPort:
                 server = VirtualServer.objects.create(label='VPS')
-                logger.info("Added VPS i-%d %s (%s)" % (server.id, server, connected_mac))
+                logger.info("Added VPS %s (%s)" % (server, connected_mac))
             else:
                 server = Server.objects.create(label=connected_mac.vendor, vendor=connected_mac.vendor)
-                logger.info("Added metal server i-%d %s (%s)" % (server.id, server, connected_mac))
+                logger.info("Added metal server %s (%s)" % (server, connected_mac))
 
             # set parent for the port
             server_port.parent = server
@@ -134,6 +133,7 @@ class GenericCmdbImporter(object):
                     server_port.parent.name = connected_mac.vendor
                     server_port.parent.save()
 
+            server_port.use()
             server_port.touch()
             server_port.parent.touch()
 
@@ -186,8 +186,8 @@ class GenericCmdbImporter(object):
         for ip_pool in self.available_ip_pools:
             if ip_pool.can_add(ip_address):
                 added_ip, created = IPAddress.active.get_or_create(address__exact=ip_address,
-                                                                             defaults=dict(address=ip_address,
-                                                                                           parent=ip_pool))
+                                                                   defaults=dict(address=ip_address,
+                                                                                 parent=ip_pool))
                 added_ip.use(cascade=True)
 
                 if created:

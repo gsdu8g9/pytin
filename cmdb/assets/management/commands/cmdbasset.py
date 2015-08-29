@@ -1,7 +1,6 @@
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from assets.models import PortConnection, SwitchPort, ServerPort, AssetResource, Rack, RackMountable, Server
 from cmdb.settings import logger
@@ -191,19 +190,25 @@ class Command(BaseCommand):
                 linked_server_port = port_connection.linked_port
 
                 if linked_server_port:
-                    port_link_data.append([
-                        switch_port.number,
-                        port_connection.link_speed_mbit,
-                        linked_server_port.parent.name,
-                        linked_server_port.typed_parent.label
-                    ])
+                    if isinstance(linked_server_port, ServerPort):
+                        port_link_data.append([
+                            switch_port.number,
+                            port_connection.link_speed_mbit,
+                            linked_server_port.parent.name,
+                            linked_server_port.typed_parent.label,
+                            port_connection.last_seen
+                        ])
                 else:
                     logger.warning("PortConnection %s linked to missing ServerPort %s" % (
                         port_connection, linked_server_port.id))
                     continue
 
-        writer = ConsoleResourceWriter(port_link_data)
-        writer.print_table(fields=['port_number', 'link_speed_mbit', 'server_name', 'label'], sort_by='port_number')
+        if port_link_data:
+            writer = ConsoleResourceWriter(port_link_data)
+            writer.print_table(fields=['port_number', 'link_speed_mbit', 'server_name', 'label', 'last_seen'],
+                               sort_by='port_number')
+        else:
+            logger.info("not connected")
 
     def _dump_server(self, server):
         assert server
@@ -219,12 +224,12 @@ class Command(BaseCommand):
         for server_port in ServerPort.active.filter(parent=server):
             conn = server_port.connection
             if conn:
-                logger.info(conn)
+                logger.info("%s (seen %s)" % (conn, conn.last_seen))
             else:
                 logger.info('%s no connections' % server_port)
 
             for ip_address in IPAddress.active.filter(parent=server_port):
-                logger.info("\t%s" % ip_address)
+                logger.info("\t%s (seen %s)" % (ip_address, ip_address.last_seen))
 
     def handle(self, *args, **options):
         if 'subcommand_name' in options:
