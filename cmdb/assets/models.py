@@ -45,7 +45,7 @@ class AssetResource(Resource):
         proxy = True
 
     def __str__(self):
-        return "inv-%s %s (SN: %s)" % (self.id, self.label, self.serial)
+        return "a%s %s (SN: %s)" % (self.id, self.label, self.serial)
 
     @property
     def label(self):
@@ -76,6 +76,9 @@ class RackMountable(AssetResource):
 
     class Meta:
         proxy = True
+
+    def __str__(self):
+        return "i%s %s (%sU, %s)" % (self.id, self.label, self.unit_size, self.position)
 
     @staticmethod
     def is_rack_mountable(resource):
@@ -113,7 +116,7 @@ class RackMountable(AssetResource):
 
     @property
     def is_mounted(self):
-        if not self.parent or not isinstance(self.parent.as_leaf_class(), Rack):
+        if not self.parent or not isinstance(self.typed_parent, Rack):
             self.position = 0
 
         return self.position > 0
@@ -127,6 +130,12 @@ class RackMountable(AssetResource):
             self.save()
 
             self.position = 0
+
+    def save(self, *args, **kwargs):
+        if self.is_saved and self.name.lower() == 'Resource':
+            self.name = "i%s" % self.id
+
+        super(AssetResource, self).save(*args, **kwargs)
 
 
 class NetworkPort(Resource):
@@ -194,11 +203,24 @@ class PortConnection(Resource):
         proxy = True
 
     def __str__(self):
-        return "%s <-> srv:%s (%s Mbit)" % (self.parent.as_leaf_class(), self.linked_port_id, self.link_speed_mbit)
+        return "%s <- %s Mbit -> %s" % (
+            self.linked_port if self.linked_port else '?', self.link_speed_mbit, self.typed_parent)
 
     @property
     def linked_port_id(self):
         return self.get_option_value('linked_port_id', default=0)
+
+    @property
+    def linked_port(self):
+        """
+        Return the connected server port.
+        """
+        linked_port_id = self.linked_port_id
+
+        if linked_port_id > 0:
+            return Resource.active.get(pk=linked_port_id)
+
+        return None
 
     @linked_port_id.setter
     def linked_port_id(self, value):
@@ -208,7 +230,7 @@ class PortConnection(Resource):
         self.set_option('linked_port_mac', unicode(port_object))
 
         if port_object.parent:
-            self.set_option('linked_port_parent', unicode(port_object.parent.as_leaf_class()))
+            self.set_option('linked_port_parent', unicode(port_object.typed_parent))
 
     @property
     def link_speed_mbit(self):
@@ -249,11 +271,16 @@ class ServerPort(NetworkPort):
         return "eth%s:%s" % (self.number, self.mac)
 
     @property
+    def connection(self):
+        try:
+            return PortConnection.active.get(linked_port_id=self.id)
+        except:
+            return None
+
+    @property
     def switch_port(self):
         try:
-            conn = PortConnection.active.get(linked_port_id=self.id)
-
-            return conn.parent.as_leaf_class()
+            return self.connection.typed_parent
         except:
             return None
 
@@ -265,9 +292,6 @@ class Switch(RackMountable):
 
     class Meta:
         proxy = True
-
-    def __str__(self):
-        return "sw-%s %s" % (self.id, self.label)
 
     def get_port(self, number):
         assert number > 0
@@ -291,9 +315,6 @@ class Server(RackMountable):
 
     class Meta:
         proxy = True
-
-    def __str__(self):
-        return "i%s %s (%sU, %s)" % (self.id, self.label, self.unit_size, self.position)
 
     @staticmethod
     def is_server(resource):
@@ -347,4 +368,8 @@ class VirtualServer(AssetResource):
         proxy = True
 
     def __str__(self):
-        return "vm-%s %s" % (self.id, self.label)
+        return "vm%s %s" % (self.id, self.label)
+
+    @property
+    def ethernet_ports(self):
+        return VirtualServerPort.active.filter(parent=self)

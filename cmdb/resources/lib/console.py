@@ -1,3 +1,4 @@
+from django.db import models
 from django.db.models import DateTimeField
 from django.utils import timezone
 
@@ -25,7 +26,10 @@ class ConsoleResourceWriter:
             table.align[afield] = 'l'
 
         for resource in self.resources_iterable:
-            table.add_row(self._get_resource_data_row(resource, fields))
+            if isinstance(resource, models.Model):
+                table.add_row(self._get_resource_data_row(resource, fields))
+            else:
+                table.add_row(resource)
 
         logger.info(table.get_string())
 
@@ -82,7 +86,7 @@ class ConsoleResourceWriter:
             if field == 'parent_id':
                 field_value = resource.parent_id
             elif field == 'self':
-                field_value = str(resource)
+                field_value = unicode(resource)
             else:
                 field_value = ModelFieldChecker.get_field_value(resource, field, '%s?' % field)
 

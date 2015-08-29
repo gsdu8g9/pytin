@@ -51,7 +51,7 @@ class ModelFieldChecker:
 
     @staticmethod
     def get_field_value(resource, field_name, default=''):
-        if ModelFieldChecker.is_model_field(resource.__class__, field_name):
+        if ModelFieldChecker.is_field_or_property(resource, field_name):
             return getattr(resource, field_name, default)
         else:
             return resource.get_option_value(field_name, default=default)
@@ -327,7 +327,7 @@ class Resource(models.Model):
     )
 
     parent = models.ForeignKey("self", default=None, db_index=True, null=True)
-    name = models.CharField(max_length=155, db_index=True, default='Resource')
+    name = models.CharField(max_length=155, db_index=True, default='resource')
     type = models.CharField(max_length=155, db_index=True, default='Resource')
     content_type = models.ForeignKey(ContentType, editable=False, null=True)
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
@@ -449,12 +449,20 @@ class Resource(models.Model):
     def is_deleted(self):
         return self.status == self.STATUS_DELETED
 
+    @property
+    def is_saved(self):
+        return self.id is not None
+
+    @property
+    def typed_parent(self):
+        return self.parent.as_leaf_class()
+
     def set_option(self, name, value, format=None, namespace=''):
         """
         Set resource option. If format is omitted, then format is guessed from value type.
         """
 
-        assert self.is_saved(), "Resource must be saved before setting options"
+        assert self.is_saved, "Resource must be saved before setting options"
         assert name is not None, "Parameter 'name' must be defined."
 
         query = dict(
@@ -562,6 +570,3 @@ class Resource(models.Model):
         """
         for res in Resource.active.filter(parent=self, status=Resource.STATUS_FREE):
             yield res
-
-    def is_saved(self):
-        return self.id is not None

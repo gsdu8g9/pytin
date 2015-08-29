@@ -35,9 +35,9 @@ class GenericCmdbImporter(object):
 
                 if len(l3port.macs) > 0:
                     switch_local_port.use()
-                    logger.debug("Switch port %s marked used" % switch_local_port)
+                    logger.info("Switch port %s marked used" % switch_local_port)
                 else:
-                    logger.debug("Switch port %s marked free" % switch_local_port)
+                    logger.info("Switch port %s marked free" % switch_local_port)
                     switch_local_port.free()
 
                 # hvisor
@@ -104,7 +104,7 @@ class GenericCmdbImporter(object):
     def _add_server_and_port(self, connected_mac):
         assert connected_mac
 
-        logger.debug("Add mac: %s" % connected_mac)
+        logger.debug("Found mac: %s" % connected_mac)
 
         server_port, created = Resource.active.get_or_create(
             mac=connected_mac.interface,
@@ -140,7 +140,7 @@ class GenericCmdbImporter(object):
             if server_port.parent.__class__ == VirtualServer:
                 server_port = server_port.cast_type(VirtualServerPort)
 
-        return server_port.parent.as_leaf_class(), server_port
+        return server_port.typed_parent, server_port
 
     def _find_hypervisor(self, l3port):
         assert l3port
@@ -197,7 +197,7 @@ class GenericCmdbImporter(object):
 
                 if parent:
                     if added_ip.parent and added_ip.parent.id != parent.id:
-                        logger.info("IP %s moved from %s to %s" % (ip_address, added_ip.parent.as_leaf_class(), parent))
+                        logger.info("IP %s moved from %s to %s" % (ip_address, added_ip.typed_parent, parent))
 
                     added_ip.parent = parent
                     added_ip.save()

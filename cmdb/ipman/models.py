@@ -87,7 +87,7 @@ class IPAddress(Resource):
     def save(self, *args, **kwargs):
         need_save = True
 
-        if not self.is_saved():
+        if not self.is_saved:
             if self.parent and not isinstance(self.parent, IPAddressPool):
                 raise Exception("IP address must be added to the pool for the first time.")
 

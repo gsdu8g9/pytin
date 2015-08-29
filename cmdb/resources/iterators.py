@@ -8,7 +8,7 @@ class PathIterator(object):
 
     def _iter_inner(self, resource):
         if resource.parent:
-            for res in self._iter_inner(resource.parent.as_leaf_class()):
+            for res in self._iter_inner(resource.typed_parent):
                 yield res
 
         yield resource
