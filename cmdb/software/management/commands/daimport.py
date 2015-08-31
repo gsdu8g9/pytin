@@ -5,6 +5,8 @@ import os
 
 from django.core.management.base import BaseCommand
 
+from cmdb.settings import logger
+
 from ipman.models import IPAddress, IPAddressPool, IPNetworkPool
 from resources.models import Resource, ResourceOption
 from software.models import DirectAdminLicense
@@ -14,7 +16,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.description = 'Utility used to import DirectAdmin licenses from TSV file.'
         parser.add_argument('licenses-list',
-                            help="File with tab separated list of DirectAdmin licenses (da_lic, da_ip, da_target, da_status).")
+                            help="File with tab separated list of DirectAdmin licenses\
+                                 (da_lic, da_ip, da_target, da_status).")
 
     def handle(self, *args, **options):
         da_licenses_list_file = options['licenses-list']
@@ -29,12 +32,12 @@ class Command(BaseCommand):
         # Move IP to DA IP pool (set ipman_pool_id)
         # Set DA lic target system (arch, distrib)
         for da_file_rec in file(da_licenses_list_file):
-            print "-------"
+            logger.info("-------")
 
             (da_lic, da_ip, da_target, da_status) = da_file_rec.split('\t')
             da_status = da_status.strip()
 
-            print "Check LIC %s, IP %s (%s)" % (da_lic, da_ip, da_status)
+            logger.info("Check LIC %s, IP %s (%s)" % (da_lic, da_ip, da_status))
 
             da_license, created = DirectAdminLicense.active.get_or_create(directadmin_lid=da_lic)
             if not created and da_license.parent:
@@ -59,12 +62,12 @@ class Command(BaseCommand):
 
             if da_status == 'free':
                 if not ip_address.is_free:
-                    print '    IP %s is not free but DA license is free, rent new' % da_ip
+                    logger.info('    IP %s is not free but DA license is free, rent new' % da_ip)
 
                     ip_pool = Resource.objects.get(pk=ip_address.get_origin())
 
                     if ip_pool.usage > 98:
-                        print "[!!!] IP pool %s is >98%% full. Find new pool." % ip_pool.id
+                        logger.warning("[!!!] IP pool %s is >98%% full. Find new pool." % ip_pool.id)
 
                         free_ip_pools = IPNetworkPool.active \
                             .filter(parent=ip_pool.parent, status=Resource.STATUS_FREE) \
@@ -74,14 +77,14 @@ class Command(BaseCommand):
                     ip_address = ip_pool.available().next()
                     ip_address.lock()
 
-                    print '[!]    update IP: %s -> %s' % (da_ip, ip_address)
+                    logger.warning('[!]    update IP: %s -> %s' % (da_ip, ip_address))
                 else:
-                    print '    IP %s free and DA %s free, locking' % (da_ip, da_lic)
+                    logger.info('    IP %s free and DA %s free, locking' % (da_ip, da_lic))
                     ip_address.lock()
             else:
-                print '    license %s is used' % da_lic
+                logger.warning('    license %s is used' % da_lic)
                 if ip_address.is_free:
-                    print "[???] IP %s is free, but DA license is USED" % da_ip
+                    logger.error("IP %s is free, but DA license is USED" % da_ip)
 
             # find origin pool of the IP
             ip_pool = Resource.active.get(pk=ip_address.get_origin())
@@ -89,10 +92,10 @@ class Command(BaseCommand):
             # find DA IP pool
             da_ip_pools = Resource.active.filter(parent=ip_pool.parent, daimport=1)
             if not da_ip_pools:
-                raise Exception('No DA IP pool for IP %s' % da_ip)
+                raise Exception('No DA IP pool for IP %s. Must be pool with daimport=1 property.' % da_ip)
             da_ip_pool = da_ip_pools[0]
 
-            print "    FOUND DA IP POOL %s" % da_ip_pool.id
+            logger.warning("    FOUND DA IP POOL %s" % da_ip_pool.id)
 
             # assign unused IPs to DirectAdmin IP Pool
             if not ip_address.is_used:
@@ -103,7 +106,7 @@ class Command(BaseCommand):
 
             # ES 6.0 64
             da_target = da_target.strip()
-            print "    setting target %s" % da_target
+            logger.info("    setting target %s" % da_target)
             da_target_parts = da_target.split(' ')
             if len(da_target_parts) == 2:
                 da_target_parts.append(32)
@@ -116,9 +119,14 @@ class Command(BaseCommand):
             da_license.save()
             da_license.free() if da_status == 'free' else da_license.use()
 
-            print "DA LIC %s s created with IP %s" % (da_license.lid, ip_address)
+            logger.info("DA LIC %s s created with IP %s" % (da_license.lid, ip_address))
 
     def _find_free_pool_for_ip(self, ip_address):
+        """
+        Trying to identify pool, from which the IP ip_address can be taken.
+        :param ip_address: IP address to find the pool for.
+        :return: Found pool or None.
+        """
         assert ip_address
 
         for ip_pool in Resource.active.filter(type__in=IPAddressPool.ip_pool_types,
