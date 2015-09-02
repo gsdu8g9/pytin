@@ -11,11 +11,16 @@ dpkg -i zabbix-agent_2.2.10-1+squeeze_amd64.deb
 # arcconf location
 arcpath=`whereis arcconf | awk '{ print $2; }'`
 
+# /etc/sudoers.d/arcconf
 # Cmnd_Alias ARCCONF_GETCONFIG = /sbin/arcconf getconfig *, /sbin/arcconf getversion
 # zabbix ALL=(root) NOPASSWD: ARCCONF_GETCONFIG
 
-echo 'Cmnd_Alias ARCCONF_GETCONFIG = '$arcpath' getconfig *, '$arcpath' getversion
-echo 'zabbix ALL=(root) NOPASSWD: ARCCONF_GETCONFIG' > /etc/sudoers.d/arcconf
+# /etc/sudoers.d/zpoolconf
+# Cmnd_Alias ZPOOL_STATUS = /sbin/zpool status, /sbin/zpool list
+# zabbix ALL=(root) NOPASSWD: ZPOOL_STATUS
+
+echo 'Cmnd_Alias ARCCONF_GETCONFIG = '$arcpath' getconfig *, '$arcpath' getversion' > /etc/sudoers.d/arcconf
+echo 'zabbix ALL=(root) NOPASSWD: ARCCONF_GETCONFIG' >> /etc/sudoers.d/arcconf
 chmod 0440 /etc/sudoers.d/arcconf
 
 cd /etc/zabbix
