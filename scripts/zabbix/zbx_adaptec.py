@@ -14,6 +14,9 @@
 # File: /etc/sudoers.d/arcconf
 #   Cmnd_Alias ARCCONF_GETCONFIG = /sbin/arcconf getconfig *, /sbin/arcconf getversion
 #   zabbix ALL=(root) NOPASSWD: ARCCONF_GETCONFIG
+#
+# zabbix_agetnd.conf:
+#   Timeout=15
 
 import argparse
 import os
