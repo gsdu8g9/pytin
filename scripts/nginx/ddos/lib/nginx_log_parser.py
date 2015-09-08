@@ -7,13 +7,14 @@ class AccessLogRecord:
         self.domain = ''
         self.ip = ''
         self.http_code = ''
+        self.request_uri = ''
 
 
 class NginxLogParser:
     pattern = re.compile(r''
                          '(\d+.\d+.\d+.\d+)\s-\s-\s'  # IP address
                          '\[(.+)\]\s'  # datetime
-                         '"(.+)\s\w+/.+"(\s)"(\d+)"\s'  # request and HTTP code
+                         '"(.+)\s\w+/.+"(\s)["]*(\d+)["]*\s'  # request and HTTP code
                          '\d+\s"(.+)"\s'  # referrer
                          '"(.+)"\s+".+"\s+'  # user agent
                          '(.+)'  # domain
@@ -38,6 +39,7 @@ class NginxLogParser:
         if mt:
             record = AccessLogRecord()
             record.date = mt.group(2)
+            record.request_uri = mt.group(3)
             record.ip = mt.group(1)
             record.http_code = int(mt.group(5))
             record.domain = mt.group(8).lower()

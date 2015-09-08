@@ -11,13 +11,15 @@ class GenericDDoSAnalyzer:
         """
         parsed_data_map = {}
         for log_record in self.data_provider:
-            if log_record.domain not in parsed_data_map:
-                parsed_data_map[log_record.domain] = {}
+            if log_record.request_uri not in parsed_data_map:
+                parsed_data_map[log_record.request_uri] = {}
 
-            if log_record.ip not in parsed_data_map[log_record.domain]:
-                parsed_data_map[log_record.domain][log_record.ip] = 0
+            if log_record.ip not in parsed_data_map[log_record.request_uri]:
+                parsed_data_map[log_record.request_uri][log_record.ip] = 0
 
-            parsed_data_map[log_record.domain][log_record.ip] += 1
+            parsed_data_map[log_record.request_uri][log_record.ip] += 1
+
+        print parsed_data_map
 
         # find top request IPs
         filtered_ips = {}
