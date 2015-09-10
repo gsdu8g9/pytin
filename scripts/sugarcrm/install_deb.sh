@@ -1,10 +1,10 @@
-apt-get update
-apt-get upgrade
-apt-get install mysql-server mysql-client
-apt-get install apache2 php5
+apt-get -y update
+apt-get -y upgrade
+apt-get -y install mysql-server mysql-client
+apt-get -y install apache2 php5
 
-apt-get install php5 php5-cli php5-common php5-curl php5-dev php5-gd php5-imap php5-ldap
-apt-get install php5-mhash php5-mysql php5-odbc curl libwww-perl imagemagick
+apt-get -y install php5 php5-cli php5-common php5-curl php5-dev php5-gd php5-imap php5-ldap
+apt-get -y install php5-mhash php5-mysql php5-odbc curl libwww-perl imagemagick
 
 update-rc.d mysql defaults
 update-rc.d mysql defaults
@@ -39,5 +39,9 @@ passmysql=`perl -le'print map+(A..Z,a..z,0..9)[rand 62],0..15'`
 echo "MySQL password: "${passmysql} > ~/sugarcrm.txt
 mysqladmin -u root password ${passmysql}
 
-upload_max_filesize = 16M
-/etc/php5/apache2/php.ini
+mysql -uroot -p${passmysql} -e "CREATE DATABASE sugarcrm;"
+
+#upload_max_filesize = 16M
+#/etc/php5/apache2/php.ini
+
+echo '*    *    *    *    *     cd /data/www/sugarcrm; php -f cron.php > /dev/null 2>&1' > /etc/crontab

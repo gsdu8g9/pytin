@@ -17,6 +17,17 @@ yum -y install nano wget openssh-clients gcc gcc-c++ flex bison make bind bind-l
 
 bash <(curl http://www.directadmin.com/setup.sh)
 
+### Замена proftpd на pureftpd
+cd /usr/local/directadmin/custombuild
+./build set proftpd no
+./build set pureftpd yes
+./build pureftpd
+
+### Begin: Not install security for OpenVZ
+ip link | grep venet
+if [ $? -ne 0 ];
+then
+
 # /etc/sysconfig/iptables-config
 # IPTABLES_MODULES="ip_conntrack_ftp"
 
@@ -28,6 +39,9 @@ perl -pi -e 's/IG_UDP_CPORTS="[^\"]*"/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.ap
 perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
 
 apf -r
+fi
+### End: Not install security for OpenVZ
+
 /etc/init.d/crond restart
 
 
@@ -56,8 +70,8 @@ EOF
 
 mkdir -p /etc/httpd/conf/secret
 
-# Генерация паролей
+### Генерация пароля для server-status (info)
 passhtstatus=`perl -le'print map+(A..Z,a..z,0..9)[rand 62],0..15'`
-echo "Password for Apache server-status user: "${passhtstatus} >> ~/da.txt
+echo "Password for Apache server-status user: "${passhtstatus} >> ~/server-status.txt
 echo "Password for Apache server-status user: "${passhtstatus}
 htpasswd -b -c /etc/httpd/conf/secret/passwd info ${passhtstatus}
