@@ -15,91 +15,98 @@ class GenericCmdbImporter(object):
         Import data from layer 3 switch
         :param l3switch: L3Switch
         """
-        hypervisor_server = None
         source_switch = Resource.active.get(pk=switch_cmdb_id)
         for l3port in l3switch.ports:
-
             if l3port.is_local:
-                switch_local_port, created = SwitchPort.active.get_or_create(
-                    number=l3port.number,
-                    parent=source_switch,
-                    defaults=dict(name=l3port.number, status=Resource.STATUS_INUSE)
-                )
-                if created:
-                    logger.info("Added switch port: %s:%s (cmdbid:%s)" % (
-                        source_switch.id, l3port.number, switch_local_port.id))
-                elif switch_local_port.uplink:
-                    logger.info("Port %s marked as UPLINK, purge port connections" % switch_local_port)
-                    PortConnection.active.filter(parent=switch_local_port).delete()
-                    return
+                self._add_local_port(source_switch, l3port)
+            else:
+                self._add_foreign_port(l3port)
 
-                if len(l3port.macs) > 0:
-                    switch_local_port.use()
-                    logger.info("Switch port %s marked used" % switch_local_port)
-                else:
-                    switch_local_port.free()
-                    logger.info("Switch port %s marked free" % switch_local_port)
-
-                # hvisor
-                hypervisor_server = self._find_hypervisor(l3port)
-
+            # Import IP addresses
             for connected_mac in l3port.macs:
                 server, server_port = self._add_server_and_port(connected_mac)
 
-                if l3port.is_local:
-                    port_connection, created = PortConnection.active.get_or_create(
-                        parent=switch_local_port,
-                        linked_port_id=server_port.id
-                    )
-                    if created:
-                        logger.info("Added %s" % port_connection)
-                    else:
-                        port_connection.touch()
-
-                    port_connection.use()
-
-                    # existing VPS port on local switch port and with existing physical server
-                    # then update parent of the VPS (link to physical server)
-                    if hypervisor_server and hypervisor_server.id != server_port.parent.id:
-                        if not server_port.parent.parent:
-                            server_port.parent.parent = hypervisor_server
-                            logger.info("Vps %s linked to parent metal server %s" % (
-                                server_port.typed_parent, hypervisor_server))
-                        elif server_port.parent.parent.id != hypervisor_server.id:
-                            server_port.parent.parent = hypervisor_server
-                            logger.info("Vps %s moved from %s to parent metal server %s" % (
-                                server_port.typed_parent, server_port.parent.typed_parent, hypervisor_server))
-
-                        # update server type
-                        server_port.parent.cast_type(VirtualServer)
-                        server_port.parent.save()
-
-                        # update server port type
-                        server_port.cast_type(VirtualServerPort)
-
-                # adding IP
                 for ip_address in l3port.switch.get_mac_ips(unicode(connected_mac)):
                     self._add_ip(ip_address, parent=server_port)
 
-        # If there is more than 1 PortConnection from the physical port, sort by last_seen DESC and remove all
-        # except the first one.
+        # There is only one connection from the single server port.
         logger.info("Clean extra PortConnections")
         for server_port in ServerPort.active.filter():
             port_connections = PortConnection.active.filter(linked_port_id=server_port.id).order_by('-last_seen')
 
             if len(port_connections) > 1:
                 logger.warning("Server port %s have >1 PortConnection" % server_port)
+                deleted_poconn = 0
                 for port_connection in port_connections[1:]:
                     logger.warning("    remove PortConnection %s" % port_connection)
                     port_connection.delete()
+                    deleted_poconn += 1
 
-        # Fixing ServerPort objects
-        logger.info("Fix ServerPort types (VirtualServer must have VirtualServerPort)")
-        for srv_port in ServerPort.active.filter(parent__type=VirtualServer.__name__):
-            logger.warning("    server port %s have parent VirtualServer, change it..." % srv_port)
-            srv_port.cast_type(VirtualServerPort)
+                logger.warning("    deleted %s" % deleted_poconn)
+
+    def _add_foreign_port(self, l3port):
+        """
+        Add port and server from the foreign switch. It is possible that server is not directly connected to the
+        switch and don't have local port.
+        :param l3port: L3 port of the switch
+        :return: None
+        """
+        assert l3port
+
+        for connected_mac in l3port.macs:
+            self._add_server_and_port(connected_mac)
+
+    def _add_local_port(self, source_switch, l3port):
+        """
+        Add port and server from the local switch. Add switch port, server port, server and connection between
+        switch port and server port.
+        :param source_switch: Resource switch, which port is being added.
+        :param l3port: L3 port of the switch
+        :return: None
+        """
+        assert source_switch
+        assert l3port
+
+        switch_local_port, created = SwitchPort.active.get_or_create(
+            number=l3port.number,
+            parent=source_switch,
+            defaults=dict(name=l3port.number, status=Resource.STATUS_INUSE)
+        )
+        if created:
+            logger.info("Added switch port: %s:%s (cmdbid:%s)" % (
+                source_switch.id, l3port.number, switch_local_port.id))
+        elif switch_local_port.uplink:
+            logger.info("Port %s marked as UPLINK, purge port connections" % switch_local_port)
+            PortConnection.active.filter(parent=switch_local_port).delete()
+            return
+
+        if len(l3port.macs) > 0:
+            switch_local_port.use()
+            logger.info("Switch port %s marked used" % switch_local_port)
+        else:
+            switch_local_port.free()
+            logger.info("Switch port %s marked free" % switch_local_port)
+
+        for connected_mac in l3port.macs:
+            server, server_port = self._add_server_and_port(connected_mac)
+
+            port_connection, created = PortConnection.active.get_or_create(
+                parent=switch_local_port,
+                linked_port_id=server_port.id
+            )
+            if created:
+                logger.info("Added %s" % port_connection)
+            else:
+                port_connection.touch()
+
+            port_connection.use()
 
     def _add_server_and_port(self, connected_mac):
+        """
+        Add or get server with port. Selecting bare metal or Virtual based on Vendor code of MAC.
+        :param connected_mac:
+        :return:
+        """
         assert connected_mac
 
         logger.debug("Found mac: %s" % connected_mac)
@@ -127,57 +134,11 @@ class GenericCmdbImporter(object):
             server_port.parent = server
             server_port.save()
         else:
-            if connected_mac.vendor and server_port.parent:
-                if server_port.parent.name == 'Server':
-                    # update standard server name to platform name
-                    server_port.parent.name = connected_mac.vendor
-                    server_port.parent.save()
-
             server_port.use()
             server_port.touch()
             server_port.parent.touch()
 
-            if server_port.parent.__class__ == VirtualServer:
-                server_port = server_port.cast_type(VirtualServerPort)
-
         return server_port.typed_parent, server_port
-
-    def _find_hypervisor(self, l3port):
-        assert l3port
-
-        if len(l3port.macs) <= 0:
-            return None
-
-        # search for known guessed_role hypervisors
-        for connected_mac in l3port.macs:
-            for port in ServerPort.active.filter(mac=unicode(connected_mac)):
-                if port.parent and port.parent.get_option_value('guessed_role') == 'hypervisor':
-                    return port.parent
-
-        # Try to identify hypervisor by mac:
-        # one phyz server and many VPS - phyz server is a hypervisor
-        # many phyz - possibly aggregated port, no hypervisors
-        # one phyz and one mac in list - not a hypervisor
-        phyz_server_list = []
-        for connected_mac in l3port.macs:
-
-            if connected_mac.vendor:
-                phyz_server, server_port = self._add_server_and_port(connected_mac)
-                phyz_server_list.append(phyz_server)
-
-        phyz_server = None
-        if len(phyz_server_list) > 1:
-            logger.warning("Possibly UPLINK port: %s (phyz servers %s, MAC count on port %s)" % (
-                l3port.number, len(phyz_server_list), len(l3port.macs)))
-        elif len(phyz_server_list) == 1 and len(l3port.macs) > 1:
-            # one phyz and many VPS on port - hypervisor detected
-            phyz_server = phyz_server_list[0]
-            logger.info('* Hypervisor detected: %s' % phyz_server)
-
-            # set role
-            phyz_server.set_option('guessed_role', 'hypervisor')
-
-        return phyz_server
 
     def _add_ip(self, ip_address, parent=None):
         assert ip_address, "ip_address must be defined."
@@ -193,7 +154,7 @@ class GenericCmdbImporter(object):
                 if created:
                     logger.info("Added %s to %s" % (ip_address, ip_pool))
                 else:
-                    added_ip.touch()
+                    added_ip.touch(cascade=True)
 
                 if parent:
                     if added_ip.parent and added_ip.parent.id != parent.id:
@@ -206,4 +167,4 @@ class GenericCmdbImporter(object):
                 break
 
         if not added:
-            logger.warning("%s is not added. IP pool is not available." % ip_address)
+            logger.error("%s is not added. IP pool is not available." % ip_address)

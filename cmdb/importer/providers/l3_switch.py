@@ -1,5 +1,6 @@
 import netaddr
 from pysnmp.entity.rfc3413.oneliner import cmdgen
+
 from cmdb.settings import logger
 
 

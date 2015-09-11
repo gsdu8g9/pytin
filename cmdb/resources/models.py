@@ -377,12 +377,12 @@ class Resource(models.Model):
         for resource in Resource.active.filter(parent=self):
             yield resource
 
-    def touch(self, recursive=False):
+    def touch(self, cascade=False):
         """
         Update last_seen date of the resource
         """
 
-        if recursive:
+        if cascade:
             for child in self:
                 child.last_seen = timezone.now()
                 child.save()

@@ -67,7 +67,12 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(71, len(ServerPort.active.filter()))
         self.assertEqual(0, len(ServerPort.active.filter(parent=None)))
         self.assertEqual(39, len(VirtualServerPort.active.filter()))
+
         self.assertEqual(10, len(PortConnection.active.filter()))
+
+        # Servers and ports equality check
+        self.assertEqual((len(ServerPort.active.filter()) + len(VirtualServerPort.active.filter())),
+                         (len(Server.active.filter()) + len(VirtualServer.active.filter())))
 
         # import MAC data from mac table
         anders_sw1 = Switch.objects.create(name="baxet-sw-1", parent=dc_anders)
@@ -87,19 +92,13 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(54, len(PortConnection.active.filter()))
         self.assertEqual(1328, len(IPAddress.active.filter()))
 
-        # Linked VPS
-        self.assertEqual(3, len(VirtualServer.active.filter(parent=619)))
-        self.assertEqual(4, len(VirtualServer.active.filter(parent=740)))
+        # There is NO linked VPS, because hypervisor detection logic was removed.
+        self.assertEqual(0, len(VirtualServer.active.filter(parent=619)))
+        self.assertEqual(0, len(VirtualServer.active.filter(parent=740)))
 
-        # Guessed roles
-        self.assertEqual(3, len(Server.active.filter(guessed_role='hypervisor')))
-        for srv in Server.active.filter(guessed_role='hypervisor'):
-            print srv.id
-            for srv_port in srv:
-                print "    %s" % srv_port
-
+        # there is no servers changed to virtual servers.
         srv_port = ServerPort.active.filter(mac='001517E69D70')[0]
-        self.assertEqual(4, len(VirtualServer.active.filter(parent=srv_port.parent)))
+        self.assertEqual(0, len(VirtualServer.active.filter(parent=srv_port.parent)))
 
         events = HistoryEvent.objects.filter(type=HistoryEvent.CREATE)
         self.assertEqual(1677, len(events))

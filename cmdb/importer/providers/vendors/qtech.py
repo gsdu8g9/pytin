@@ -11,7 +11,6 @@ class QtechL3SwitchPort(L3SwitchPort):
 
 
 class QtechL3Switch(L3Switch):
-
     port_implementor = QtechL3SwitchPort
     mac_regexp = r'\d+\s+([^\s]+)\s+[^\s]+\s+[^\s]+\s+((.+/.+/(\d+))|([^\s]+))'
     arp_regexp = r'(\d+\.\d+\.\d+\.\d+)\s+([^\s]+)\s+[^\s]+\s+((.+/.+/(\d+))|([^\s]+))'
