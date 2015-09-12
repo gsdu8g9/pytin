@@ -1,6 +1,7 @@
 HTTP flood analyzer 
 ===================
 
+```
 Optional arguments:
   -h, --help            show this help message and exit
   -p pid-file           PID lock file (default: None)
@@ -13,7 +14,7 @@ Parser parameters.:
   --stdin               Data from stdin (default: False)
   -l LOG_FILE, --log LOG_FILE
                         Log file to process. (default: None)
-
+```
 
 ## Basic usage
 
@@ -28,8 +29,8 @@ By default HTTP protector uses Generic flood analyzer. It counts requests from t
 block, based on threshold parameter.
 
 The following urls are treated as the different targets:
-(1) http://attacktarget.com/main
-(2) http://attacktarget.com/dfjslkdjf?query=fdksjf
-(3) http://attacktarget.com/dfjslkdjf?query=3847587
+* (1) http://attacktarget.com/main
+* (2) http://attacktarget.com/dfjslkdjf?query=fdksjf
+* (3) http://attacktarget.com/dfjslkdjf?query=3847587
 
 For example, if there is a more then 10 (default) requests from some IP to the (2), then this IP is blocked. 
