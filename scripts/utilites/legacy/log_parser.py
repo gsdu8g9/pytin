@@ -10,36 +10,33 @@
 # CentOS 6
 
 import datetime
-import re
 import sys
 import argparse
 import traceback
 import os
-import sqlite3
 
-from iplist import IPList
-from ddos_stat import DDoSStat
 from nginx_log_data_provider import NginxLogDataProvider
 from apache_log_data_provider import ApacheLogDataProvider
 from clsDDoSAnalizer import DDoSAnalizer
+
 
 def main():
     # PID
     pid = str(os.getpid())
 
     parser = argparse.ArgumentParser(description='DDoS log parser',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-o", "--outfile", dest="outfile", help="Файл для вывода")
     parser.add_argument("-p", dest="pidfile", metavar="pid-file", help="Файл для вывода")
     parser.add_argument("-B", "--block", dest="blockpath", help="Путь для блокировки")
     parser.add_argument("-t", "--type", dest="type_file", choices=["apache", "nginx"],
-        required=True, help="Тип парсера")
+                        required=True, help="Тип парсера")
     parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
     parser.add_argument("--limit", dest="limitrequests", type=int, default=10,
-        help="Лимит запросов с одного IP к одному домену")
+                        help="Лимит запросов с одного IP к одному домену")
     parser.add_argument("-S", "--statistics", dest="statistics", action='store_true',
-        help="Вывести статистику")
+                        help="Вывести статистику")
     group1 = parser.add_argument_group('Команды')
     mutex_group1 = group1.add_mutually_exclusive_group()
     mutex_group1.add_argument("--raw", dest="raw", action='store_true', help="Сырые данные")
@@ -81,8 +78,8 @@ def main():
             if log[4] > args.limitrequests:
                 if len(tmplist) == 0:
                     tmplist.append([stat.IPs.iplist[log[1]][1], str(log[4])])
-                if stat.IPs.iplist[log[1]][1] == tmplist[len(tmplist)-1][0]:
-                    if str(log[4]) > tmplist[len(tmplist)-1][1]:
+                if stat.IPs.iplist[log[1]][1] == tmplist[len(tmplist) - 1][0]:
+                    if str(log[4]) > tmplist[len(tmplist) - 1][1]:
                         tmplist.append([stat.IPs.iplist[log[1]][1], str(log[4])])
                 else:
                     tmplist.append([stat.IPs.iplist[log[1]][1], str(log[4])])
@@ -129,7 +126,8 @@ def main():
         outfile.write('#!/bin/bash\n')
         for log in stat.loglist:
             if log[4] > args.limitrequests:
-                outfile.write("iptables -A INPUT -s " + stat.IPs.iplist[log[1]][1] +" -j DROP -m comment --comment 'pytin'" + '\n')
+                outfile.write("iptables -A INPUT -s " + stat.IPs.iplist[log[1]][
+                    1] + " -j DROP -m comment --comment 'pytin'" + '\n')
         outfile.write('rm ' + args.blockpath + '/block_' + datetime.datetime.now().strftime('%Y%m%d%H%M') + '\n')
         outfile.close()
         outfile = open(args.blockpath + '/unblock_' + datetime.datetime.now().strftime('%Y%m%d%H%M'), "w")
@@ -141,12 +139,14 @@ def main():
         outfile.write('fi\n')
         for log in stat.loglist:
             if log[4] > args.limitrequests:
-                outfile.write("iptables -D INPUT -s " + stat.IPs.iplist[log[1]][1] +" -j DROP -m comment --comment 'pytin'" + '\n')
+                outfile.write("iptables -D INPUT -s " + stat.IPs.iplist[log[1]][
+                    1] + " -j DROP -m comment --comment 'pytin'" + '\n')
         outfile.write('rm ' + args.blockpath + '/unblock_' + datetime.datetime.now().strftime('%Y%m%d%H%M') + '\n')
         outfile.close()
 
     if args.pidfile:
         os.unlink(args.pidfile)
+
 
 if __name__ == "__main__":
     try:

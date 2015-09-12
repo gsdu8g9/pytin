@@ -3,9 +3,10 @@
 
 def main():
     parser = argparse.ArgumentParser(description='Скрипт добавления IP или подсети в блокировку на межсетевом экране',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-D", "--database", dest="database", help="Файл базы данных")
+
 
 if __name__ == "__main__":
     try:

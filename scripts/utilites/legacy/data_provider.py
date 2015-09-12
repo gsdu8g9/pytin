@@ -3,15 +3,16 @@
 
 import re
 import datetime
-from data_provider import DataProvider
 
-class NginxLogDataProvider():
-    def __init__(self, dataprovider):
+
+class DataProvider():
+    def __init__(self, logfile):
         """
         Инициализация класса доступа к лог-файлу nginx
         """
-        self.dataprovider = dataprovider
-        self.iterator = dataprovider
+        self.logfile = logfile
+        self.fdesc = open(self.logfile, 'r')
+        self.iterator = iter(self.fdesc)
 
     def __iter__(self):
         """
@@ -34,7 +35,7 @@ class NginxLogDataProvider():
             result['date'] = datetime.datetime.strptime(
                 str(match[0][2]) + " " + match[0][1] + " " + str(match[0][0]) + " " + str(match[0][3]) + " " + str(
                     match[0][4]), '%Y %b %d %H %M')
-        #result = line
+        # result = line
         return result
 
     def get_log_value(self, line):
@@ -49,29 +50,29 @@ class NginxLogDataProvider():
 
         para = {'"': '"', '(': ')', '[': ']', "'": "'"}
         for Ch in line:
-            if(Ch==' ') and (prevCh!='\\') and (not inQuote):
-                if(len(words[len(words)-1])!=0):
+            if (Ch == ' ') and (prevCh != '\\') and (not inQuote):
+                if (len(words[len(words) - 1]) != 0):
                     words.append('')
             else:
-                if (para.get(Ch)) and (prevCh!='\\') and (not inQuote):
-                    if(len(words[len(words)-1])!=0):
+                if (para.get(Ch)) and (prevCh != '\\') and (not inQuote):
+                    if (len(words[len(words) - 1]) != 0):
                         words.append('')
-                    words[len(words)-1] += Ch
+                    words[len(words) - 1] += Ch
                     Quote = Ch
                     inQuote = True
                 elif inQuote:
-                    if (Ch==para[Quote]) and (prevCh!='\\'):
-                        words[len(words)-1] += Ch
+                    if (Ch == para[Quote]) and (prevCh != '\\'):
+                        words[len(words) - 1] += Ch
                         words.append('')
                         inQuote = False
                         Quote = ''
                     else:
-                        words[len(words)-1] += Ch
+                        words[len(words) - 1] += Ch
                 else:
-                    words[len(words)-1] += Ch
+                    words[len(words) - 1] += Ch
             prevCh = Ch
 
-        if(len(words[-1:][0])==0):
+        if (len(words[-1:][0]) == 0):
             words.pop()
         result = words
         return result

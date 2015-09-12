@@ -11,6 +11,7 @@
 
 import re
 
+
 class IPList:
     def __init__(self):
         self.iplist = []
@@ -53,7 +54,7 @@ class IPList:
         Element = [len(self.iplist), IP, 1]
         min, max = 0, len(self.iplist)
         while max - min > 0:
-            m = (min + max) // 2 # Делим отрезок пополам
+            m = (min + max) // 2  # Делим отрезок пополам
             if self.iplist[m][Index] > Element[Index]:
                 max = m
             else:
@@ -66,17 +67,17 @@ class IPList:
         Бинарный поиск
         """
         i = 0
-        j = len(self.iplist)-1
+        j = len(self.iplist) - 1
         Element = [None, IP, None]
         if j == -1:
             return None
         while i < j:
-            m = int((i+j)/2)
+            m = int((i + j) / 2)
             if Element[self.Index] > self.iplist[m][self.Index]:
-                i = m+1
+                i = m + 1
             else:
                 j = m
-        #тут не важно j или i
+        # тут не важно j или i
         if self.iplist[j][self.Index] == Element[self.Index]:
             return self.iplist[j]
         else:
@@ -86,7 +87,8 @@ class IPList:
         """
         Проверка на совпадение с RFC
         """
-        ippatterns = ["127\.\d{1,3}\.\d{1,3}\.\d{1,3}", "192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
+        ippatterns = ["127\.\d{1,3}\.\d{1,3}\.\d{1,3}", "192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}",
+                      "172\.(3[01]|2[0-9]|1[6-9])"]
         result = False
         for pattern in ippatterns:
             match = re.findall(pattern, IP)
@@ -98,7 +100,8 @@ class IPList:
         """
         Проверка на принадлежность к IPv6
         """
-        ippatterns = ["127\.\d{1,3}\.\d{1,3}\.\d{1,3}", "192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}", "172\.(3[01]|2[0-9]|1[6-9])"]
+        ippatterns = ["127\.\d{1,3}\.\d{1,3}\.\d{1,3}", "192\.168\.\d{1,3}\.\d{1,3}", "10\.\d{1,3}\.\d{1,3}\.\d{1,3}",
+                      "172\.(3[01]|2[0-9]|1[6-9])"]
         result = False
         for pattern in ippatterns:
             match = re.findall(pattern, IP)

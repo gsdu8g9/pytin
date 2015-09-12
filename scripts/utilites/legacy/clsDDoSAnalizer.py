@@ -12,21 +12,16 @@
 import datetime
 import re
 import sys
-import argparse
-import traceback
-import os
-import sqlite3
 
-from iplist import IPList
 from ddos_stat import DDoSStat
-from nginx_log_data_provider import NginxLogDataProvider
-from apache_log_data_provider import ApacheLogDataProvider
+
 
 class DDoSAnalizer:
     """
     Класс анализатора событий
     """
-    def __init__(self, dataprovider, limitrequests = 10, silent = True):
+
+    def __init__(self, dataprovider, limitrequests=10, silent=True):
         """
         Инициализация класса анализатора событий
         """
@@ -40,7 +35,8 @@ class DDoSAnalizer:
         """
         if not self.silent:
             text = "\rОбработано " + str(cur) + " записей. В списке " + str(len(self.stat.IPs.iplist)) + " записей IP, "
-            text += str(len(self.stat.Domains.domainlist)) + " записей доменов и " + str(len(self.stat.loglist)) + " в общей таблице"
+            text += str(len(self.stat.Domains.domainlist)) + " записей доменов и " + str(
+                len(self.stat.loglist)) + " в общей таблице"
             sys.stdout.write(text)
             sys.stdout.flush()
 
@@ -92,6 +88,6 @@ class DDoSAnalizer:
                 self.stat.addLogLine(stamp, line['ip'], domain)
             if not stamp:
                 sys.exit(0)
-#                if self.quiet:
-            if i%1000 == 0:
+            #                if self.quiet:
+            if i % 1000 == 0:
                 self.cli_progress_test(i)
