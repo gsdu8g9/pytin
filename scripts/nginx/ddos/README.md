@@ -33,4 +33,4 @@ The following urls are treated as the different targets:
 * (2) http://attacktarget.com/dfjslkdjf?query=fdksjf
 * (3) http://attacktarget.com/dfjslkdjf?query=3847587
 
-For example, if there is a more then 10 (default) requests from some IP to the (2), then this IP is blocked. 
+For example, if there is a more then 10 (default) requests from some IP to, say, url (2), then this IP is blocked.
