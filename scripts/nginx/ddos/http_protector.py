@@ -6,7 +6,7 @@ import os
 from lib.data_providers import StdInDataProvider, FileDataProvider
 from lib.nginx_log_parser import NginxLogParser
 from lib.analyzers import GenericDDoSAnalyzer
-from lib.blockers import ApfBlocker
+from lib.blockers import ApfBlocker, IPTablesBlocker
 
 
 def enter_pid_lock(lock_file):
@@ -30,13 +30,19 @@ def main():
     known_formats = {
         'nginx': NginxLogParser
     }
+    known_blockers = {
+        'apf': ApfBlocker,
+        'iptables': IPTablesBlocker
+    }
 
-    parser = argparse.ArgumentParser(description='DDoS log parser',
+    parser = argparse.ArgumentParser(description='HTTP flood analyzer',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-p", dest="pidfile", required=True, metavar="pid-file", help="PID lock file")
     parser.add_argument("-f", "--format", dest="log_format", choices=known_formats.keys(),
-                        required=True, help="Log file format.")
+                        required=True, default='nginx', help="Log file format.")
+    parser.add_argument("-b", "--blocker", choices=known_blockers.keys(),
+                        required=True, default='iptables', help="Use specific blocker.")
 
     group1 = parser.add_argument_group('Parser parameters.')
     mutex_group1 = group1.add_mutually_exclusive_group()
@@ -47,17 +53,21 @@ def main():
 
     enter_pid_lock(args.pidfile)
     try:
-        parser_impl_class = known_formats[args.log_format]
-
+        # input
         if args.stdin:
             data_provider = StdInDataProvider()
         else:
             data_provider = FileDataProvider(args.log_file)
 
-        log_parser = parser_impl_class(data_provider)
+        # log parser
+        log_parser = known_formats[args.log_format](data_provider)
 
-        analyzer = GenericDDoSAnalyzer(log_parser, threshold=100)
-        blocker = ApfBlocker()
+        # select blocker
+        blocker = known_blockers[args.blocker]()
+
+        # select analyzer
+        analyzer = GenericDDoSAnalyzer(log_parser, threshold=10)
+
         for attacker_ip in analyzer.attacker_ip_list():
             blocker.block(attacker_ip)
             sys.stdout.write("IP %s blocked.\n" % attacker_ip)
