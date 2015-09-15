@@ -12,6 +12,9 @@
 # bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
 #
 
+echo "Disable SELinux"
+/usr/sbin/setenforce 0
+
 yum clean all
 yum -y update
 yum -y install nano wget ntp mc net-tools
