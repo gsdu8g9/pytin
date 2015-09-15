@@ -5,6 +5,7 @@
 ```bash
 bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
 ```
+
 ## Скрипт обновления ОС Debian/Ubuntu
 
 ```bash
@@ -33,3 +34,7 @@ bash setup.sh
 ```bash
 bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/vesta/setup.sh)
 ```
+
+# Особенности
+
+При установке ОС CentOS/Debian/Ubuntu на физический сервер или VPS KVM, ставится APF и BFD
