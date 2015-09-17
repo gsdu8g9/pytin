@@ -91,12 +91,18 @@ perl -pi -e "s/\|DNS2\|/${DNS2}/g" ${KICKSTART_FILE}
 genisoimage -o ksboot.iso ${KICKSTART_FILE}
 mv ksboot.iso ${ISOPATH}/
 
+if [ ${CENT_OS_VER} == 7 ]
+then
+qm create ${VMID} --args "-append 'root=live:http://mirror.yandex.ru/centos/7/os/x86_64/LiveOS/squashfs.img ks=cdrom:/dev/cdrom:/${KICKSTART_FILE_NAME}' -kernel ${WORKDIR}/vmlinuz -initrd ${WORKDIR}/initrd.img" --ide2 local:iso/ksboot.iso,media=cdrom --name ${VMNAME} --net0 rtl8139,rate=50,bridge=vmbr0 --virtio0 local:${HDDGB},format=qcow2,cache=writeback,mbps_rd=5,mbps_wr=5 --bootdisk virtio0 --ostype l26 --memory ${MEMMB} --onboot yes --cores ${VCPU} --sockets 1
+else
 qm create ${VMID} --args "-append ks=cdrom:/${KICKSTART_FILE_NAME} -kernel ${WORKDIR}/vmlinuz -initrd ${WORKDIR}/initrd.img" --ide2 local:iso/ksboot.iso,media=cdrom --name ${VMNAME} --net0 rtl8139,rate=50,bridge=vmbr0 --virtio0 local:${HDDGB},format=qcow2,cache=writeback,mbps_rd=5,mbps_wr=5 --bootdisk virtio0 --ostype l26 --memory ${MEMMB} --onboot yes --cores ${VCPU} --sockets 1
+fi
 qm start ${VMID}
 
 qm wait ${VMID}
 
 # unmount cd, remove args
 qm set ${VMID} --args "" --ide2 none,media=cdrom
+qm set ${VMID} -delete args
 
 qm start ${VMID}
