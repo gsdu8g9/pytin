@@ -34,7 +34,7 @@ then
 ### Configure BFD and APF
 
 cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
-perl -pi -e 's/IG_TCP_CPORTS="[^\"]*"/IG_TCP_CPORTS="20,21,22,25,53,80,110,143,443,465,587,953,993,995,2222"/g' /etc/apf/conf.apf
+perl -pi -e 's/IG_TCP_CPORTS="[^\"]*"/IG_TCP_CPORTS="20,21,22,25,53,80,110,143,443,465,587,953,993,995,2222,35000_35999"/g' /etc/apf/conf.apf
 perl -pi -e 's/IG_UDP_CPORTS="[^\"]*"/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.apf
 perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
 
