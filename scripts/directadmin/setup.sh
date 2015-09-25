@@ -35,7 +35,7 @@ then
 
 cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
 # ingress tcp
-perl -pi -e 's/IG_TCP_CPORTS="[^\"]*"/IG_TCP_CPORTS="20,21,22,25,53,80,110,143,443,465,587,953,993,995,2222"/g' /etc/apf/conf.apf
+perl -pi -e 's/IG_TCP_CPORTS="[^\"]*"/IG_TCP_CPORTS="20,21,22,25,53,80,110,143,443,465,587,953,993,995,2222,30000_35000"/g' /etc/apf/conf.apf
 perl -pi -e 's/IG_UDP_CPORTS="[^\"]*"/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.apf
 
 # egress tcp

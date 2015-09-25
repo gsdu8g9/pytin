@@ -13,9 +13,8 @@ IP_LIST=$1
 while read ipaddr; do
 	if [ ${ipaddr} != "" ]; then
 		
-		ping -c 1 ${ipaddr}
-		
-		if [ $? -ne 0 ]; then
+		ping -c 1 ${ipaddr} >/dev/null 2>&1
+		if [ -z $? ]; then
 			echo ${ipaddr} "    BUSY"
 		else
 			echo ${ipaddr} "    FREE"
