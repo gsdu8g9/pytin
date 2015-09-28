@@ -40,7 +40,7 @@ esac
 
 apt-get -y update
 apt-get -y upgrade
-apt-get -y install wget nano ntpdate ntp mc perl
+apt-get -y install wget nano ntpdate ntp mc perl smartmontools
 
 ntpdate -d ntp1.vniiftri.ru
 

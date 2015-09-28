@@ -67,11 +67,6 @@ class Command(BaseCommand):
         last_seen_100days = timezone.now() - datetime.timedelta(days=100)
         last_seen_5days = timezone.now() - datetime.timedelta(days=5)
 
-        logger.info("Clean missing virtual servers: %s" % last_seen_100days)
-        for vm in VirtualServer.active.filter(last_seen__lt=last_seen_100days):
-            logger.warning("    server %s not seen for 3 months. Removing..." % vm)
-            vm.delete(cascade=True)
-
         # Clean IP with parent=ip pool (free) with last_seen older that 100 days. It means that IP is not
         # used and can be released.
         logger.info("Clean missing IP addresses: %s" % last_seen_100days)
@@ -91,6 +86,14 @@ class Command(BaseCommand):
                     version=4):
                 logger.warning("    locked ip %s from the FREE IP pool is not seen for 5 days. Free it." % ip)
                 ip.free(cascade=True)
+
+        logger.info("Clean missing virtual servers: %s" % last_seen_100days)
+        for vm in VirtualServer.active.filter(last_seen__lt=last_seen_100days):
+            logger.warning("    server %s not seen for 3 months. Removing..." % vm)
+            for vm_child in vm:
+                logger.info("        remove %s" % vm_child)
+                vm_child.delete()
+            vm.delete()
 
     def _handle_auto(self, *args, **options):
         # update via snmp
