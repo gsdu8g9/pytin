@@ -71,6 +71,8 @@ class Command(BaseCommand):
         # used and can be released.
         logger.info("Clean missing IP addresses: %s" % last_seen_100days)
         for free_ip_pool in Resource.active.filter(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
+            logger.info("    pool %s" % free_ip_pool)
+
             for ip in IPAddress.active.filter(
                     status=Resource.STATUS_INUSE,
                     last_seen__lt=last_seen_100days,
