@@ -5,7 +5,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from assets.models import Server, ServerPort
-
 from resources.models import Resource
 
 
@@ -59,11 +58,17 @@ class ResourcesAPITests(APITestCase):
         res1 = Resource.objects.create(name='res1')
         res2 = Server.objects.create(name='res2', parent=res1, extrafield='extravalue', extrafield2='extravalue2')
 
-        response = self.client.put('/v1/resources/%s/' % res2.id, {'status': Resource.STATUS_INUSE, 'name': 'res2_ed'},
+        response = self.client.put('/v1/resources/%s/' % res2.id,
+                                   {'status': Resource.STATUS_INUSE,
+                                    'name': 'res2_ed',
+                                    'options': [
+                                        {'name': 'extrafield', 'value': 'extravalue_ed'},
+                                        {'name': 'extrafield2', 'value': 'extravalue2_ed'}
+                                    ]
+                                    },
                                    format='json')
 
         self.assertEqual(200, response.status_code)
-
         self.assertEqual('res2_ed', response.data['name'])
         self.assertEqual(Resource.STATUS_INUSE, response.data['status'])
         self.assertEqual('Server', response.data['type'])
@@ -71,16 +76,16 @@ class ResourcesAPITests(APITestCase):
         self.assertEqual(1, response.data['parent'])
         self.assertEqual(2, len(response.data['options']))
         self.assertEqual('extrafield2', response.data['options'][0]['name'])
-        self.assertEqual('extravalue2', response.data['options'][0]['value'])
+        self.assertEqual('extravalue2_ed', response.data['options'][0]['value'])
         self.assertEqual('extrafield', response.data['options'][1]['name'])
-        self.assertEqual('extravalue', response.data['options'][1]['value'])
+        self.assertEqual('extravalue_ed', response.data['options'][1]['value'])
 
         res2.refresh_from_db()
 
         self.assertEqual('res2_ed', res2.name)
         self.assertEqual(Resource.STATUS_INUSE, res2.status)
         self.assertEqual('Server', res2.type)
-        self.assertEqual('extravalue', res2.get_option_value('extrafield'))
+        self.assertEqual('extravalue_ed', res2.get_option_value('extrafield'))
 
     def test_resource_details(self):
         res1 = Resource.objects.create(name='res1')
