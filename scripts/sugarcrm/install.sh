@@ -2,9 +2,28 @@
 
 # SugarCRM
 
-/bin/bash <(/usr/bin/curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+function set_conf {
+    ### Begin: Not install security for OpenVZ
+    ip link | grep venet
+    if [ $? -ne 0 ];
+    then
 
-/usr/bin/yum install -y httpd php php-cli php-gd php-mysql php-tidy php-xml php-xmlrpc mysql mysql-server php-mbstring php-imap
+        # APF
+        perl -pi -e 's/IG_TCP_CPORTS="[^\"]*"/IG_TCP_CPORTS="22,25,80,443"/g' /etc/apf/conf.apf
+        perl -pi -e 's/IG_UDP_CPORTS="[^\"]*"/IG_UDP_CPORTS="53,953"/g' /etc/apf/conf.apf
+
+        perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
+
+        apf -r
+
+    fi
+}
+
+bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+
+yum -y install nano wget mc
+
+yum install -y httpd php php-cli php-gd php-mysql php-tidy php-xml php-xmlrpc mysql mysql-server php-mbstring php-imap
 
 # iptables
 cat <<EOF > /etc/sysconfig/iptables
@@ -24,6 +43,10 @@ cat <<EOF > /etc/sysconfig/iptables
 COMMIT
 EOF
 service iptables restart
+
+set_conf
+
+apf -r
 
 # Генерация паролей
 passmysql=`perl -le'print map+(A..Z,a..z,0..9)[rand 62],0..15'`
