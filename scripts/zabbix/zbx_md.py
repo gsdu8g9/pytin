@@ -35,7 +35,7 @@ if len(cmd_mdadm) == 0:
        o.write(line)
     o.close()
     os.rename('/etc/zabbix/output', '/etc/zabbix/zbx_md.py')
-    os.chmod('/etc/zabbix/zbx_md.py', 755)
+    os.chmod('/etc/zabbix/zbx_md.py', 0550)
 
 def main():
     parser = argparse.ArgumentParser(description='MD RAID',

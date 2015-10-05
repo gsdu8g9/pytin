@@ -1,6 +1,8 @@
 #!/bin/sh
 
 # SugarCRM
+#
+# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/sugarcrm/install.sh)
 
 function set_conf {
     ### Begin: Not install security for OpenVZ
@@ -73,9 +75,9 @@ EOF
 
 # Загруза и распаковка SugarCRMmkdir -p /data/www
 mkdir -p /data/www
-wget http://garr.dl.sourceforge.net/project/sugarcrm/1%20-%20SugarCRM%206.5.X/SugarCommunityEdition-6.5.X/SugarCE-6.5.20.zip
-unzip SugarCE-6.5.20.zip
-mv SugarCE-Full-6.5.20 /data/www/sugarcrm
+wget http://netassist.dl.sourceforge.net/project/sugarcrm/1%20-%20SugarCRM%206.5.X/SugarCommunityEdition-6.5.X/SugarCE-6.5.22.zip
+unzip SugarCE-6.5.22.zip
+mv SugarCE-Full-6.5.22 /data/www/sugarcrm
 chown -R apache:apache /data/www/sugarcrm
 
 # Apache
