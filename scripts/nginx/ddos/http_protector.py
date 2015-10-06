@@ -43,6 +43,7 @@ def main():
                         required=True, default='nginx', help="Log file format.")
     parser.add_argument("-b", "--blocker", choices=known_blockers.keys(),
                         required=True, default='iptables', help="Use specific blocker.")
+    parser.add_argument("--dry-run", action="store_true", help="Do not block, just notify")
 
     group1 = parser.add_argument_group('Parser parameters.')
     mutex_group1 = group1.add_mutually_exclusive_group()
@@ -59,6 +60,9 @@ def main():
         else:
             data_provider = FileDataProvider(args.log_file)
 
+        # dry run
+        dry_run = args.dry_run
+
         # log parser
         log_parser = known_formats[args.log_format](data_provider)
 
@@ -69,7 +73,9 @@ def main():
         analyzer = GenericDDoSAnalyzer(log_parser, threshold=10)
 
         for attacker_ip in analyzer.attacker_ip_list():
-            blocker.block(attacker_ip)
+            if not dry_run:
+                blocker.block(attacker_ip)
+
             sys.stdout.write("IP %s blocked.\n" % attacker_ip)
 
     finally:

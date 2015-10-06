@@ -9,6 +9,7 @@ Optional arguments:
                         Log file format. (default: nginx)
   -b {iptables,apf}, --blocker {iptables,apf}
                         Use specific blocker. (default: iptables)
+  --dry-run             Do not block, just notify
 
 Parser parameters.:
   --stdin               Data from stdin (default: False)
@@ -25,7 +26,7 @@ tail -n 1000 /var/log/nginx/access.log | ./http_protector.py -p /var/run/httppro
 
 ## DDoS analyzers
 
-By default HTTP protector uses Generic flood analyzer. It counts requests from the specific IP to some URL and
+By default HTTP protector uses Generic flood analyzer. It counts requests from the specific IP to some URL targets and
 block, based on threshold parameter.
 
 The following urls are treated as the different targets:

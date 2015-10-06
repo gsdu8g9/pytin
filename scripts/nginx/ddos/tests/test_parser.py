@@ -1,8 +1,8 @@
 import unittest
 
-from lib.nginx_log_parser import NginxLogParser
-from lib.data_providers import FileDataProvider
-from lib.analyzers import GenericDDoSAnalyzer
+from scripts.nginx.ddos.lib.nginx_log_parser import NginxLogParser
+from scripts.nginx.ddos.lib.data_providers import FileDataProvider
+from scripts.nginx.ddos.lib.analyzers import GenericDDoSAnalyzer
 
 
 class TestDDoSAnalizer(unittest.TestCase):
