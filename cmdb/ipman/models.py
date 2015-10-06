@@ -167,6 +167,7 @@ class IPAddressPool(Resource):
             try:
                 ip = ip_pool_resource.available().next()
                 ip.lock()
+                ip.touch()
 
                 rented_ips.append(ip)
                 changed = True
