@@ -65,7 +65,7 @@ class Command(BaseCommand):
 
     def _handle_household(self, *args, **options):
         last_seen_100days = timezone.now() - datetime.timedelta(days=100)
-        last_seen_5days = timezone.now() - datetime.timedelta(days=5)
+        last_seen_31days = timezone.now() - datetime.timedelta(days=31)
 
         # Clean IP with parent=ip pool (free) with last_seen older that 100 days. It means that IP is not
         # used and can be released.
@@ -78,20 +78,20 @@ class Command(BaseCommand):
                     last_seen__lt=last_seen_100days,
                     ipman_pool_id=free_ip_pool.id,
                     version=4):
-                logger.warning("    used ip %s from the FREE IP pool is not seen for 3 months. Free it." % ip)
+                logger.warning("    used ip %s from the FREE IP pool is not seen for 100 days. Free it." % ip)
                 ip.free(cascade=True)
 
             for ip in IPAddress.active.filter(
                     status=Resource.STATUS_LOCKED,
-                    last_seen__lt=last_seen_5days,
+                    last_seen__lt=last_seen_31days,
                     ipman_pool_id=free_ip_pool.id,
                     version=4):
-                logger.warning("    locked ip %s from the FREE IP pool is not seen for 5 days. Free it." % ip)
+                logger.warning("    locked ip %s from the FREE IP pool is not seen for 31 days. Free it." % ip)
                 ip.free(cascade=True)
 
         logger.info("Clean missing virtual servers: %s" % last_seen_100days)
         for vm in VirtualServer.active.filter(last_seen__lt=last_seen_100days):
-            logger.warning("    server %s not seen for 3 months. Removing..." % vm)
+            logger.warning("    server %s not seen for 100 days. Removing..." % vm)
             for vm_child in vm:
                 logger.info("        remove %s" % vm_child)
                 vm_child.delete()
