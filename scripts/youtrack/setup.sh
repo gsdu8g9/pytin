@@ -37,50 +37,7 @@ chown youtrack /var/run/youtrack
 wget http://download-cf.jetbrains.com/charisma/youtrack-6.5.16807.jar -O /home/youtrack/youtrack.jar
 yum -y install java-1.8.0-openjdk
 
-cat <<EOF > /etc/init.d/youtracker
-#!/bin/sh
-SERVICE_NAME=youtrack
-PATH_TO_JAR=/home/youtrack/youtrack.jar
-PID_PATH_NAME=/var/run/youtrack/youtrack.pid
-case $1 in
-    start)
-        echo "Starting $SERVICE_NAME ..."
-        if [ ! -f $PID_PATH_NAME ]; then
-            nohup java -Xmx1g -jar $PATH_TO_JAR /tmp 2>> /dev/null >> /dev/null &
-                        echo $! > $PID_PATH_NAME
-            echo "$SERVICE_NAME started ..."
-        else
-            echo "$SERVICE_NAME is already running ..."
-        fi
-    ;;
-    stop)
-        if [ -f $PID_PATH_NAME ]; then
-            PID=$(cat $PID_PATH_NAME);
-            echo "$SERVICE_NAME stoping ..."
-            kill $PID;
-            echo "$SERVICE_NAME stopped ..."
-            rm $PID_PATH_NAME
-        else
-            echo "$SERVICE_NAME is not running ..."
-        fi
-    ;;
-    restart)
-        if [ -f $PID_PATH_NAME ]; then
-            PID=$(cat $PID_PATH_NAME);
-            echo "$SERVICE_NAME stopping ...";
-            kill $PID;
-            echo "$SERVICE_NAME stopped ...";
-            rm $PID_PATH_NAME
-            echo "$SERVICE_NAME starting ..."
-            nohup java -Xmx1g -jar $PATH_TO_JAR /tmp 2>> /dev/null >> /dev/null &
-                        echo $! > $PID_PATH_NAME
-            echo "$SERVICE_NAME started ..."
-        else
-            echo "$SERVICE_NAME is not running ..."
-        fi
-    ;;
-esac
-EOF
+wget https://raw.githubusercontent.com/servancho/pytin/master/scripts/youtrack/youtrack -O /etc/init.d/youtracker
 
 chmod +x /etc/init.d/youtracker
 
