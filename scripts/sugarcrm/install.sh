@@ -102,7 +102,7 @@ NameVirtualHost *:80
 include vhosts/*.conf
 EOF
 chkconfig httpd on
-service httpd start
+service httpd restart
 
 # crontab
 echo "*    *    *    *    *     cd /data/www/sugarcrm; php -f cron.php > /dev/null 2>&1" >> /etc/crontab
