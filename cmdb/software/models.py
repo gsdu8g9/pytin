@@ -10,7 +10,7 @@ class DirectAdminLicense(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return 'DA%s' % self.lid
 
     @property

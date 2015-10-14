@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from cmdb.settings import logger
 from importer.providers.l3_switch import L3Switch, _snmp_walk, L3SwitchPort
 

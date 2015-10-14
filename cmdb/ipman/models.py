@@ -25,7 +25,7 @@ class IPAddress(Resource):
 
         return True
 
-    def __str__(self):
+    def __unicode__(self):
         return self.address
 
     def _get_beauty(self, address):
@@ -69,7 +69,9 @@ class IPAddress(Resource):
         self.set_option('ipman_pool_id', pool_id, ResourceOption.FORMAT_INT)
 
     def get_origin(self):
-        return self.get_option_value('ipman_pool_id')
+        origin_id = self.get_option_value('ipman_pool_id', default=None)
+
+        return Resource.active.get(pk=origin_id) if origin_id else None
 
     def free(self, cascade=False):
         """
@@ -78,7 +80,7 @@ class IPAddress(Resource):
         :param cascade:
         :return:
         """
-        self.parent_id = self.get_origin()
+        self.parent = self.get_origin()
         self.status = Resource.STATUS_FREE
         self.save()
 
@@ -131,7 +133,7 @@ class IPAddressPool(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return self.name
 
     def __iter__(self):
@@ -260,7 +262,7 @@ class IPAddressRangePool(IPAddressPool):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "%s-%s" % (self.range_from, self.range_to)
 
     @property
@@ -333,7 +335,7 @@ class IPNetworkPool(IPAddressPool):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return self.network
 
     @property

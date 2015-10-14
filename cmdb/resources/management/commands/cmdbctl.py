@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from argparse import ArgumentParser
 import argparse
 
@@ -55,7 +57,7 @@ class Command(BaseCommand):
         res_list_cmd.add_argument('-p', '--page', type=int, default=1,
                                   help="Page number to paginate resource list (from 1).")
         res_list_cmd.add_argument('-o', '--order', default='id', help="Field name to order by.")
-        res_list_cmd.add_argument('-f', '--show-fields', default='id,name,status', help="Comma separated field list:\
+        res_list_cmd.add_argument('-f', '--show-fields', default='id,self,status', help="Comma separated field list:\
                                                     supported fields are from the resource.")
         res_list_cmd.add_argument('-s', '--status',
                                   help="Comma separated statuses of the resource. If status is used, you can search in deleted resources.",
@@ -179,9 +181,12 @@ class Command(BaseCommand):
                 setattr(resource, field_name, field_value)
                 resource.save()
             else:
-                resource.set_option(name=field_name,
-                                    value=field_value,
-                                    format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
+                if field_value:
+                    resource.set_option(name=field_name,
+                                        value=field_value,
+                                        format=options['format'] if options['format'] else ResourceOption.FORMAT_STRING)
+                elif resource.get_option_value(field_name, default=None):
+                    resource.get_option(field_name).delete()  # delete option
 
         cascade = options['cascade']
         if options['use']:

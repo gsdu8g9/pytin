@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import json
 
+from django.contrib.auth.models import User
+
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -10,6 +12,8 @@ from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.apps import apps
+from mptt.managers import TreeManager
+from mptt.models import MPTTModel, TreeForeignKey
 
 from cmdb.settings import logger
 
@@ -99,7 +103,7 @@ class SubclassingQuerySet(QuerySet):
                 setattr(new_object, option_field, option_fields[option_field])
                 need_save = True
             else:
-                new_object.set_option(option_field, option_fields[option_field], namespace='')
+                new_object.set_option(option_field, option_fields[option_field])
 
         if need_save:
             new_object.save()
@@ -159,7 +163,7 @@ class SubclassingQuerySet(QuerySet):
         return super(SubclassingQuerySet, self).get(*args, **kwargs).as_leaf_class()
 
 
-class ResourcesWithOptionsManager(models.Manager):
+class ResourcesWithOptionsManager(TreeManager):
     """
     Query manager with support for query by options.
     """
@@ -168,7 +172,7 @@ class ResourcesWithOptionsManager(models.Manager):
         return SubclassingQuerySet(self.model)
 
 
-class ResourcesActiveWithOptionsManager(models.Manager):
+class ResourcesActiveWithOptionsManager(TreeManager):
     """
     Query manager with support for query by options.
     """
@@ -177,9 +181,22 @@ class ResourcesActiveWithOptionsManager(models.Manager):
         return SubclassingQuerySet(self.model).filter().exclude(status=Resource.STATUS_DELETED)
 
 
+class ResourceComment(models.Model):
+    """
+    Resource comments.
+    """
+    resource = models.ForeignKey('Resource')
+    author = models.ForeignKey(User)
+
+    created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
+
+    message = models.TextField('Comment text')
+
+
 class ResourceOption(models.Model):
     """
-    Resource option with support for namespaces. Resources is able to have different options and
+    Resource options. Resources is able to have different options and
     client can search by them.
     """
 
@@ -189,7 +206,7 @@ class ResourceOption(models.Model):
         def __init__(self, value):
             self._value = unicode(value)
 
-        def __str__(self):
+        def __unicode__(self):
             return "'%s'" % self.typed_value()
 
         def typed_value(self):
@@ -199,7 +216,7 @@ class ResourceOption(models.Model):
             return self._value
 
     class IntegerValue(StringValue):
-        def __str__(self):
+        def __unicode__(self):
             return "%d" % self.typed_value()
 
         def typed_value(self):
@@ -209,17 +226,17 @@ class ResourceOption(models.Model):
         true_vals = ['yes', 'true', '1']
 
         def __init__(self, value):
-            value_str = str(value).lower()
+            value_str = unicode(value).lower()
             self._value = True if value_str in self.true_vals else False
 
-        def __str__(self):
+        def __unicode__(self):
             return "%s" % self.typed_value()
 
         def typed_value(self):
             return bool(self._value)
 
     class FloatValue(StringValue):
-        def __str__(self):
+        def __unicode__(self):
             return "%f" % self.typed_value()
 
         def typed_value(self):
@@ -232,7 +249,7 @@ class ResourceOption(models.Model):
             if isinstance(value, dict):
                 self._value = json.dumps(value)
 
-        def __str__(self):
+        def __unicode__(self):
             return "'%s'" % self.typed_value()
 
         def typed_value(self):
@@ -260,7 +277,6 @@ class ResourceOption(models.Model):
 
     resource = models.ForeignKey('Resource')
     name = models.CharField(max_length=155, db_index=True)
-    namespace = models.CharField(max_length=155, db_index=True, default='')
     updated_at = models.DateTimeField('Date updated', auto_now_add=True, db_index=True)
     format = models.CharField(max_length=25, db_index=True, choices=FORMAT_CHOICES, default=FORMAT_STRING)
     value = models.TextField('Option value')
@@ -276,8 +292,8 @@ class ResourceOption(models.Model):
         self.value_format_handler = self.FORMAT_HANDLERS[self.format]
         self.value = self._value_handler().raw_value()
 
-    def __str__(self):
-        return "%s:%s = %s" % (self.namespace, self.name, self._value_handler())
+    def __unicode__(self):
+        return "%s = %s" % (self.name, self._value_handler())
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
@@ -309,7 +325,7 @@ class ResourceOption(models.Model):
         return self._value_handler().typed_value()
 
 
-class Resource(models.Model):
+class Resource(MPTTModel):
     """
     Generic resource representation. Support for search by ResourceOptions.
     """
@@ -326,10 +342,12 @@ class Resource(models.Model):
         (STATUS_DELETED, 'Resource is marked to delete'),
     )
 
-    parent = models.ForeignKey("self", default=None, db_index=True, null=True)
-    name = models.CharField(max_length=155, db_index=True, default='resource')
-    type = models.CharField(max_length=155, db_index=True, default='Resource')
+    # parent = models.ForeignKey("self", default=None, db_index=True, null=True)
+    parent = TreeForeignKey("self", blank=True, db_index=True, null=True, related_name='children')
     content_type = models.ForeignKey(ContentType, editable=False, null=True)
+
+    name = models.CharField(default='resource', db_index=True, max_length=155)
+    type = models.CharField(default='Resource', db_index=True, max_length=155)
     status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_FREE)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
@@ -341,7 +359,7 @@ class Resource(models.Model):
     class Meta:
         db_table = "resources"
 
-    def __str__(self):
+    def __unicode__(self):
         return self.name
 
     def __contains__(self, item):
@@ -457,7 +475,7 @@ class Resource(models.Model):
     def typed_parent(self):
         return self.parent.as_leaf_class()
 
-    def set_option(self, name, value, format=None, namespace=''):
+    def set_option(self, name, value, format=None):
         """
         Set resource option. If format is omitted, then format is guessed from value type.
         """
@@ -467,49 +485,45 @@ class Resource(models.Model):
 
         query = dict(
             name=name,
-            namespace=namespace,
             defaults=dict(
                 value=value,
                 format=format,
-                namespace=namespace
             )
         )
 
         self.resourceoption_set.update_or_create(**query)
 
-    def get_options(self, namespace=''):
+    def get_options(self):
         query = dict(
-            namespace=namespace
         )
 
         return self.resourceoption_set.filter(**query)
 
-    def get_option(self, name, namespace=''):
+    def get_option(self, name):
         assert name is not None, "Parameter 'name' must be defined."
 
         query = dict(
             name=name,
-            namespace=namespace
         )
 
         return self.resourceoption_set.get(**query)
 
-    def has_option(self, name, namespace=''):
+    def has_option(self, name):
         assert name is not None, "Parameter 'name' must be defined."
 
         try:
-            self.get_option(name, namespace=namespace)
+            self.get_option(name)
         except djexceptions.ObjectDoesNotExist:
             return False
 
         return True
 
-    def get_option_value(self, name, namespace='', default=''):
+    def get_option_value(self, name, default=''):
         assert name is not None, "Parameter 'name' must be defined."
 
         option_value = default
         try:
-            option = self.get_option(name, namespace=namespace)
+            option = self.get_option(name)
             option_value = option.typed_value
         except djexceptions.ObjectDoesNotExist:
             option_value = default

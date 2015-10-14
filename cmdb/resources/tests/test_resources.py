@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 from django.core.exceptions import ValidationError
 
 from django.test import TestCase
 
-from assets.models import ServerPort, VirtualServer
+from assets.models import VirtualServer
 from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
@@ -11,11 +13,11 @@ class ResourceTest(TestCase):
     def test_cast_type(self):
         resource = Resource.objects.create(number=15, name='Test cast')
         self.assertEqual('Resource', resource.type)
-        self.assertEqual('resource', str(resource.content_type))
+        self.assertEqual('resource', unicode(resource.content_type))
 
         server_port = resource.cast_type(VirtualServer)
         self.assertEqual('VirtualServer', server_port.type)
-        self.assertEqual('virtual server', str(server_port.content_type))
+        self.assertEqual('virtual server', unicode(server_port.content_type))
 
     def test_model_query_delete(self):
         Resource.objects.create(name='res1')
@@ -91,7 +93,8 @@ class ResourceTest(TestCase):
         Bug fixed: when creating models with model fields in create() call - they are not saved
         """
         new_res1 = Resource.objects.create(somekey1='someval1', somekey2='someval2')
-        new_res2 = Resource.objects.create(somekey3='someval3', somekey4='someval4', parent_id=new_res1.id)
+        new_res2 = Resource.objects.create(somekey3='someval3', somekey4='someval4', parent=new_res1)
+
         new_res2.refresh_from_db()
 
         self.assertEqual(new_res1.id, new_res2.parent_id)
@@ -99,14 +102,11 @@ class ResourceTest(TestCase):
     def test_static_create(self):
         new_res = Resource.objects.create(status=Resource.STATUS_INUSE, somekey1='someval1', somekey2='someval2')
 
-        new_res.set_option('nsvalname1', 'nsval1', namespace='somens')
-        new_res.set_option('nsvalname2', 'nsval2', namespace='somens')
+        new_res.set_option('nsvalname1', 'nsval1')
+        new_res.set_option('nsvalname2', 'nsval2')
 
-        self.assertEqual('', new_res.get_option_value('nsvalname1'))
-        self.assertEqual('', new_res.get_option_value('nsvalname2'))
-
-        self.assertEqual('nsval1', new_res.get_option_value('nsvalname1', namespace='somens'))
-        self.assertEqual('nsval2', new_res.get_option_value('nsvalname2', namespace='somens'))
+        self.assertEqual('nsval1', new_res.get_option_value('nsvalname1'))
+        self.assertEqual('nsval2', new_res.get_option_value('nsvalname2'))
 
         self.assertEqual(Resource.STATUS_INUSE, new_res.status)
         self.assertEqual('someval1', new_res.get_option_value('somekey1'))
@@ -222,47 +222,33 @@ class ResourceTest(TestCase):
         self.assertEqual(0, len(ResourceOption.objects.all()))
 
         resource1.set_option('g_field1', 'value1')
-        resource1.set_option('ns_field2', 'value2', namespace='test')
+        resource1.set_option('ns_field2', 'value2')
 
         # пременная с одинаковым именем
-        resource1.set_option('nst_field', 'value_1', namespace='nst1')
-        resource1.set_option('nst_field', 'value_2', namespace='nst2')
+        resource1.set_option('nst_field', 'value_1')
+        resource1.set_option('nst_field', 'value_2')
         resource1.set_option('nst_field', 'value_3')
 
-        self.assertEqual(5, len(ResourceOption.objects.all()))
+        self.assertEqual(3, len(ResourceOption.objects.all()))
 
         # get_option
         self.assertEqual('value_3', resource1.get_option_value('nst_field'))
         self.assertEqual('', resource1.get_option_value('nst_field_unk'))
         self.assertEqual('def', resource1.get_option_value('nst_field_unk', default='def'))
-        self.assertEqual('value_1', resource1.get_option_value('nst_field', namespace='nst1'))
-        self.assertEqual('value_2', resource1.get_option_value('nst_field', namespace='nst2'))
-        self.assertEqual('', resource1.get_option_value('nst_field', namespace='nst3'))
+        self.assertEqual('value_3', resource1.get_option_value('nst_field'))
 
         # has_option
-        self.assertEqual(False, resource1.has_option('nst_field', namespace='nst3'))
-        self.assertEqual(True, resource1.has_option('nst_field', namespace='nst2'))
         self.assertEqual(True, resource1.has_option('nst_field'))
         self.assertEqual(False, resource1.has_option('nst_field_unk'))
 
         # set_option / edit
-        resource2.set_option('nst_field', 'value_1', namespace='nst1')
-        resource2.set_option('nst_field', 'value_2', namespace='nst2')
-        resource2.set_option('nst_field', 'value_3')
+        resource2.set_option('nst_field', 'value_1')
 
-        self.assertEqual('value_1', resource1.get_option_value('nst_field', namespace='nst1'))
-        self.assertEqual('value_2', resource1.get_option_value('nst_field', namespace='nst2'))
-        self.assertEqual('value_3', resource1.get_option_value('nst_field'))
+        self.assertEqual('value_1', resource2.get_option_value('nst_field'))
 
-        self.assertEqual('value_1', resource2.get_option_value('nst_field', namespace='nst1'))
-        self.assertEqual('value_2', resource2.get_option_value('nst_field', namespace='nst2'))
-        self.assertEqual('value_3', resource2.get_option_value('nst_field'))
+        resource2.set_option('nst_field', 'value_2_ed')
 
-        resource1.set_option('nst_field', 'value_3_ed')
-        resource2.set_option('nst_field', 'value_2_ed', namespace='nst2')
-
-        self.assertEqual('value_3_ed', resource1.get_option_value('nst_field'))
-        self.assertEqual('value_2_ed', resource2.get_option_value('nst_field', namespace='nst2'))
+        self.assertEqual('value_2_ed', resource2.get_option_value('nst_field'))
 
     def test_proxy_models(self):
         resource1 = Resource()
@@ -290,7 +276,6 @@ class ResourceTest(TestCase):
 
         # search by fields
         self.assertEqual(50, len(Resource.objects.filter(field_2='value_2')))
-        self.assertEqual(1, len(Resource.objects.filter(field_2='value_2', namespace='ns10')))
         self.assertEqual(50, len(Resource.objects.filter(field_2__contains='value')))
         self.assertEqual(0, len(Resource.objects.filter(notexists_4='notexists_value_4')))
 
@@ -298,12 +283,9 @@ class ResourceTest(TestCase):
         self.assertEqual(10, len(Resource.objects.filter(status=Resource.STATUS_FREE)))
         self.assertEqual(10, len(Resource.objects.filter(status=Resource.STATUS_DELETED)))
 
-        # status from Resource, namespace from ResourceOption
-        self.assertEqual(1, len(Resource.objects.filter(status=Resource.STATUS_FREE, namespace='ns5')))
-
     def _create_test_resources(self, count):
         for idx1 in range(1, count + 1):
             resource = Resource.objects.create(status=Resource.STATUS_CHOICES[idx1 % len(Resource.STATUS_CHOICES)][0])
 
             for idx2 in range(1, count + 1):
-                resource.set_option('field_%s' % idx2, 'value_%s' % idx2, namespace='ns%s' % idx1)
+                resource.set_option('field_%s' % idx2, 'value_%s' % idx2)

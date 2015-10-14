@@ -1,12 +1,28 @@
+from __future__ import unicode_literals
+
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from assets.models import RegionResource, Server, ServerPort, Rack, Switch, VirtualServer, VirtualServerPort
+from assets.models import RegionResource, Server, ServerPort, Rack, Switch, VirtualServer, VirtualServerPort, \
+    SwitchPort, \
+    PortConnection
 from ipman.models import IPNetworkPool
 from resources.models import Resource, ModelFieldChecker
 
 
 class AssetsTest(TestCase):
+    def test_test_connections(self):
+        switch = Switch.objects.create(label="sw-test", status=Resource.STATUS_INUSE)
+        switch_port1 = SwitchPort.objects.create(number=1, parent=switch)
+
+        phyz_port1 = ServerPort.objects.create(mac='234567267845')
+        vm_port1 = VirtualServerPort.objects.create(mac='244567267845')
+
+        PortConnection.create(switch_port1, phyz_port1)
+        PortConnection.create(switch_port1, vm_port1)
+
+        self.assertEqual(2, len(switch_port1.connections))
+
     def test_delete_virtual_hierarchy_childs_control(self):
         vm1 = VirtualServer.objects.create(label="VM", status=Resource.STATUS_INUSE)
         vmport1 = VirtualServerPort.objects.create(number=15, mac='234567267845', parent=vm1,

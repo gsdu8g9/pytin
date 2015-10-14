@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import re
 
 from importer.providers.l3_switch import L3Switch, L3SwitchPort

@@ -1,3 +1,6 @@
+# coding=utf-8
+from __future__ import unicode_literals
+
 from argparse import ArgumentParser
 import datetime
 
@@ -5,7 +8,7 @@ from django.core.management.base import BaseCommand
 
 from django.utils import timezone
 
-from assets.models import GatewaySwitch, Switch, VirtualServer
+from assets.models import GatewaySwitch, Switch, VirtualServer, PortConnection, SwitchPort
 from cmdb.settings import logger
 from importer.importlib import GenericCmdbImporter
 from importer.providers.l3_switch import L3Switch
@@ -64,38 +67,46 @@ class Command(BaseCommand):
         self._register_handler('household', self._handle_household)
 
     def _handle_household(self, *args, **options):
-        last_seen_100days = timezone.now() - datetime.timedelta(days=100)
         last_seen_31days = timezone.now() - datetime.timedelta(days=31)
+        last_seen_15days = timezone.now() - datetime.timedelta(days=15)
 
-        # Clean IP with parent=ip pool (free) with last_seen older that 100 days. It means that IP is not
+        # Clean IP with parent=ip pool (free) with last_seen older that 31 days. It means that IP is not
         # used and can be released.
-        logger.info("Clean missing IP addresses: %s" % last_seen_100days)
+        logger.info("Clean missing IP addresses: %s" % last_seen_31days)
         for free_ip_pool in Resource.active.filter(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
             logger.info("    pool %s" % free_ip_pool)
 
             for ip in IPAddress.active.filter(
                     status=Resource.STATUS_INUSE,
-                    last_seen__lt=last_seen_100days,
+                    last_seen__lt=last_seen_31days,
                     ipman_pool_id=free_ip_pool.id,
                     version=4):
-                logger.warning("    used ip %s from the FREE IP pool is not seen for 100 days. Free it." % ip)
+                logger.warning("    used ip %s from the FREE IP pool is not seen for 31 days. Free it." % ip)
                 ip.free(cascade=True)
 
             for ip in IPAddress.active.filter(
                     status=Resource.STATUS_LOCKED,
-                    last_seen__lt=last_seen_31days,
+                    last_seen__lt=last_seen_15days,
                     ipman_pool_id=free_ip_pool.id,
                     version=4):
-                logger.warning("    locked ip %s from the FREE IP pool is not seen for 31 days. Free it." % ip)
+                logger.warning("    locked ip %s from the FREE IP pool is not seen for 15 days. Free it." % ip)
                 ip.free(cascade=True)
 
-        logger.info("Clean missing virtual servers: %s" % last_seen_100days)
-        for vm in VirtualServer.active.filter(last_seen__lt=last_seen_100days):
-            logger.warning("    server %s not seen for 100 days. Removing..." % vm)
+        logger.info("Clean missing virtual servers: %s" % last_seen_31days)
+        for vm in VirtualServer.active.filter(last_seen__lt=last_seen_31days):
+            logger.warning("    server %s not seen for 31 days. Removing..." % vm)
             for vm_child in vm:
                 logger.info("        remove %s" % vm_child)
                 vm_child.delete()
             vm.delete()
+
+        logger.info("Clean unresolved PortConnections...")
+        removed = 0
+        for connection in PortConnection.active.all():
+            if not connection.linked_port:
+                connection.delete()
+                removed += 1
+        logger.info("  removed: %s" % removed)
 
     def _handle_auto(self, *args, **options):
         # update via snmp
@@ -118,6 +129,15 @@ class Command(BaseCommand):
                     self.cmdb_importer.import_switch(switch.id, provider)
                 else:
                     logger.warning("Unknown SNMP data provider: %s" % snmp_provider_key)
+
+        logger.info("Process hypervisors.")
+        for switch in Switch.active.all():
+            for switch_port in SwitchPort.active.filter(parent=switch):
+                self.cmdb_importer.process_hypervisors(switch_port)
+
+        for switch in GatewaySwitch.active.all():
+            for switch_port in SwitchPort.active.filter(parent=switch):
+                self.cmdb_importer.process_hypervisors(switch_port)
 
     def _handle_snmp(self, *args, **options):
         device_id = options['device-id']

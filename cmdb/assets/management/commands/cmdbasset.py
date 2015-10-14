@@ -1,8 +1,14 @@
+# coding=utf-8
+from __future__ import unicode_literals
+
 from argparse import ArgumentParser
+import argparse
 
 from django.core.management.base import BaseCommand
 
-from assets.models import PortConnection, SwitchPort, ServerPort, AssetResource, Rack, RackMountable, Server
+from assets.analyzers import CmdbAnalyzer
+from assets.models import PortConnection, SwitchPort, ServerPort, AssetResource, Rack, RackMountable, Server, Switch, \
+    GatewaySwitch
 from cmdb.settings import logger
 from ipman.models import IPAddress
 from resources.lib.console import ConsoleResourceWriter
@@ -21,29 +27,126 @@ class Command(BaseCommand):
         # switch
         switch_cmd_parser = subparsers.add_parser('switch', help='Show what is linked to switch.')
         switch_cmd_parser.add_argument('switch-id', help="Resource ID of the switch.")
-        switch_cmd_parser.add_argument('-p', '--port', nargs='*', help="Specify switch ports to list connections.")
+        switch_cmd_parser.add_argument('-p', '--port', nargs=argparse.ZERO_OR_MORE,
+                                       help="Specify switch ports to list connections.")
         self._register_handler('switch', self._handle_switch)
 
         # unit
         unit_cmd_parser = subparsers.add_parser('unit', help='Manage Rack units.')
-        unit_cmd_parser.add_argument('ip-or-id', nargs='*', help="IDs or IPs of the unit device to view.")
-        unit_cmd_parser.add_argument('-r', '--update-parent-rack', action='store_true',
-                                     help="Auto update unit device parent Rack based on Switch port connections.")
+        unit_cmd_parser.add_argument('ip-or-id', help="IDs or IPs of the unit device to view.")
+        unit_cmd_parser.add_argument('-s', '--set', action='store_true',
+                                     help="Set some unit options.")
         unit_cmd_parser.add_argument('--set-position', type=int, metavar='POS',
                                      help="Set the unit device position in the parent Rack.")
-        unit_cmd_parser.add_argument('--set-size', type=int, metavar='SIZE',
+        unit_cmd_parser.add_argument('--set-unit-size', type=int, metavar='SIZE',
                                      help="Set the unit device size in Units.")
         unit_cmd_parser.add_argument('--set-on-rails', metavar='RAILS',
                                      help="Set unit device is on rails or not.")
+        unit_cmd_parser.add_argument('--set-role', type=unicode, metavar='ROLE',
+                                     help="Set the unit role.")
         self._register_handler('unit', self._handle_rack_unit)
 
         # rack
         rack_cmd_parser = subparsers.add_parser('rack', help='Get rack info.')
-        rack_cmd_parser.add_argument('id', nargs='*', help="IDs of the racks to query info.")
+        rack_cmd_parser.add_argument('id', nargs=argparse.ONE_OR_MORE, help="IDs of the racks to query info.")
         rack_cmd_parser.add_argument('-l', '--layout', action='store_true', help="Show racks layout.")
         rack_cmd_parser.add_argument('--set-size', type=int,
                                      help="Set the Rack size in Units.")
         self._register_handler('rack', self._handle_rack)
+
+        analyze_cmd_parser = subparsers.add_parser('analyze', help='CMDB analyzer.')
+        analyze_cmd_parser.add_argument('--hypervisors', action='store_true',
+                                        help="Search for hypervisors in CMDB and auto link VPS to them.")
+        analyze_cmd_parser.add_argument('--merge-servers', action='store_true',
+                                        help="Check if ports from the different servers are from the same server.")
+        analyze_cmd_parser.add_argument('-r', '--update-parent-rack', metavar="IP_OR_ID_OR_ALL", default=None,
+                                        help="Auto update parent Rack for the devices based on Switch port connections.")
+        analyze_cmd_parser.add_argument('--dry-run', action='store_true', help="Do not modify the CMDB database.")
+        self._register_handler('analyze', self._handle_analyze)
+
+    def _handle_analyze(self, *args, **options):
+        # hypervisors
+        dry_run = options['dry_run']
+
+        if options['update_parent_rack']:
+            ip_or_id = options['update_parent_rack'].lower()
+            ip_or_id = None if ip_or_id == 'all' else ip_or_id
+
+            if ip_or_id:
+                server = self._get_server_by_ip_or_id(ip_or_id)
+                if Server.is_server(server):
+                    self._update_server_parent_rack(server)
+                else:
+                    logger.warning("%s is not Server" % server)
+            else:
+                for server in Server.active.all():
+                    if Server.is_server(server):
+                        self._update_server_parent_rack(server)
+                    else:
+                        logger.warning("%s is not Server" % server)
+
+        elif options['merge_servers']:
+            logger.info("Check if ports from the different servers are from the same server.")
+
+            for server_port1 in ServerPort.active.all().order_by('id'):
+                mac1 = int(server_port1.mac, 16)
+
+                for server_port2 in ServerPort.active.all().order_by('id'):
+                    if server_port1.id == server_port2.id or server_port1.parent_id == server_port2.parent_id:
+                        continue
+
+                    mac2 = int(server_port2.mac, 16)
+
+                    if abs(mac1 - mac2) <= 5:
+                        logger.info(
+                            "Check if servers are the same: %s and %s" % (server_port1.device, server_port2.device))
+                        logger.info("  %s and %s" % (server_port1, server_port2))
+
+        elif options['hypervisors']:
+            logger.info("Search for hypervisors in CMDB...")
+
+            for switch in Switch.active.all():
+                for switch_port in SwitchPort.active.filter(parent=switch):
+                    self._guess_hypervisor(switch_port, dry_run)
+
+            for switch in GatewaySwitch.active.all():
+                for switch_port in SwitchPort.active.filter(parent=switch):
+                    self._guess_hypervisor(switch_port, dry_run)
+
+    def _guess_hypervisor(self, switch_port, dry_run=False):
+        """
+        Поиск портов, на которых 1 физический сервер и несколько виртуальных.
+        Определяем его как потенциальный гипервизор.
+        :param switch_port:
+        :param dry_run: If True, then role is set for guessed hypervisor (when 1 physical + many VMs).
+        :return:
+        """
+        assert switch_port
+        assert isinstance(switch_port, SwitchPort)
+
+        result, pysical_srv, virtual_srv = CmdbAnalyzer.guess_hypervisor(switch_port)
+
+        if result:
+            logger.info("Found hypervisor: %s" % pysical_srv)
+
+            if not dry_run:
+                pysical_srv.set_option('role', 'hypervisor')
+                for virtual_server in virtual_srv:
+                    virtual_server.parent = pysical_srv
+                    virtual_server.save()
+
+                logger.warning("      role automatically set, virtual servers are linked to the hypervisor.")
+        else:
+            logger.info("Switch port: %s" % switch_port)
+            logger.info("  physicals: %s, virtuals: %s." % (len(pysical_srv), len(virtual_srv)))
+
+            logger.info("Physical servers:")
+            for server in pysical_srv:
+                logger.info(unicode(server))
+
+            logger.info("Virtual servers:")
+            for vserver in virtual_srv:
+                logger.info(unicode(vserver))
 
     def _handle_rack(self, *args, **options):
         rack_ids = options['id']
@@ -92,50 +195,33 @@ class Command(BaseCommand):
                     if curr_position in rack_layout_map:
                         server = rack_layout_map[curr_position]
 
-                        print "[{:>3s}|  {:<40s}  |{:s}]".format(str(server.position), server,
+                        print "[{:>3s}|  {:<40s}  |{:s}]".format(unicode(server.position), server,
                                                                  'o' if server.on_rails else ' ')
                     else:
-                        print "[{:>3s}|{:-^46s}]".format(str(curr_position), '')
+                        print "[{:>3s}|{:-^46s}]".format(unicode(curr_position), '')
 
                     curr_position -= 1
 
                 # print free space
                 while curr_position > 0:
-                    print "[{:>3s}|{:-^46s}]".format(str(curr_position), '')
+                    print "[{:>3s}|{:-^46s}]".format(unicode(curr_position), '')
                     curr_position -= 1
 
                 print "\n"
 
     def _handle_rack_unit(self, *args, **options):
-        unit_devices = []
-        if len(options['ip-or-id']) > 0:
-            for server_ip_id in options['ip-or-id']:
-                server = self._get_server_by_ip_or_id(server_ip_id)
+        server = self._get_server_by_ip_or_id(options['ip-or-id'])
 
-                if RackMountable.is_rack_mountable(server):
-                    unit_devices.append(server)
-        else:
-            for server in Resource.active.all():
-                if RackMountable.is_rack_mountable(server):
-                    unit_devices.append(server)
+        assert RackMountable.is_rack_mountable(server)
 
-        # perform commands on RackMountables
-        for unit_device in unit_devices:
-            if options['update_parent_rack']:
-                if Server.is_server(unit_device):
-                    self._update_server_parent_rack(unit_device)
+        for option_name in options:
+            if option_name.startswith('set_'):
+                prop_name = option_name[4:]
+                if options[option_name]:
+                    server.set_option(prop_name, options[option_name])
 
-            if options['set_position']:
-                unit_device.position = options['set_position']
-
-            if options['set_size']:
-                unit_device.unit_size = options['set_size']
-
-            if not options['set_on_rails'] is None:
-                unit_device.on_rails = options['set_on_rails']
-
-            self._dump_server(unit_device)
-            logger.info("")
+        self._dump_server(server)
+        logger.info("")
 
     def _get_server_by_ip_or_id(self, server_ip_id):
         """
@@ -220,16 +306,19 @@ class Command(BaseCommand):
         else:
             logger.info("not mounted")
 
-        logger.info("")
         for server_port in ServerPort.active.filter(parent=server):
             conn = server_port.connection
             if conn:
-                logger.info("%s (seen %s)" % (conn, conn.last_seen))
+                logger.info("  %s (seen %s)" % (conn, conn.last_seen))
             else:
-                logger.info('%s no connections' % server_port)
+                logger.info("  %s no connections" % server_port)
 
             for ip_address in IPAddress.active.filter(parent=server_port):
-                logger.info("\t%s (seen %s)" % (ip_address, ip_address.last_seen))
+                logger.info("    %s (seen %s)" % (ip_address, ip_address.last_seen))
+
+        logger.info("Options:")
+        for option in server.get_options():
+            logger.info("  %s" % option)
 
     def handle(self, *args, **options):
         if 'subcommand_name' in options:

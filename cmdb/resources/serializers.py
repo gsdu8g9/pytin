@@ -1,14 +1,15 @@
+from __future__ import unicode_literals
+
 from rest_framework import serializers
 
 from resources.models import Resource, ResourceOption
 
 
 class ResourceOptionSerializer(serializers.ModelSerializer):
-    namespace = serializers.CharField(allow_blank=True, required=False, default='', max_length=155)
 
     class Meta:
         model = ResourceOption
-        fields = ('id', 'name', 'value', 'namespace', 'format', 'updated_at')
+        fields = ('id', 'name', 'value', 'format', 'updated_at')
 
 
 class ResourceSerializer(serializers.ModelSerializer):

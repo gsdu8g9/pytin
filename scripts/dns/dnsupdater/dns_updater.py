@@ -31,6 +31,7 @@
 # Usage:
 # dns_updater.py /path/to/named/zone.db
 
+from __future__ import unicode_literals
 
 import exceptions
 import os
@@ -135,7 +136,7 @@ class BindDbFileUpdater:
         rdata_item = rdata_type(rdclass, rdtype, rdvalue)
 
         if len(zone_dataset) > 0:
-            if str(zone_dataset.items[0]) in subject_ips:
+            if unicode(zone_dataset.items[0]) in subject_ips:
                 zone_dataset.items[0] = rdata_item
         else:
             zone_dataset.add(rdata_item, ttl=14400)

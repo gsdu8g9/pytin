@@ -1,9 +1,10 @@
+from __future__ import unicode_literals
 import os
 
 from django.test import TestCase
 
 from assets.models import RegionResource, ServerPort, Server, VirtualServer, GatewaySwitch, PortConnection, Switch, \
-    VirtualServerPort
+    VirtualServerPort, SwitchPort
 from events.models import HistoryEvent
 from importer.importlib import GenericCmdbImporter
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
@@ -92,13 +93,23 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(54, len(PortConnection.active.filter()))
         self.assertEqual(1328, len(IPAddress.active.filter()))
 
-        # There is NO linked VPS, because hypervisor detection logic was removed.
-        self.assertEqual(0, len(VirtualServer.active.filter(parent=619)))
-        self.assertEqual(0, len(VirtualServer.active.filter(parent=740)))
+        # update VPS links to hypervisors
+        for switch in Switch.active.all():
+            for switch_port in SwitchPort.active.filter(parent=switch):
+                cmdb_importer.process_hypervisors(switch_port)
 
-        # there is no servers changed to virtual servers.
-        srv_port = ServerPort.active.filter(mac='001517E69D70')[0]
-        self.assertEqual(0, len(VirtualServer.active.filter(parent=srv_port.parent)))
+        for switch in GatewaySwitch.active.all():
+            for switch_port in SwitchPort.active.filter(parent=switch):
+                cmdb_importer.process_hypervisors(switch_port)
+
+        self.assertEqual(3, len(Server.active.filter(role='hypervisor')))
+        for server in Server.active.filter(role='hypervisor'):
+            print server.id
+
+        # There are linked VPS, hypervisor detection logic test.
+        self.assertEqual(4, len(VirtualServer.active.filter(parent=660)))
+        self.assertEqual(2, len(VirtualServer.active.filter(parent=668)))
+        self.assertEqual(3, len(VirtualServer.active.filter(parent=612)))
 
         events = HistoryEvent.objects.filter(type=HistoryEvent.CREATE)
         self.assertEqual(1677, len(events))

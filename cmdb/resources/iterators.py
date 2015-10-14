@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 class PathIterator(object):
     def __init__(self, resource):
         self.resource = resource

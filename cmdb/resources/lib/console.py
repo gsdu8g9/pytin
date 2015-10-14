@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from django.db import models
 from django.db.models import DateTimeField
 from django.utils import timezone
@@ -10,7 +12,8 @@ from resources.models import ModelFieldChecker
 
 class ConsoleResourceWriter:
     def __init__(self, resources_iterable):
-        assert resources_iterable
+        if not resources_iterable:
+            resources_iterable = []
 
         self.indent = 4
         self.resources_iterable = resources_iterable
@@ -40,7 +43,7 @@ class ConsoleResourceWriter:
         for resource in self.resources_iterable:
             columns = self._get_resource_data_row(resource, fields)
 
-            logger.info("%s%s" % ("".ljust(indent * self.indent), " ".join([str(col_value) for col_value in columns])))
+            logger.info("%s%s" % ("".ljust(indent * self.indent), " ".join([unicode(col_value) for col_value in columns])))
             indent += 1
 
     def print_tree(self, fields=None):
@@ -54,7 +57,7 @@ class ConsoleResourceWriter:
             columns.append('')
 
             logger.info(
-                "%s%s" % ("".ljust(indent * self.indent), " | ".join([str(col_value) for col_value in columns])))
+                "%s%s" % ("".ljust(indent * self.indent), " | ".join([unicode(col_value) for col_value in columns])))
 
     def dump(self):
         for resource in self.resources_iterable:

@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from django.test import TestCase
 
 from events.models import HistoryEvent
@@ -82,7 +83,7 @@ class HistoryEventTest(TestCase):
         res1.save()
 
         res2.name = 'res2_new'
-        res2.parent_id = 0
+        res2.parent = None
         res2.save()
 
         events = HistoryEvent.objects.all()
@@ -98,4 +99,4 @@ class HistoryEventTest(TestCase):
         self.assertEqual('res2_new', events[1].resource.name)
         self.assertEqual('parent_id', events[1].field_name)
         self.assertEqual(unicode(res1.id), events[1].field_old_value)
-        self.assertEqual('0', events[1].field_new_value)
+        self.assertEqual(None, events[1].field_new_value)

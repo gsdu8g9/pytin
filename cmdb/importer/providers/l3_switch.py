@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import netaddr
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
@@ -51,7 +52,7 @@ class ServerInterface(object):
 
         self._mac = netaddr.EUI(mac, dialect=netaddr.mac_bare)
 
-    def __str__(self):
+    def __unicode__(self):
         return self.interface
 
     @property

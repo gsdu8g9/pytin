@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from rest_framework import generics
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response

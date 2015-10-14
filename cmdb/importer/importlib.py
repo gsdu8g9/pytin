@@ -1,4 +1,6 @@
+# coding=utf-8
 from __future__ import unicode_literals
+from assets.analyzers import CmdbAnalyzer
 
 from assets.models import SwitchPort, PortConnection, ServerPort, Server, VirtualServer, VirtualServerPort
 from cmdb.settings import logger
@@ -44,6 +46,37 @@ class GenericCmdbImporter(object):
 
                 logger.warning("    deleted %s" % deleted_poconn)
 
+    def process_hypervisors(self, switch_port):
+        """
+        Searching for the switch ports, where one physical and many VPS servers. If hypervisor found on port,
+        then set its role and link VPS servers.
+        :param switch_port:
+        :param dry_run: If True, then role is set for guessed hypervisor (when 1 physical + many VMs).
+        :return:
+        """
+        assert switch_port
+        assert isinstance(switch_port, SwitchPort)
+
+        result, pysical_srv, virtual_srv = CmdbAnalyzer.guess_hypervisor(switch_port)
+
+        if result:
+            logger.info("Found hypervisor: %s" % pysical_srv)
+            pysical_srv.set_option('role', 'hypervisor')
+            for virtual_server in virtual_srv:
+                virtual_server.parent = pysical_srv
+                virtual_server.save()
+        else:
+            logger.info("Switch port: %s" % switch_port)
+            logger.info("  physicals: %s, virtuals: %s." % (len(pysical_srv), len(virtual_srv)))
+
+            logger.info("Physical servers:")
+            for server in pysical_srv:
+                logger.info(unicode(server))
+
+            logger.info("Virtual servers:")
+            for vserver in virtual_srv:
+                logger.info(unicode(vserver))
+
     def _add_foreign_port(self, l3port):
         """
         Add port and server from the foreign switch. It is possible that server is not directly connected to the
@@ -78,7 +111,7 @@ class GenericCmdbImporter(object):
         elif switch_local_port.uplink:
             logger.info("Port %s marked as UPLINK, purge port connections" % switch_local_port)
             PortConnection.active.filter(parent=switch_local_port).delete()
-            return
+            return switch_local_port
 
         if len(l3port.macs) > 0:
             switch_local_port.use()
@@ -100,6 +133,8 @@ class GenericCmdbImporter(object):
                 port_connection.touch()
 
             port_connection.use()
+
+        return switch_local_port
 
     def _add_server_and_port(self, connected_mac):
         """

@@ -13,7 +13,7 @@ class RegionResource(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return self.name
 
 
@@ -21,7 +21,7 @@ class Datacenter(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return self.name
 
     @property
@@ -44,7 +44,7 @@ class AssetResource(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "a%s %s (SN: %s)" % (self.id, self.label, self.serial)
 
     @property
@@ -77,8 +77,8 @@ class RackMountable(AssetResource):
     class Meta:
         proxy = True
 
-    def __str__(self):
-        return "i%s %s (%sU, %s)" % (self.id, self.label, self.unit_size, self.position)
+    def __unicode__(self):
+        return "i%s %s (%sU)" % (self.id, self.label, self.unit_size)
 
     @staticmethod
     def is_rack_mountable(resource):
@@ -126,7 +126,7 @@ class RackMountable(AssetResource):
         assert isinstance(rack, Rack)
 
         if self.parent_id != rack.id:
-            self.parent_id = rack.id
+            self.parent = rack
             self.save()
 
             self.position = 0
@@ -148,8 +148,12 @@ class NetworkPort(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "%s:%s%s" % (self.parent.id, self.number, " (uplink)" if self.uplink else "")
+
+    @property
+    def device(self):
+        return self.typed_parent
 
     @staticmethod
     def normalize_mac(mac):
@@ -204,9 +208,13 @@ class PortConnection(Resource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "%s <- %s Mbit -> %s" % (
             self.linked_port if self.linked_port else '?', self.link_speed_mbit, self.typed_parent)
+
+    @property
+    def switch_port(self):
+        return self.typed_parent
 
     @property
     def linked_port_id(self):
@@ -220,7 +228,11 @@ class PortConnection(Resource):
         linked_port_id = self.linked_port_id
 
         if linked_port_id > 0:
-            return Resource.active.get(pk=linked_port_id)
+            ports = Resource.active.filter(pk=linked_port_id)
+            if len(ports) <= 0:
+                return None
+            else:
+                return ports[0]
 
         return None
 
@@ -260,6 +272,13 @@ class SwitchPort(NetworkPort):
     class Meta:
         proxy = True
 
+    @property
+    def connections(self):
+        """
+        Returns iterable with the specified port types.
+        """
+        return PortConnection.active.filter(parent=self)
+
 
 class ServerPort(NetworkPort):
     """
@@ -269,7 +288,7 @@ class ServerPort(NetworkPort):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "eth%s:%s" % (self.number, self.mac)
 
     @property
@@ -335,7 +354,7 @@ class Rack(AssetResource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "%s (%s, %sU)" % (self.label, self.name, self.size)
 
     @property
@@ -357,7 +376,7 @@ class VirtualServerPort(NetworkPort):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "veth%s:%s" % (self.number, self.mac)
 
 
@@ -369,7 +388,7 @@ class VirtualServer(AssetResource):
     class Meta:
         proxy = True
 
-    def __str__(self):
+    def __unicode__(self):
         return "vm%s %s" % (self.id, self.label)
 
     @property

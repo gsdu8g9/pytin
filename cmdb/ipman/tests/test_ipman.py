@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from django.core.exceptions import ValidationError
 
 from django.test import TestCase
@@ -33,14 +34,14 @@ class IPmanTest(TestCase):
         ip1.refresh_from_db()
 
         self.assertEqual(vm1.id, ip1.parent_id)
-        self.assertEqual(ip_net_pool.id, ip1.get_origin())
+        self.assertEqual(ip_net_pool.id, ip1.get_origin().id)
         self.assertEqual(Resource.STATUS_INUSE, ip1.status)
 
         ip1.free()
         ip1.refresh_from_db()
 
         self.assertEqual(ip_net_pool.id, ip1.parent_id)
-        self.assertEqual(ip_net_pool.id, ip1.get_origin())
+        self.assertEqual(ip_net_pool.id, ip1.get_origin().id)
         self.assertEqual(Resource.STATUS_FREE, ip1.status)
         self.assertEqual(Resource.STATUS_INUSE, ip2.status)
 
@@ -87,7 +88,7 @@ class IPmanTest(TestCase):
 
         pools = Resource.active.filter(type=IPNetworkPool.__name__)
         self.assertEqual(1, len(pools))
-        self.assertEqual('0.0.0.0/0', str(pools[0]))
+        self.assertEqual('0.0.0.0/0', unicode(pools[0]))
 
     def test_ip_beauty(self):
         self.assertEqual(4, IPAddress.objects.create(address='46.17.40.29').beauty)
@@ -229,8 +230,8 @@ class IPmanTest(TestCase):
         ipnet = IPNetworkPool.objects.create(network='192.168.1.1/24')
         ip = IPAddress.objects.create(address='172.1.1.5')
 
-        self.assertEqual('192.168.1.0/24', str(ipnet))
-        self.assertEqual('172.1.1.5', str(ip))
+        self.assertEqual('192.168.1.0/24', unicode(ipnet))
+        self.assertEqual('172.1.1.5', unicode(ip))
 
     def test_pool_network_ipv4_owns(self):
         ipnet = IPNetworkPool.objects.create(network='192.168.1.1/24')
@@ -254,10 +255,10 @@ class IPmanTest(TestCase):
         ip1 = ipnet.available().next()
         ip2 = ipnet.available().next()
 
-        self.assertEqual('192.168.1.2', str(ip1))
+        self.assertEqual('192.168.1.2', unicode(ip1))
         self.assertEqual(4, ip1.version)
 
-        self.assertEqual('192.168.1.2', str(ip2))
+        self.assertEqual('192.168.1.2', unicode(ip2))
         self.assertEqual(4, ip2.version)
 
         # use IP elsewhere
@@ -266,7 +267,7 @@ class IPmanTest(TestCase):
 
         ip3 = ipnet.available().next()
 
-        self.assertEqual('192.168.1.3', str(ip3))
+        self.assertEqual('192.168.1.3', unicode(ip3))
         self.assertEqual(4, ip3.version)
 
     def test_pool_network_ipv4_acquire(self):
@@ -281,10 +282,10 @@ class IPmanTest(TestCase):
         self.assertEqual('192.168.1.0/24', ipnet.network)
         self.assertEqual(4, ipnet.version)
 
-        self.assertEqual('192.168.1.2', str(ip1))
+        self.assertEqual('192.168.1.2', unicode(ip1))
         self.assertEqual(4, ip1.version)
 
-        self.assertEqual('192.168.1.2', str(ip2))
+        self.assertEqual('192.168.1.2', unicode(ip2))
         self.assertEqual(4, ip2.version)
 
         # Acquire IP
@@ -293,7 +294,7 @@ class IPmanTest(TestCase):
 
         ip2 = ipnet.available().next()
 
-        self.assertEqual('192.168.1.3', str(ip2))
+        self.assertEqual('192.168.1.3', unicode(ip2))
         self.assertEqual(4, ip2.version)
 
     def test_pool_network_polymorphic(self):
