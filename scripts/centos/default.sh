@@ -17,7 +17,7 @@ echo "Disable SELinux"
 
 yum clean all
 yum -y update
-yum -y install nano wget ntp mc net-tools smartmontools
+yum -y install man nano wget ntp mc net-tools smartmontools
 
 rm -f /etc/localtime
 ln -s /usr/share/zoneinfo/Europe/Moscow /etc/localtime
