@@ -20,6 +20,11 @@ class QSW8300ImportDataTest(TestCase):
         cmdb_importer = GenericCmdbImporter()
 
         link_unresolved_to_container, created = RegionResource.objects.get_or_create(name='Unresolved servers')
+        self.assertTrue(created)
+
+        link_unresolved_to_container1, created = RegionResource.objects.get_or_create(name='Unresolved servers')
+        self.assertFalse(created)
+
         cmdb_importer.process_servers(link_unresolved_to=link_unresolved_to_container)
 
         new_server1.refresh_from_db()

@@ -109,6 +109,8 @@ class Command(BaseCommand):
                 removed += 1
         logger.info("  removed: %s" % removed)
 
+        Resource.objects.rebuild()
+
     def _handle_auto(self, *args, **options):
         # update via snmp
         query = dict(type__in=[GatewaySwitch.__name__, Switch.__name__])
@@ -132,6 +134,8 @@ class Command(BaseCommand):
                     else:
                         logger.warning("Unknown SNMP data provider: %s" % snmp_provider_key)
 
+        Resource.objects.rebuild()
+
         logger.info("Process hypervisors.")
         for switch in Switch.active.all():
             for switch_port in SwitchPort.active.filter(parent=switch):
@@ -148,6 +152,8 @@ class Command(BaseCommand):
         logger.info("Process virtual server mounts")
         link_unresolved_to_container, created = RegionResource.objects.get_or_create(name='Unresolved VPS')
         self.cmdb_importer.process_virtual_servers(link_unresolved_to=link_unresolved_to_container)
+
+        Resource.objects.rebuild()
 
     def _handle_snmp(self, *args, **options):
         device_id = options['device-id']
