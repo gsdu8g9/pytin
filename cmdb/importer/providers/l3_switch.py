@@ -15,7 +15,7 @@ def _snmp_walk(host, community, oid):
     errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(
         cmdgen.CommunityData(community),
         cmdgen.UdpTransportTarget((host, 161)),
-        oid,
+        oid.encode('ascii'),
         ignoreNonIncreasingOid=True
     )
 

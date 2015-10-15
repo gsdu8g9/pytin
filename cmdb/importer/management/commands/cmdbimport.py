@@ -61,6 +61,7 @@ class Command(BaseCommand):
 
         auto_cmd_parser = subparsers.add_parser('auto', help='Import and update CMDB data based on resources.')
         auto_cmd_parser.add_argument('--switch-id', help="ID of the switch to get SNMP data from.")
+        auto_cmd_parser.add_argument('--skip-arp', action="store_true", help="Skip ARP analysis.")
         self._register_handler('auto', self._handle_auto)
 
         household_cmd_parser = subparsers.add_parser('household', help='Cleanup unused resources.')
@@ -114,21 +115,22 @@ class Command(BaseCommand):
         if options['switch_id']:
             query['pk'] = options['switch_id']
 
-        for switch in Resource.active.filter(**query):
-            logger.info("Found switch: %s" % switch)
-            if switch.has_option('snmp_provider_key'):
-                snmp_provider_key = switch.get_option_value('snmp_provider_key')
-                if snmp_provider_key in self.registered_providers:
-                    hostname = switch.get_option_value('snmp_host')
-                    community = switch.get_option_value('snmp_community')
+        if not options['skip_arp']:
+            for switch in Resource.active.filter(**query):
+                logger.info("Found switch: %s" % switch)
+                if switch.has_option('snmp_provider_key'):
+                    snmp_provider_key = switch.get_option_value('snmp_provider_key')
+                    if snmp_provider_key in self.registered_providers:
+                        hostname = switch.get_option_value('snmp_host')
+                        community = switch.get_option_value('snmp_community')
 
-                    logger.info("\tdata: ID:%d\t%s\t%s" % (switch.id, hostname, community))
-                    provider = self.registered_providers[snmp_provider_key]()
-                    provider.from_snmp(hostname, community)
+                        logger.info("\tdata: ID:%d\t%s\t%s" % (switch.id, hostname, community))
+                        provider = self.registered_providers[snmp_provider_key]()
+                        provider.from_snmp(hostname, community)
 
-                    self.cmdb_importer.import_switch(switch.id, provider)
-                else:
-                    logger.warning("Unknown SNMP data provider: %s" % snmp_provider_key)
+                        self.cmdb_importer.import_switch(switch.id, provider)
+                    else:
+                        logger.warning("Unknown SNMP data provider: %s" % snmp_provider_key)
 
         logger.info("Process hypervisors.")
         for switch in Switch.active.all():

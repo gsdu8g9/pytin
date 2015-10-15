@@ -101,6 +101,7 @@ class GenericCmdbImporter(object):
             for virtual_server in virtual_srv:
                 virtual_server.parent = pysical_srv
                 virtual_server.save()
+                logger.info("    virtual servers are auto-linked to it")
         else:
             logger.info("Switch port: %s" % switch_port)
             logger.info("  physicals: %s, virtuals: %s." % (len(pysical_srv), len(virtual_srv)))
