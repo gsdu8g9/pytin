@@ -110,7 +110,7 @@ class Command(BaseCommand):
         logger.info("  removed: %s" % removed)
 
         Resource.objects.rebuild()
-
+        
     def _handle_auto(self, *args, **options):
         # update via snmp
         query = dict(type__in=[GatewaySwitch.__name__, Switch.__name__])

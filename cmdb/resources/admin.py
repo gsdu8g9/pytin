@@ -17,7 +17,10 @@ class ResourceCommentInline(admin.StackedInline):
 
 
 class ResourceAdmin(DjangoMpttAdmin):
-    list_display = ['name', 'content_type', 'status']
+    list_display = ['id', 'name', 'content_type', 'status']
+    search_fields = ['id', 'status', 'type', 'name']
+    list_filter = ['type', 'status']
+
     tree_auto_open = False
     tree_load_on_demand = True
 

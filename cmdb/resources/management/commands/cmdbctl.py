@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand
 
 from django.apps import apps
 
+from cmdb.settings import logger
 from resources.iterators import PathIterator, TreeIterator
 from resources.lib.console import ConsoleResourceWriter
 from resources.models import Resource, ResourceOption, ModelFieldChecker
@@ -62,6 +63,8 @@ class Command(BaseCommand):
         res_list_cmd.add_argument('-s', '--status',
                                   help="Comma separated statuses of the resource. If status is used, you can search in deleted resources.",
                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
+        res_list_cmd.add_argument('--index', action="store_true",
+                                  help="Comma separated field list: supported fields are from the resource.")
         res_list_cmd.add_argument('filter', nargs=argparse.ZERO_OR_MORE, help="Key=Value pairs.")
         self._register_handler('search', self._handle_command_search)
 
@@ -116,6 +119,15 @@ class Command(BaseCommand):
 
     def _handle_command_search(self, *args, **options):
         query = self._parse_reminder_arguments(options['filter'])
+
+        if options['index']:
+            updated = 0
+            for resource in Resource.active.all():
+                resource.name = unicode(resource)
+                resource.save()
+
+            logger.info("Updated resources: %s" % updated)
+            return
 
         # apply status
         if not options['status']:
