@@ -19,6 +19,19 @@ class ResourcesAPITests(APITestCase):
         token, created = Token.objects.get_or_create(user=user)
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
 
+    def test_resource_retrieve_paged(self):
+        for x in range(1, 25):
+            ServerPort.objects.create(name='res-%s' % x)
+
+        response = self.client.get('/v1/resources/', data={'type': 'ServerPort'}, format='json')
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(10, len(response.data['results']))
+
+        response = self.client.get(response.data['next'], format='json')
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(10, len(response.data['results']))
+
     def test_resource_delete(self):
         res1 = Resource.objects.create(name='res1')
         res2 = Server.objects.create(name='res2', parent=res1)

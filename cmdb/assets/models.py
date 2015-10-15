@@ -121,7 +121,7 @@ class RackMountable(AssetResource):
 
         return self.position > 0
 
-    def mount(self, rack):
+    def mount_to(self, rack):
         assert rack
         assert isinstance(rack, Rack)
 

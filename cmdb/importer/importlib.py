@@ -46,6 +46,42 @@ class GenericCmdbImporter(object):
 
                 logger.warning("    deleted %s" % deleted_poconn)
 
+    def process_virtual_servers(self, link_unresolved_to=None):
+        """
+        Find and link unresolved virtual servers to special group
+        :return:
+        """
+        for vps_server in VirtualServer.active.all():
+            if link_unresolved_to and not vps_server.parent:
+                vps_server.parent = link_unresolved_to
+                vps_server.save()
+                logger.info("Virtual server %s linked to unresolveds group: %s" % (vps_server, vps_server.parent_id))
+
+    def process_servers(self, link_unresolved_to=None):
+        """
+        Analyze server connections and automatically set server parent the same as linked switch parent,
+        if server parent is None
+        :return:
+        """
+        for server in Server.active.all():
+            for server_port in ServerPort.active.filter(parent=server):
+                switch_port = server_port.switch_port
+                if not switch_port:
+                    continue
+
+                switch = switch_port.typed_parent
+
+                if switch.is_mounted:
+                    if not server.parent:
+                        logger.info("Update server %s parent %s->%s" % (server, server.parent_id, switch.parent_id))
+
+                        server.mount_to(switch.typed_parent)
+
+            if link_unresolved_to and not server.parent:
+                server.parent = link_unresolved_to
+                server.save()
+                logger.info("Server %s linked to unresolveds group: %s" % (server, server.parent_id))
+
     def process_hypervisors(self, switch_port):
         """
         Searching for the switch ports, where one physical and many VPS servers. If hypervisor found on port,

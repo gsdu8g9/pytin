@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand
 
 from django.utils import timezone
 
-from assets.models import GatewaySwitch, Switch, VirtualServer, PortConnection, SwitchPort
+from assets.models import GatewaySwitch, Switch, VirtualServer, PortConnection, SwitchPort, RegionResource
 from cmdb.settings import logger
 from importer.importlib import GenericCmdbImporter
 from importer.providers.l3_switch import L3Switch
@@ -138,6 +138,14 @@ class Command(BaseCommand):
         for switch in GatewaySwitch.active.all():
             for switch_port in SwitchPort.active.filter(parent=switch):
                 self.cmdb_importer.process_hypervisors(switch_port)
+
+        logger.info("Process server mounts")
+        link_unresolved_to_container = RegionResource.objects.get_or_create(name='Unresolved servers')
+        self.cmdb_importer.process_servers(link_unresolved_to=link_unresolved_to_container)
+
+        logger.info("Process virtual server mounts")
+        link_unresolved_to_container = RegionResource.objects.get_or_create(name='Unresolved VPS')
+        self.cmdb_importer.process_virtual_servers(link_unresolved_to=link_unresolved_to_container)
 
     def _handle_snmp(self, *args, **options):
         device_id = options['device-id']

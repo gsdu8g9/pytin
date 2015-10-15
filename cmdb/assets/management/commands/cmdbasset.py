@@ -7,7 +7,7 @@ import argparse
 from django.core.management.base import BaseCommand
 
 from assets.analyzers import CmdbAnalyzer
-from assets.models import PortConnection, SwitchPort, ServerPort, AssetResource, Rack, RackMountable, Server, Switch, \
+from assets.models import PortConnection, SwitchPort, ServerPort, AssetResource, Rack, RackMountable, Switch, \
     GatewaySwitch
 from cmdb.settings import logger
 from ipman.models import IPAddress
@@ -59,8 +59,6 @@ class Command(BaseCommand):
                                         help="Search for hypervisors in CMDB and auto link VPS to them.")
         analyze_cmd_parser.add_argument('--merge-servers', action='store_true',
                                         help="Check if ports from the different servers are from the same server.")
-        analyze_cmd_parser.add_argument('-r', '--update-parent-rack', metavar="IP_OR_ID_OR_ALL", default=None,
-                                        help="Auto update parent Rack for the devices based on Switch port connections.")
         analyze_cmd_parser.add_argument('--dry-run', action='store_true', help="Do not modify the CMDB database.")
         self._register_handler('analyze', self._handle_analyze)
 
@@ -68,24 +66,7 @@ class Command(BaseCommand):
         # hypervisors
         dry_run = options['dry_run']
 
-        if options['update_parent_rack']:
-            ip_or_id = options['update_parent_rack'].lower()
-            ip_or_id = None if ip_or_id == 'all' else ip_or_id
-
-            if ip_or_id:
-                server = self._get_server_by_ip_or_id(ip_or_id)
-                if Server.is_server(server):
-                    self._update_server_parent_rack(server)
-                else:
-                    logger.warning("%s is not Server" % server)
-            else:
-                for server in Server.active.all():
-                    if Server.is_server(server):
-                        self._update_server_parent_rack(server)
-                    else:
-                        logger.warning("%s is not Server" % server)
-
-        elif options['merge_servers']:
+        if options['merge_servers']:
             logger.info("Check if ports from the different servers are from the same server.")
 
             for server_port1 in ServerPort.active.all().order_by('id'):
@@ -243,23 +224,6 @@ class Command(BaseCommand):
             server = Resource.objects.get(pk=server_ip_id)
 
         return server
-
-    def _update_server_parent_rack(self, server):
-        assert server
-        assert isinstance(server, Server)
-
-        for server_port in ServerPort.active.filter(parent=server):
-            switch_port = server_port.switch_port
-            if not switch_port:
-                continue
-
-            switch = switch_port.typed_parent
-
-            if switch.is_mounted:
-                if server.parent_id != switch.parent_id:
-                    logger.info("Update server %s parent %s->%s" % (server, server.parent_id, switch.parent_id))
-
-                    server.mount(switch.typed_parent)
 
     def _handle_switch(self, *args, **options):
         device_id = options['switch-id']
