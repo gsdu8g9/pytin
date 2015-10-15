@@ -60,6 +60,18 @@ class IPAddress(Resource):
     def beauty(self):
         return self.get_option_value('beauty', default=self._get_beauty(self.address))
 
+    @property
+    def services(self):
+        """
+        Comma separated list of services.
+        :return: ssh,http:8080,icmp
+        """
+        return self.get_option_value('services')
+
+    @services.setter
+    def services(self, services_string):
+        self.set_option('services', services_string, format=ResourceOption.FORMAT_STRING)
+
     def set_origin(self, pool_id):
         """
         Set original IP pool for the IP. When IP is freed, its parent set to this origin.
@@ -82,6 +94,7 @@ class IPAddress(Resource):
         """
         self.parent = self.get_origin()
         self.status = Resource.STATUS_FREE
+        self.services = ''
         self.save()
 
         super(IPAddress, self).free(cascade=cascade)

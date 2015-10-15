@@ -118,6 +118,19 @@ class ResourceTest(TestCase):
         self.assertEqual('someval11', new_res1.get_option_value('somekey1'))
         self.assertEqual('someval21', new_res1.get_option_value('somekey2'))
 
+    def test_option_auto_type(self):
+        resource1 = Resource()
+        resource1.save()
+
+        # setter must guess the value format
+        resource1.set_option('g_field1', 155)
+        resource1.set_option('g_field2', 155.551)
+        resource1.set_option('g_field3', {'name1': 'val1', 'name2': 'val2'})
+
+        self.assertEqual(155, resource1.get_option_value('g_field1'))
+        self.assertEqual(155.551, resource1.get_option_value('g_field2'))
+        self.assertEqual({'name1': 'val1', 'name2': 'val2'}, resource1.get_option_value('g_field3'))
+
     def test_option_type(self):
         resource1 = Resource()
         resource1.save()

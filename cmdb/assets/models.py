@@ -355,7 +355,7 @@ class Rack(AssetResource):
         proxy = True
 
     def __unicode__(self):
-        return "%s (%s, %sU)" % (self.label, self.name, self.size)
+        return "%s (%s, %sU)" % (self.name, self.label, self.size)
 
     @property
     def size(self):
