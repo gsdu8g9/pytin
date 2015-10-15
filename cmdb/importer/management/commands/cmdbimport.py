@@ -142,11 +142,11 @@ class Command(BaseCommand):
                 self.cmdb_importer.process_hypervisors(switch_port)
 
         logger.info("Process server mounts")
-        link_unresolved_to_container = RegionResource.objects.get_or_create(name='Unresolved servers')
+        link_unresolved_to_container, created = RegionResource.objects.get_or_create(name='Unresolved servers')
         self.cmdb_importer.process_servers(link_unresolved_to=link_unresolved_to_container)
 
         logger.info("Process virtual server mounts")
-        link_unresolved_to_container = RegionResource.objects.get_or_create(name='Unresolved VPS')
+        link_unresolved_to_container, created = RegionResource.objects.get_or_create(name='Unresolved VPS')
         self.cmdb_importer.process_virtual_servers(link_unresolved_to=link_unresolved_to_container)
 
     def _handle_snmp(self, *args, **options):
