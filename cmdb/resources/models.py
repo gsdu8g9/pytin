@@ -87,8 +87,6 @@ class SubclassingQuerySet(QuerySet):
         requested_model = self.model
         if 'type' in kwargs:
             requested_model = apps.get_model(kwargs['type'])
-        # else:
-        #     model_fields['type'] = requested_model.__name__
 
         new_object = requested_model(**model_fields)
         self._for_write = True

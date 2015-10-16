@@ -100,20 +100,23 @@ class IPAddress(Resource):
         super(IPAddress, self).free(cascade=cascade)
 
     def save(self, *args, **kwargs):
-        need_save = True
-
+        """
+        Set IPAddress origin (ipman_pool_id) if parent is derived from IPAddressPool.
+        :param args:
+        :param kwargs:
+        :return:
+        """
         if not self.is_saved:
             if self.parent and not isinstance(self.parent, IPAddressPool):
                 raise Exception("IP address must be added to the pool for the first time.")
 
-            super(IPAddress, self).save(*args, **kwargs)
-            need_save = False
+            # Save here, because options must be set on the existing resources
+            super(IPAddress, self).save()
 
         if self.parent and isinstance(self.parent, IPAddressPool):
             self.set_origin(self.parent.id)
 
-        if need_save:
-            super(IPAddress, self).save(*args, **kwargs)
+        super(IPAddress, self).save()
 
 
 class IPAddressPool(Resource):
@@ -184,10 +187,12 @@ class IPAddressPool(Resource):
                 ip.lock()
                 ip.touch()
 
+                logger.info("Available IP found: %s" % ip)
+
                 rented_ips.append(ip)
                 changed = True
             except Exception, ex:
-                logger.error("Error while getting IP from IP pool: %s" % ex.message)
+                logger.error("Exception %s while getting IP from IP pool: %s" % (ex.__class__.__name__, ex.message))
 
         return rented_ips
 

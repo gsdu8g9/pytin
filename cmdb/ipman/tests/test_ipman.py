@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
-from django.core.exceptions import ValidationError
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from assets.models import VirtualServer
@@ -70,7 +70,9 @@ class IPmanTest(TestCase):
 
         # IP addresses are normally deleted
         ip1.delete()
-        ip2.delete()
+
+        for ipch in ip_net_pool:
+            print ip1, ipch, ipch.status
 
         ip_net_pool.delete()
 
@@ -80,8 +82,8 @@ class IPmanTest(TestCase):
 
         self.assertTrue(IPAddress.objects.filter(pk=ip1.id).exists())
         self.assertEqual(Resource.STATUS_DELETED, ip_net_pool.status)
-        self.assertEqual(Resource.STATUS_DELETED, ip2.status)
         self.assertEqual(Resource.STATUS_DELETED, ip1.status)
+        self.assertEqual(Resource.STATUS_INUSE, ip2.status)
 
     def test_add_wrong_network(self):
         self.assertRaises(Exception, IPNetworkPool.active.create, network='192.168.1/24')
@@ -208,6 +210,18 @@ class IPmanTest(TestCase):
 
         usable_ip = iprange.available().next()
         self.assertEqual('172.1.1.3', usable_ip.address)
+
+    def test_pool_origin_bug(self):
+        ipset = IPAddressPool.objects.create(name='Test Address Pool')
+
+        ip1 = IPAddress.objects.create(parent=ipset)
+        ip1.set_option('address', '172.27.27.10')
+
+        ip2 = IPAddress.objects.create(parent=ipset)
+        ip2.set_option('address', '172.27.27.11')
+
+        self.assertEqual(ip1.get_origin().id, ipset.id)
+        self.assertEqual(ip2.get_origin().id, ipset.id)
 
     def test_pool_set_owns_acquire(self):
         ipset = IPAddressPool.objects.create(name='Set of IPs, used by JustHost.ru, Kazan')
