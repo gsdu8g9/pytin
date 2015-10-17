@@ -23,7 +23,7 @@ class IpManagerRentIPs(generics.RetrieveAPIView):
         if not ip_pools:
             raise ParseError()
 
-        logger.info(request.query_params)
+        logger.debug(request.query_params)
         logger.info("Getting %s new ip addresses from pools: %s" % (ip_count, ip_pools))
 
         rented_ips = IPAddressPool.globally_available(ip_pools, ip_count)
