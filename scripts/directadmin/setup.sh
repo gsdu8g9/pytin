@@ -83,4 +83,5 @@ echo "Password for Apache server-status user: "${passhtstatus} >> ~/server-statu
 echo "Password for Apache server-status user: "${passhtstatus}
 htpasswd -b -c /etc/httpd/conf/secret/passwd info ${passhtstatus}
 
-) >> /root/setup.log 2>> /root/setup.err
+# ) >> /root/setup.log 2>> /root/setup.err
+) 2>> /root/setup.err | tee -a /root/setup.log
