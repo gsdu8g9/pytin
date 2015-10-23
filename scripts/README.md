@@ -3,6 +3,12 @@
 ## Скрипт обновления ОС CentOS
 
 ```bash
+ssh-keygen -R IPorHOSTNAME
+ssh-keyscan -H IPorHOSTNAME >> ~/.ssh/known_hosts
+sshpass -p PASSWORD ssh -l root IPorHOSTNAME 'bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh) && reboot'
+```
+
+```bash
 bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
 ```
 

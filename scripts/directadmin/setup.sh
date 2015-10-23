@@ -85,3 +85,4 @@ htpasswd -b -c /etc/httpd/conf/secret/passwd info ${passhtstatus}
 
 # ) >> /root/setup.log 2>> /root/setup.err
 ) 2>> /root/setup.err | tee -a /root/setup.log
+chmod o-r,g-r setup.*
