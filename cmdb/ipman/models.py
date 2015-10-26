@@ -72,6 +72,17 @@ class IPAddress(Resource):
     def services(self, services_string):
         self.set_option('services', services_string, format=ResourceOption.FORMAT_STRING)
 
+    @property
+    def main(self):
+        """
+        Check is this IP is the main IP on port.
+        """
+        return self.get_option_value('main', default=False)
+
+    @main.setter
+    def main(self, is_main):
+        self.set_option('main', is_main, format=ResourceOption.FORMAT_BOOL)
+
     def set_origin(self, pool_id):
         """
         Set original IP pool for the IP. When IP is freed, its parent set to this origin.
@@ -95,6 +106,7 @@ class IPAddress(Resource):
         self.parent = self.get_origin()
         self.status = Resource.STATUS_FREE
         self.services = ''
+        self.main = False
         self.save()
 
         super(IPAddress, self).free(cascade=cascade)
