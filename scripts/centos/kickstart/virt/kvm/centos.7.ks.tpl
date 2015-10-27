@@ -63,6 +63,6 @@ chvt 6
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
 
-bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
 
 %end

@@ -5,11 +5,11 @@
 ```bash
 ssh-keygen -R IPorHOSTNAME
 ssh-keyscan -H IPorHOSTNAME >> ~/.ssh/known_hosts
-sshpass -p PASSWORD ssh -l root IPorHOSTNAME 'bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh) && reboot'
+sshpass -p PASSWORD ssh -l root IPorHOSTNAME 'bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh) && reboot'
 ```
 
 ```bash
-bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
 ```
 
 ## Скрипт обновления ОС Debian/Ubuntu

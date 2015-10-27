@@ -21,7 +21,7 @@ function set_conf {
     fi
 }
 
-bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
 
 set_conf
 

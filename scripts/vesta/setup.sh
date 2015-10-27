@@ -64,7 +64,7 @@ Ubuntu)
     ;;
 
 CentOS)
-    bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+    bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
     set_conf
     bash <(curl http://vestacp.com/pub/vst-install.sh)
 

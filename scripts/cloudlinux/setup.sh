@@ -38,7 +38,7 @@ fi
 activation_key=$1
 
 if [ ! -e ./firstrun ]; then
-    bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+    bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
 
     wget http://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy
     sh cldeploy -k ${activation_key}

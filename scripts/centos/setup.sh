@@ -9,7 +9,7 @@
 # Requirements:
 #	CentOS 6/7
 #
-# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
 #
 
 echo "Disable SELinux"

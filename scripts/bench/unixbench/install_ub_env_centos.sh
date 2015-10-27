@@ -13,7 +13,7 @@ rm -rf ${TARGET}
 cd ~
 
 echo "* Init CentOS"
-bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/default.sh)
+bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
 
 echo "* Install UnixBench"
 yum -y install gcc gcc-c++ make libXext-devel
