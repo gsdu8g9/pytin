@@ -1,47 +1,6 @@
-import datetime
-
 from django.db import models
-from django.utils import timezone
 
-from resources.models import Resource
-
-HEARTBEAT_PERIOD_SEC = 60
-
-
-class ExnendedNodeManager(models.Manager):
-    pass
-
-
-class CloudController(object):
-    pass
-
-
-class CloudNode(models.Model):
-    """
-    Class representing Cloud Node. Track its heartbeat.
-    """
-    resource = models.OneToOneField(Resource, default=None, db_index=True)
-    service = models.ForeignKey('CloudService', default=0, db_index=True)
-    heartbeat_last = models.DateTimeField('Last received heartbeat', db_index=True, null=True)
-    fail_count = models.IntegerField('Number of registered errors', default=0)
-
-    objects = ExnendedNodeManager()
-
-    def __unicode__(self):
-        return "%s [F:%s]" % (unicode(self.resource), self.fail_count)
-
-    def heartbeat(self):
-        """
-        Update heartbeat_last property.
-        :return:
-        """
-
-        last_seen = timezone.now() - datetime.timedelta(seconds=HEARTBEAT_PERIOD_SEC)
-        if self.heartbeat_last and self.heartbeat_last <= last_seen:
-            self.fail_count += 1
-
-        self.heartbeat_last = timezone.now()
-        self.save()
+from cmdb.lib import loader
 
 
 class CloudService(models.Model):
@@ -50,21 +9,57 @@ class CloudService(models.Model):
     """
     name = models.CharField('Service name.', max_length=25, default=None, db_index=True)
     implementor = models.CharField('Implementation class name.', max_length=155, default=None, db_index=False)
+    active = models.BooleanField('Set if service is active.', default=False, db_index=True)
 
     def __unicode__(self):
         return "%s (%s)" % (self.name, self.implementor)
 
-    def add_node(self, cloud_node):
-        """
-        Add the cloud service node
-        :param cloud_node:
-        :return:
-        """
-        cloud_node.service = self
-        cloud_node.save()
-
-        return cloud_node
-
     @property
-    def nodes(self):
-        return CloudNode.objects.filter(service=self)
+    def implementation(self):
+        """
+        Return the service implementation.
+        """
+        return loader.get_class(self.implementor)
+
+
+class CloudController(object):
+    """
+    Controlling known cloud services.
+    """
+
+    def registered_services(self):
+        """
+        Return the names of the registered services in cloud.
+        """
+        services = []
+        for svc in CloudService.objects.filter(active=True):
+            services.append(svc.name)
+
+        return services
+
+    def register_service(self, service_class):
+        """
+        Registers the new cloud service.
+        :param service_class: Service implementation class.
+        :return: True - if regstered, False - if exists and was updated.
+        """
+        service, created = CloudService.objects.update_or_create(
+            implementor=service_class.__name__,
+            default=dict(
+                name=service_class.NAME
+            )
+        )
+
+        return created
+
+    def get_service(self, name):
+        """
+        Returns the registered service implementation
+        :param name: Name of the cloud service.
+        :return: Instance of the cloud service implementation.
+        """
+        assert name
+
+        cloud_service = CloudService.objects.get(name__exact=name)
+
+        return cloud_service.implementation()

@@ -2,10 +2,8 @@ from __future__ import unicode_literals
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
-from assets.models import Server
-from cloud.models import CloudNode, CloudService
+from cloud.models import CloudService
 from cmdb.lib import loader
 from resources.lib.console import ConsoleResourceWriter
 
@@ -30,13 +28,6 @@ class Command(BaseCommand):
         node_cmd_parser.add_argument('-n', '--name', help="Service name.")
         node_cmd_parser.add_argument('-i', '--implementor', help="Service implementor class.")
         self.register_handler('service', self._handle_service)
-
-        # IP address commands
-        node_cmd_parser = subparsers.add_parser('node', help='Manage cloud nodes.')
-        node_cmd_parser.add_argument('-l', '--list', action="store_true", help="List cloud nodes.")
-        node_cmd_parser.add_argument('-r', '--reg', '--register', metavar='CMDB_ID', type=int,
-                                     help="Register or update cloud node.")
-        self.register_handler('node', self._handle_node)
 
     def _handle_service(self, *args, **options):
         if options['list']:
@@ -68,31 +59,6 @@ class Command(BaseCommand):
                 implementor=implementor
             )
             print "%s service %s" % ('Created' if created else 'Updated', service)
-
-    def _handle_node(self, *args, **options):
-        if options['list']:
-            node_items = []
-            for node in CloudNode.objects.all():
-                node_items.append([
-                    node.resource.id,
-                    node.resource.name,
-                    node.fail_count,
-                    timezone.localtime(node.heartbeat_last).strftime('%d.%m.%Y %H:%M') if node.heartbeat_last else '-'
-                ])
-
-            writer = ConsoleResourceWriter(node_items)
-            writer.print_table(['id', 'name', 'fail_count', 'heartbeat_last'])
-        elif options['reg']:
-            cmdb_node_id = int(options['reg'])
-            found_nodes = Server.objects.filter(pk=cmdb_node_id)
-
-            if len(found_nodes) <= 0:
-                raise ArgumentParser('Wrong CMDB_ID')
-
-            node, created = CloudNode.objects.update_or_create(
-                resource=found_nodes[0]
-            )
-            print "%s node %s %s" % ('Created' if created else 'Updated', node.id, node.role)
 
     def handle(self, *args, **options):
         subcommand = options['manager_name']

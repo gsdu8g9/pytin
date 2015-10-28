@@ -1,0 +1,2 @@
+class CloudServiceImpl(object):
+    pass
