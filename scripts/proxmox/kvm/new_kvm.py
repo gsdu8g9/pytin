@@ -12,13 +12,6 @@ hvname='node1'
 nodes={'node1': {'name': 'IPorHOSTNAME', 'password': 'PASSWORD'},
        'node2': {'name': 'IPorHOSTNAME', 'password': 'PASSWORD'}}
 
-ostemplates=['local:vztmpl/debian-7.0-x86.tar.gz',
-    'local:vztmpl/ubuntu-14.04-x86.tar.gz',
-    'local:vztmpl/ubuntu-14.04-x86_64.tar.gz',
-    'local:vztmpl/centos-6-x86.tar.gz',
-    'local:vztmpl/centos-6-x86_64.tar.gz',
-    'local:vztmpl/centos-7-x86_64.tar.gz']
-
 proxmox = ProxmoxAPI(nodes[hvname]['name'], user='root@pam',
                      password=nodes[hvname]['password'],
                      verify_ssl=False)
