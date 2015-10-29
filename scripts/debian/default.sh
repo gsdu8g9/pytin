@@ -39,7 +39,7 @@ Ubuntu)
 esac
 
 apt-get -y update
-apt-get -y upgrade
+DEBIAN_FRONTEND=noninteractive  apt-get -y upgrade
 apt-get -y install wget nano ntpdate ntp mc perl smartmontools
 
 ntpdate -d ntp1.vniiftri.ru
