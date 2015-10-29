@@ -12,13 +12,6 @@ hvname='node1'
 nodes={'node1': {'name': 'IPorHOSTNAME', 'password': 'PASSWORD'},
        'node2': {'name': 'IPorHOSTNAME', 'password': 'PASSWORD'}}
 
-ostemplates=['local:vztmpl/debian-7.0-x86.tar.gz',
-    'local:vztmpl/ubuntu-14.04-x86.tar.gz',
-    'local:vztmpl/ubuntu-14.04-x86_64.tar.gz',
-    'local:vztmpl/centos-6-x86.tar.gz',
-    'local:vztmpl/centos-6-x86_64.tar.gz',
-    'local:vztmpl/centos-7-x86_64.tar.gz']
-
 proxmox = ProxmoxAPI(nodes[hvname]['name'], user='root@pam',
                      password=nodes[hvname]['password'],
                      verify_ssl=False)
@@ -34,25 +27,24 @@ if not isUserExist(proxmox, 'u' + userID + '@pve'):
     proxmox.access.users.create(userid='u' + userID + '@pve', password='PASSWORD')
 
 node = proxmox.nodes(hvname)
-node.openvz.create(vmid=vmid,
-                   ostemplate=ostemplates[4],
-                   hostname=userID + '.users.justhost.ru',
+node.qemu.create(vmid=vmid,
+                   ostype='l26',
+                   name=userID + '.users.justhost.ru',
                    storage='local',
                    memory=512,
-                   swap=0,
-                   cpus=1,
-                   disk=5,
-                   password='PASSWORD',
-                   ip_address='IP',
-                   nameserver='46.17.40.200 46.17.46.200')
+                   sockets=1,
+                   cores=1,
+                   net0='rtl8139,rate=50,bridge=vmbr0',
+                   virtio0='local:' + str(vmid) + '/vm-' + str(vmid) + '-disk-1.qcow2,cache=writeback,format=qcow2,size=5G',
+                   cdrom='none')
 
 # Время на распаковку архива контейнера
-time.sleep(30)
+time.sleep(10)
 
-node.openvz(vmid).config.set(onboot=1, searchdomain='justhost.ru')
+node.qemu(vmid).config.set(onboot=1)
 
 # ACL
 proxmox.access.acl.set(path='/vms/' + str(vmid), roles=['PVEVMUser'], users=['u' + userID + '@pve'])
 
 # Start
-node.openvz(vmid).status.start.post()
+node.qemu(vmid).status.start.post()

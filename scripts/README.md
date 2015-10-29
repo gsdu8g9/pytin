@@ -24,7 +24,7 @@ bash default.sh
 ## Скрипт установки DirectAdmin
 
 ```bash
-bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup.sh)
+bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup_init.sh)
 ```
 
 ## Скрипт установки Vesta
