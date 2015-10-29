@@ -209,8 +209,12 @@ class PortConnection(Resource):
         proxy = True
 
     def __unicode__(self):
+        linked_device = '?'
+        if self.linked_port and self.linked_port.parent:
+            linked_device = self.linked_port.typed_parent
+
         return "%s <- %s Mbit -> %s" % (
-            self.linked_port if self.linked_port else '?', self.link_speed_mbit, self.typed_parent)
+            self.typed_parent, self.link_speed_mbit, linked_device)
 
     @property
     def switch_port(self):
