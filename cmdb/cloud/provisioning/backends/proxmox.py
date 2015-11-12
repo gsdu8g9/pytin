@@ -45,9 +45,9 @@ class ShellHookTask(CloudTask):
 
         logger.info("    got Celery ID %s" % async_task.id)
 
-        tracker_options = self.tracker.context
-        tracker_options['celery_task_id'] = async_task.id
-        self.tracker.context = tracker_options
+        tracker_context = self.tracker.context
+        tracker_context['celery_task_id'] = async_task.id
+        self.tracker.context = tracker_context
         self.tracker.save()
 
     def ready(self):

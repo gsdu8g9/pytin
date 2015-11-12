@@ -4,8 +4,15 @@ from cloud.provisioning import HypervisorBackend, CloudTask
 
 
 class CreateMockVpsTask(CloudTask):
-    def execute(self, tracker):
-        self.result = {'result': self.context}
+    def execute(self):
+        tracker_context = self.tracker.context
+        tracker_context['result'] = {'some': 'data'}
+
+        self.tracker.context = tracker_context
+        self.tracker.save()
+
+    def wait_to_end(self):
+        return self.context['result']
 
 
 class MockHypervisorBackend(HypervisorBackend):
@@ -14,15 +21,4 @@ class MockHypervisorBackend(HypervisorBackend):
     """
 
     def create_vps(self, ram, cpu, hdd, success=True):
-        return self.send_task(CreateMockVpsTask(ram=ram, cpu=cpu, hdd=hdd, success=success))
-
-    def create_vps_sync(self, ram, cpu, hdd, success=True):
-        task = CreateMockVpsTask(ram=ram, cpu=cpu, hdd=hdd, success=success)
-        task_tracker = self.send_task(task)
-
-        if success:
-            task_tracker.success(task.result)
-        else:
-            task_tracker.fail('Some error occured.')
-
-        return task_tracker
+        return self.send_task(CreateMockVpsTask, ram=ram, cpu=cpu, hdd=hdd, success=success)

@@ -2,8 +2,6 @@ from __future__ import unicode_literals
 
 from django.utils.translation import ugettext_lazy as _
 
-from cloud.models import CloudTaskTracker
-
 
 class CloudTask(object):
     def __init__(self, tracker, **context):
@@ -14,9 +12,6 @@ class CloudTask(object):
         self.result = {}
 
     def execute(self):
-        raise Exception(_("Not implemented."))
-
-    def poll(self):
         raise Exception(_("Not implemented."))
 
     def wait_to_end(self):
@@ -31,6 +26,7 @@ class CloudBackend(object):
     def __init__(self, cloud):
         assert cloud
         self.cloud = cloud
+        self.task_tracker = cloud.get_task_tracker()
 
     def send_task(self, cloud_task_class, **kwargs):
         """
@@ -38,9 +34,7 @@ class CloudBackend(object):
         """
         assert cloud_task_class
 
-        tracker = CloudTaskTracker.track(cloud_task_class, **kwargs)
-
-        tracker.task.execute()
+        tracker = self.task_tracker.execute(cloud_task_class, **kwargs)
 
         return tracker
 

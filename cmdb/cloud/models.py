@@ -61,8 +61,6 @@ class CloudTaskTracker(models.Model):
 
     @return_data.setter
     def return_data(self, value):
-        assert value
-
         self.return_json = json.dumps(value)
 
     def progress(self):
@@ -78,7 +76,7 @@ class CloudTaskTracker(models.Model):
         self.status = self.STATUS_SUCCESS
         self.save()
 
-    def fail(self, error_message=None):
+    def failed(self, error_message=None):
         if not error_message:
             error_message = ''
 
@@ -93,7 +91,7 @@ class CloudTaskTracker(models.Model):
         return wrapped_task
 
     @staticmethod
-    def track(cloud_task_class, **context):
+    def execute(cloud_task_class, **context):
         assert cloud_task_class
 
         full_cloud_task_class_name = "%s.%s" % (cloud_task_class.__module__, cloud_task_class.__name__)
@@ -102,14 +100,20 @@ class CloudTaskTracker(models.Model):
         task_tracker.context = context
         task_tracker.save()
 
+        task_tracker.task.execute()
+
         return task_tracker
 
     def wait_to_end(self):
-        result_data = self.task.wait_to_end()
+        try:
+            result_data = self.task.wait_to_end()
 
-        self.success(result_data)
+            self.success(result_data)
 
-        return result_data
+            return result_data
+        except Exception, ex:
+            self.failed(ex.message)
+            raise ex
 
     def ready(self):
         return self.task.ready()
@@ -119,4 +123,6 @@ class CloudConfig(object):
     """
     Entry point for the CMDB data query.
     """
-    pass
+
+    def get_task_tracker(self):
+        return CloudTaskTracker

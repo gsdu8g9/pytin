@@ -37,8 +37,10 @@ class CloudControllerTest(TestCase):
 
         backend = MockHypervisorBackend(cloud)
 
-        task_tracker = backend.create_vps_sync(ram=1024, cpu=2, hdd=50)
+        task_tracker = backend.create_vps(ram=1024, cpu=2, hdd=50)
+
+        return_data = task_tracker.wait_to_end()
 
         self.assertEqual(CloudTaskTracker.STATUS_SUCCESS, task_tracker.status)
+        self.assertEqual({'some': 'data'}, return_data)
 
-        print task_tracker.return_data
