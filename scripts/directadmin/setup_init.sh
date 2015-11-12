@@ -6,7 +6,7 @@
 # Requirements:
 #	CentOS 6
 #
-# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup_da.sh)
+# bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup_init.sh)
 #
 
 (

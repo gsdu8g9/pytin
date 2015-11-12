@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 
 from rest_framework import serializers
 
+from cmdb.settings import logger
 from resources.models import Resource, ResourceOption
 
 
 class ResourceOptionSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = ResourceOption
         fields = ('id', 'name', 'value', 'format', 'updated_at')
@@ -22,6 +22,8 @@ class ResourceSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         options_list = validated_data.pop('resourceoption_set', [])
+
+        logger.debug(options_list)
 
         resource, created = Resource.active.update_or_create(
             id=instance.id,

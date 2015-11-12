@@ -196,10 +196,11 @@ class IPAddressPool(Resource):
 
             try:
                 ip = ip_pool_resource.available().next()
+
                 ip.lock()
                 ip.touch()
 
-                logger.info("Available IP found: %s" % ip)
+                logger.debug("Available IP found: %s" % ip)
 
                 rented_ips.append(ip)
                 changed = True

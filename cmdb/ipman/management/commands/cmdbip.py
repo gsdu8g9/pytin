@@ -36,6 +36,7 @@ class Command(BaseCommand):
         pool_rent_cmd = address_subparsers.add_parser('rent', help="Find and lock 'count' IPs from specified pools.")
         pool_rent_cmd.add_argument('pool-id', nargs='+', help="IDs of the pools to rent IPs.")
         pool_rent_cmd.add_argument('-c', '--count', type=int, default=1, help="Number of addresses to rent.")
+        pool_rent_cmd.add_argument('-s', '--start', help="Rent starting from address.")
         self._register_handler('address.rent', self._handle_pool_rent)
 
         # POOL commands
@@ -82,7 +83,7 @@ class Command(BaseCommand):
         ip_pool_ids = options['pool-id']
         ip_count = options['count']
 
-        rent_ips = IPAddressPool.globally_available(ip_pool_ids, ip_count)
+        rent_ips = IPAddressPool.globally_available(ip_pool_ids, count=ip_count)
         self._print_addresses(rent_ips)
 
     def _handle_pool_get_next(self, *args, **options):

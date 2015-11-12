@@ -1,61 +1,44 @@
 from __future__ import unicode_literals
 
-from django.core.exceptions import ObjectDoesNotExist
-
 from django.test import TestCase
 
-from cloud.models import CloudController, ServiceRequest
+from cloud.models import CloudConfig, CloudTaskTracker
+
+from cloud.tests import MockHypervisorBackend
 
 
 class CloudControllerTest(TestCase):
-    def test_controller_initial(self):
-        controller = CloudController()
+    def test_controller_create_success(self):
+        cloud = CloudConfig()
 
-        self.assertEqual(0, len(controller.registered_services()))
+        backend = MockHypervisorBackend(cloud)
 
-    def test_controller_registered_services(self):
-        controller = CloudController()
+        task_tracker = backend.create_vps(ram=1024, cpu=2, hdd=50)
 
-        self.assertTrue(controller.register_service('cloud.tests.MockSyncServiceBackend'))
-        self.assertEqual(1, len(controller.registered_services()))
+        self.assertEqual(CloudTaskTracker.STATUS_NEW, task_tracker.status)
 
-        known_service = controller.registered_services()[0]
-        self.assertEqual('cloud.tests.MockSyncServiceBackend', known_service.implementor)
-        self.assertEqual('MockSyncServiceBackend', known_service.name)
-        self.assertEqual(True, known_service.active)
+        # report progress to tracker
+        task_tracker.progress()
+        self.assertEqual(CloudTaskTracker.STATUS_PROGRESS, task_tracker.status)
 
-    def test_controller_service_request(self):
-        controller = CloudController()
+        # run task somewhere (or locally)
+        wrapped_task = task_tracker.task
+        wrapped_task.execute()
 
-        self.assertTrue(controller.register_service('cloud.tests.MockSyncServiceBackend', name='MockVPS'))
+        # report that the task is finished
+        task_tracker.success(wrapped_task.result)
 
-        request_with_id = controller.service_request(ServiceRequest(
-            'MockVPS',
-            {
-                'opname1': 'optval1',
-                'opname2': 'optval2',
-                'opname3': 'optval3',
-            })
-        )
+        self.assertEqual(CloudTaskTracker.STATUS_SUCCESS, task_tracker.status)
 
-        # print request_with_id.options
+        print task_tracker.return_data
 
-    def test_controller_wrong_service_request(self):
-        controller = CloudController()
+    def test_controller_create_success_sync(self):
+        cloud = CloudConfig()
 
-        controller.register_service('cloud.tests.MockSyncServiceBackend', name='MockVPS')
+        backend = MockHypervisorBackend(cloud)
 
-        try:
-            # passing wrong service name
-            request_with_id = controller.service_request(ServiceRequest(
-                'MockVPS1',
-                {
-                    'opname1': 'optval1',
-                    'opname2': 'optval2',
-                    'opname3': 'optval3',
-                })
-            )
+        task_tracker = backend.create_vps_sync(ram=1024, cpu=2, hdd=50)
 
-            self.fail("Waiting for the ObjectDoesNotExist exception.")
-        except ObjectDoesNotExist:
-            pass
+        self.assertEqual(CloudTaskTracker.STATUS_SUCCESS, task_tracker.status)
+
+        print task_tracker.return_data
