@@ -222,6 +222,10 @@ class IPAddressPool(Resource):
     def get_all_pools():
         return Resource.active.filter(type__in=IPAddressPool.ip_pool_types)
 
+    @staticmethod
+    def get_usable_pools():
+        return Resource.active.filter(type__in=IPAddressPool.ip_pool_types, status=Resource.STATUS_FREE)
+
     @property
     def version(self):
         return self.get_option_value('version')

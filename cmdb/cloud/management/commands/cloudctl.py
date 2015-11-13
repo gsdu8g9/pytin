@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import argparse
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
@@ -52,6 +53,7 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--node', type=int, help="CMDB node ID.", required=True)
         vps_cmd_parser.add_argument('--vmid', type=int, help="Set ID of the VM..", required=True)
         vps_cmd_parser.add_argument('--user', help="Specify user name for the VM.")
+        vps_cmd_parser.add_argument('--ip', nargs=argparse.ONE_OR_MORE, help="Specify user name for the VM.")
         vps_cmd_parser.add_argument('--ram', type=int, help="Set RAM amount (Mb).", default=512)
         vps_cmd_parser.add_argument('--hdd', type=int, help="Set HDD amount (Gb).", default=5)
         vps_cmd_parser.add_argument('--cpu', type=int, help="Number of vCPU cores.", default=1)
@@ -61,14 +63,17 @@ class Command(BaseCommand):
     def _handle_vps(self, *args, **options):
         tracker = None
 
+        vmid = int(options['vmid'])
+        hyper_tech = options['tech']
+        node_id = int(options['node'])
+        user_name = options['user']
+
         if options['create']:
-            vmid = int(options['vmid'])
             ram = int(options['ram'])
             hdd = int(options['hdd'])
             cpu = int(options['cpu'])
-            node_id = int(options['node'])
             template = options['template']
-            user_name = options['user']
+            ip_addr = options['ip'][0]
 
             tracker = self.backend.create_vps(
                 node_id=node_id,
@@ -77,27 +82,23 @@ class Command(BaseCommand):
                 user=user_name,
                 ram=ram,
                 hdd=hdd,
-                cpu=cpu)
+                cpu=cpu,
+                ip=ip_addr,
+                tech=hyper_tech)
 
         elif options['stop']:
-            node_id = int(options['node'])
-            vmid = int(options['vmid'])
-            user_name = options['user']
-
             tracker = self.backend.stop_vps(
                 node_id=node_id,
                 vmid=vmid,
-                user=user_name)
+                user=user_name,
+                tech=hyper_tech)
 
         elif options['start']:
-            node_id = int(options['node'])
-            vmid = int(options['vmid'])
-            user_name = options['user']
-
             tracker = self.backend.start_vps(
                 node_id=node_id,
                 vmid=vmid,
-                user=user_name)
+                user=user_name,
+                tech=hyper_tech)
 
         if tracker:
             logger.info("Attached to the task tracker %s. Ctrl-C to exit." % tracker.id)

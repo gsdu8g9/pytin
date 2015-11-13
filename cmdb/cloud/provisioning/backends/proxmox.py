@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import unicode_literals
 
 import time
@@ -6,6 +7,8 @@ from celery import Celery
 
 from cloud.provisioning import HypervisorBackend, CloudTask
 from cmdb.settings import logger, PROXMOX_BACKEND
+from ipman.models import IPAddress, IPNetworkPool
+from resources.models import Resource
 
 agentd_proxy = Celery('agentd',
                       broker=PROXMOX_BACKEND['MSG_BROKER'],
@@ -89,10 +92,40 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
         # }
     }
 
-    def start_vps(self, vmid, **options):
+    def start_vps(self, **options):
+        assert 'tech' in options
+
+        hyper_tech = options['tech']
+
+        if hyper_tech == 'kvm':
+            return self.start_vps_kvm(**options)
+        elif hyper_tech == 'openvz':
+            return self.start_vps_openvz(**options)
+        else:
+            raise Exception("Tech %s is not supported by the backend.")
+
+    def start_vps_openvz(self, vmid, **options):
         assert vmid > 0
 
-        selected_cmdb_node_id = 332
+        selected_cmdb_node_id = options['node_id']
+
+        task_options = {
+            'VMID': vmid,
+            'SUBCOMMAND': 'start.ovz',
+            'USER_NAME': options['user'] if 'user' in options else ''
+        }
+
+        task_tracker = self.send_task(ShellHookTask,
+                                      node_id=selected_cmdb_node_id,
+                                      hook_name='vps_cmd_proxy',
+                                      options=task_options)
+
+        return task_tracker
+
+    def start_vps_kvm(self, vmid, **options):
+        assert vmid > 0
+
+        selected_cmdb_node_id = options['node_id']
 
         task_options = {
             'VMID': vmid,
@@ -107,10 +140,40 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         return task_tracker
 
-    def stop_vps(self, vmid, **options):
+    def stop_vps(self, **options):
+        assert 'tech' in options
+
+        hyper_tech = options['tech']
+
+        if hyper_tech == 'kvm':
+            return self.stop_vps_kvm(**options)
+        elif hyper_tech == 'openvz':
+            return self.stop_vps_openvz(**options)
+        else:
+            raise Exception("Tech %s is not supported by the backend.")
+
+    def stop_vps_openvz(self, vmid, **options):
         assert vmid > 0
 
-        selected_cmdb_node_id = 332
+        selected_cmdb_node_id = options['node_id']
+
+        task_options = {
+            'VMID': vmid,
+            'SUBCOMMAND': 'stop.ovz',
+            'USER_NAME': options['user'] if 'user' in options else ''
+        }
+
+        task_tracker = self.send_task(ShellHookTask,
+                                      node_id=selected_cmdb_node_id,
+                                      hook_name='vps_cmd_proxy',
+                                      options=task_options)
+
+        return task_tracker
+
+    def stop_vps_kvm(self, vmid, **options):
+        assert vmid > 0
+
+        selected_cmdb_node_id = options['node_id']
 
         task_options = {
             'VMID': vmid,
@@ -126,6 +189,18 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
         return task_tracker
 
     def create_vps(self, **options):
+        assert 'tech' in options
+
+        hyper_tech = options['tech']
+
+        if hyper_tech == 'kvm':
+            return self.create_vps_kvm(**options)
+        elif hyper_tech == 'openvz':
+            return self.create_vps_openvz(**options)
+        else:
+            raise Exception("Tech %s is not supported by the backend.")
+
+    def create_vps_openvz(self, **options):
         assert 'node_id' in options
         assert 'vmid' in options
         assert 'template' in options
@@ -133,8 +208,11 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
         assert 'ram' in options
         assert 'hdd' in options
         assert 'user' in options
+        assert 'ip' in options
 
         selected_cmdb_node_id = options['node_id']
+
+        ip, gateway, netmask = self._find_ip_info(options['ip'])
 
         task_options = {
             # Change this parameters
@@ -151,9 +229,54 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             # CPU cores
             'VCPU': options['cpu'],
 
-            'IPADDR': '176.32.32.44',
-            'GW': '176.32.32.1',
-            'NETMASK': '255.255.254.0',
+            'IP_ADDRS': [ip],
+            'GW': gateway,
+            'NETMASK': netmask,
+
+            # CentOS version
+            'SUBCOMMAND': 'create.ovz',
+            'TEMPLATE': options['template']
+        }
+
+        task_tracker = self.send_task(ShellHookTask,
+                                      node_id=selected_cmdb_node_id,
+                                      hook_name='vps_cmd_proxy',
+                                      options=task_options)
+
+        return task_tracker
+
+    def create_vps_kvm(self, **options):
+        assert 'node_id' in options
+        assert 'vmid' in options
+        assert 'template' in options
+        assert 'cpu' in options
+        assert 'ram' in options
+        assert 'hdd' in options
+        assert 'user' in options
+        assert 'ip' in options
+
+        selected_cmdb_node_id = options['node_id']
+
+        ip, gateway, netmask = self._find_ip_info(options['ip'])
+
+        task_options = {
+            # Change this parameters
+            'USER_NAME': options['user'] if 'user' in options else '',
+            'VMID': options['vmid'],
+            'VMNAME': "vm%s.%s" % (options['vmid'], options['template']),
+
+            # HDD size in Gb
+            'HDDGB': options['hdd'],
+
+            # RAM size in Gb
+            'MEMMB': options['ram'],
+
+            # CPU cores
+            'VCPU': options['cpu'],
+
+            'IPADDR': ip,
+            'GW': gateway,
+            'NETMASK': netmask,
 
             # CentOS version
             'SUBCOMMAND': options['template']
@@ -165,3 +288,35 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
                                       options=task_options)
 
         return task_tracker
+
+    def _find_ip_info(self, ip_address):
+        """
+        Search and return info about IP address: gateway and netmask.
+        Check only in IPNetworkPools that is free.
+        :param ip_address:
+        :return: tuple (ip, gw, netmask)
+        """
+        assert ip_address
+
+        target_net_pool = None
+        found_ips = IPAddress.active.filter(address=ip_address)
+        if len(found_ips) > 0:
+            found_ip = found_ips[0]
+            target_net_pool = found_ip.get_origin()
+        else:
+            for ip_net_pool in IPNetworkPool.active.find(status=Resource.STATUS_FREE):
+                if ip_net_pool.can_add(ip_address):
+                    target_net_pool = ip_net_pool
+                    break
+
+        if not target_net_pool:
+            raise Exception("IP %s have no origin" % ip_address)
+
+        # checking IP pool
+        netmask = target_net_pool.get_option_value('netmask', default=None)
+        gateway = target_net_pool.get_option_value('gateway', default=None)
+
+        if not netmask or not gateway:
+            raise Exception("IP pool %s have no network settings." % target_net_pool)
+
+        return ip_address, gateway, netmask
