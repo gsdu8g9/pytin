@@ -8,7 +8,7 @@ from django.utils import timezone
 from cmdb.lib import loader
 
 
-class CloudTaskTracker(models.Model):
+class TaskTrackerStatus(object):
     STATUS_NEW = 'new'
     STATUS_PROGRESS = 'progress'
     STATUS_SUCCESS = 'success'
@@ -20,10 +20,13 @@ class CloudTaskTracker(models.Model):
         (STATUS_FAILED, 'Request failed.'),
     )
 
+
+class CloudTaskTracker(models.Model):
     task_class = models.CharField('Python class of the cloud task.', max_length=55, db_index=True)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
-    status = models.CharField(max_length=25, db_index=True, choices=STATUS_CHOICES, default=STATUS_NEW)
+    status = models.CharField(max_length=25, db_index=True, choices=TaskTrackerStatus.STATUS_CHOICES,
+                              default=TaskTrackerStatus.STATUS_NEW)
 
     context_json = models.TextField('Cloud command context.')
     return_json = models.TextField('Cloud command return data.')
@@ -35,15 +38,23 @@ class CloudTaskTracker(models.Model):
 
     @property
     def is_failed(self):
-        return self.status == self.STATUS_FAILED
+        return self.status == TaskTrackerStatus.STATUS_FAILED
 
     @property
-    def is_ok(self):
-        return self.status == self.STATUS_SUCCESS
+    def is_success(self):
+        return self.status == TaskTrackerStatus.STATUS_SUCCESS
 
     @property
     def is_progress(self):
-        return self.status == self.STATUS_PROGRESS
+        return self.status == TaskTrackerStatus.STATUS_PROGRESS
+
+    @property
+    def is_new(self):
+        return self.status == TaskTrackerStatus.STATUS_NEW
+
+    @property
+    def is_ready(self):
+        return self.is_failed or self.is_success
 
     @property
     def context(self):
@@ -65,7 +76,7 @@ class CloudTaskTracker(models.Model):
 
     def progress(self):
         self.updated_at = timezone.now()
-        self.status = self.STATUS_PROGRESS
+        self.status = TaskTrackerStatus.STATUS_PROGRESS
         self.save()
 
     def success(self, return_data=None):
@@ -73,7 +84,7 @@ class CloudTaskTracker(models.Model):
             return_data = {}
 
         self.return_data = return_data
-        self.status = self.STATUS_SUCCESS
+        self.status = TaskTrackerStatus.STATUS_SUCCESS
         self.save()
 
     def failed(self, error_message=None):
@@ -81,7 +92,7 @@ class CloudTaskTracker(models.Model):
             error_message = ''
 
         self.error = error_message
-        self.status = self.STATUS_FAILED
+        self.status = TaskTrackerStatus.STATUS_FAILED
         self.save()
 
     @property
@@ -104,7 +115,25 @@ class CloudTaskTracker(models.Model):
 
         return task_tracker
 
+    @staticmethod
+    def get(tracker_id):
+        assert tracker_id > 0
+
+        return CloudTaskTracker.objects.get(pk=tracker_id)
+
+    @staticmethod
+    def find(**query):
+        assert id > 0
+
+        return CloudTaskTracker.objects.filter(**query)
+
     def wait_to_end(self):
+        if self.is_success:
+            return self.return_data
+
+        if self.is_failed:
+            return self.error
+
         try:
             result_data = self.task.wait_to_end()
 
@@ -114,9 +143,6 @@ class CloudTaskTracker(models.Model):
         except Exception, ex:
             self.failed(ex.message)
             raise ex
-
-    def ready(self):
-        return self.task.ready()
 
 
 class CloudConfig(object):

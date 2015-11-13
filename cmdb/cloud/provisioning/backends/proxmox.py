@@ -50,13 +50,6 @@ class ShellHookTask(CloudTask):
         self.tracker.context = tracker_context
         self.tracker.save()
 
-    def ready(self):
-        ctask_id = self.tracker.context['celery_task_id']
-
-        result = agentd_proxy.AsyncResult(ctask_id)
-
-        return result.ready()
-
     def wait_to_end(self):
         ctask_id = self.tracker.context['celery_task_id']
 
@@ -103,12 +96,13 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         task_options = {
             'VMID': vmid,
-            'SUBCOMMAND': 'start.qm'
+            'SUBCOMMAND': 'start.qm',
+            'USER_NAME': options['user'] if 'user' in options else ''
         }
 
         task_tracker = self.send_task(ShellHookTask,
                                       node_id=selected_cmdb_node_id,
-                                      hook_name='vps_qm_proxy',
+                                      hook_name='vps_cmd_proxy',
                                       options=task_options)
 
         return task_tracker
@@ -120,29 +114,33 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         task_options = {
             'VMID': vmid,
-            'SUBCOMMAND': 'stop.qm'
+            'SUBCOMMAND': 'stop.qm',
+            'USER_NAME': options['user'] if 'user' in options else ''
         }
 
         task_tracker = self.send_task(ShellHookTask,
                                       node_id=selected_cmdb_node_id,
-                                      hook_name='vps_qm_proxy',
+                                      hook_name='vps_cmd_proxy',
                                       options=task_options)
 
         return task_tracker
 
     def create_vps(self, **options):
-        # selected_cmdb_node_id = scheduler.get_node()
+        assert 'node_id' in options
+        assert 'vmid' in options
+        assert 'template' in options
+        assert 'cpu' in options
+        assert 'ram' in options
+        assert 'hdd' in options
+        assert 'user' in options
 
-        selected_cmdb_node_id = 332
+        selected_cmdb_node_id = options['node_id']
 
         task_options = {
-            # CentOS version
-            'CENT_OS_VER': 6,  # 6 or 7
-
             # Change this parameters
-            'USER_ID': 1495,
+            'USER_NAME': options['user'] if 'user' in options else '',
             'VMID': options['vmid'],
-            'VMNAME': '234242test',
+            'VMNAME': "vm%s.%s" % (options['vmid'], options['template']),
 
             # HDD size in Gb
             'HDDGB': options['hdd'],
@@ -157,12 +155,13 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             'GW': '176.32.32.1',
             'NETMASK': '255.255.254.0',
 
-            'SUBCOMMAND': 'centos.qm'
+            # CentOS version
+            'SUBCOMMAND': options['template']
         }
 
         task_tracker = self.send_task(ShellHookTask,
                                       node_id=selected_cmdb_node_id,
-                                      hook_name='vps_qm_proxy',
+                                      hook_name='vps_cmd_proxy',
                                       options=task_options)
 
         return task_tracker
