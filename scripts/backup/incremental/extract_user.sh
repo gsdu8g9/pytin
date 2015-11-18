@@ -76,7 +76,7 @@ then
 fi
 
 idx_mod=$(( NEEDED_BACKUP_INDEX % INCREMENT_COUNT ))
-if [ -z idx_mod ]
+if (( idx_mod == 0 ))
 then
     idx_mod=${INCREMENT_COUNT}
 fi

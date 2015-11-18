@@ -26,7 +26,7 @@ class IpManagerRentIPs(generics.RetrieveAPIView):
         logger.debug(request.query_params)
         logger.info("Getting %s new ip addresses from pools: %s" % (ip_count, ip_pools))
 
-        rented_ips = IPAddressPool.globally_available(ip_pools, ip_count)
+        rented_ips = IPAddressPool.lease_ips(ip_pools, ip_count)
 
         serializer = self.get_serializer(rented_ips, many=True)
 

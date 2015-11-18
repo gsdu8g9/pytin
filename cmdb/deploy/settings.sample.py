@@ -88,7 +88,7 @@ REST_FRAMEWORK = {
 
 PROXMOX_BACKEND = {
     'MSG_BROKER': 'redis://127.0.0.1:8888/1',
-    'MSG_BACKEND': 'redis://127.0.0.1:8888/1'
+    'MSG_BACKEND': 'redis://127.0.0.1:8888/2'
 }
 
 # Database

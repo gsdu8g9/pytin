@@ -2,15 +2,15 @@ from __future__ import unicode_literals
 
 import json
 
+from django.apps import apps
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.core import exceptions as djexceptions
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.core import exceptions as djexceptions
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from django.apps import apps
 from mptt.managers import TreeManager
 from mptt.models import MPTTModel, TreeForeignKey
 
@@ -169,7 +169,7 @@ class ResourcesWithOptionsManager(TreeManager):
         return SubclassingQuerySet(self.model)
 
 
-class ResourcesActiveWithOptionsManager(TreeManager):
+class ResourcesActiveWithOptionsManager(ResourcesWithOptionsManager):
     """
     Query manager with support for query by options.
     """
@@ -431,19 +431,6 @@ class Resource(MPTTModel):
             self.status = new_status
             self.save()
 
-    def delete(self, using=None):
-        """
-        Override Model .delete() method. Instead of actual deleting object from the DB
-        set status Deleted.
-        """
-        logger.debug("Removing resource ID:%s %s" % (self.id, self))
-
-        if len(list(self)) > 0:
-            raise ValidationError(_("Object have one or more childs."))
-
-        self.status = Resource.STATUS_DELETED
-        self.save()
-
     @property
     def is_locked(self):
         return self.status == self.STATUS_LOCKED
@@ -581,3 +568,48 @@ class Resource(MPTTModel):
         """
         for res in Resource.active.filter(parent=self, status=Resource.STATUS_FREE):
             yield res
+
+    def delete(self, using=None):
+        """
+        Override Model .delete() method. Instead of actual deleting object from the DB
+        set status Deleted.
+        """
+        logger.debug("Removing resource ID:%s %s" % (self.id, self))
+
+        if len(list(self)) > 0:
+            raise ValidationError(_("Object have one or more childs."))
+
+        self.status = Resource.STATUS_DELETED
+        self.save()
+
+    def filter_parents(self, resource_class, *args, **query):
+        """
+        Check that node is inside parent lft and rght leaf IDs
+        :param resource_class:
+        :param args:
+        :param query:
+        :return:
+        """
+        assert resource_class
+
+        query['lft__lte'] = self.lft
+        query['rght__gte'] = self.rght
+        query['tree_id'] = self.tree_id
+
+        return resource_class.active.filter(*args, **query).order_by('-level')
+
+    def filter_childs(self, resource_class, *args, **query):
+        """
+        Check that node is inside parent lft and rght leaf IDs
+        :param resource_class:
+        :param args:
+        :param query:
+        :return:
+        """
+        assert resource_class
+
+        query['lft__gte'] = self.lft
+        query['rght__lte'] = self.rght
+        query['tree_id'] = self.tree_id
+
+        return resource_class.active.filter(*args, **query).order_by('level')

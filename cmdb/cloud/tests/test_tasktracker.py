@@ -1,12 +1,12 @@
 from django.test import TestCase
 
-from cloud.models import CloudConfig, CloudTaskTracker, TaskTrackerStatus
+from cloud.models import CmdbCloudConfig, TaskTrackerStatus
 
 
 class CloudControllerTest(TestCase):
     def test_controller_create_success(self):
-        cloud = CloudConfig()
-        tracker_class = cloud.get_task_tracker()
+        cloud = CmdbCloudConfig()
+        tracker_class = cloud.task_tracker
 
         task_tracker1 = tracker_class(task_class='SomeClassName')
         task_tracker1.context = {'some': 'value'}

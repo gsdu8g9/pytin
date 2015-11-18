@@ -5,10 +5,9 @@ import time
 
 from celery import Celery
 
+from assets.models import Server
 from cloud.provisioning import HypervisorBackend, CloudTask
 from cmdb.settings import logger, PROXMOX_BACKEND
-from ipman.models import IPAddress, IPNetworkPool
-from resources.models import Resource
 
 agentd_proxy = Celery('agentd',
                       broker=PROXMOX_BACKEND['MSG_BROKER'],
@@ -24,16 +23,20 @@ agentd_proxy.conf.update(
 
 
 class ShellHookTask(CloudTask):
+    # Remote interface used to execute tasks
+    REMOTE_WORKER = agentd_proxy
+
+    # Script used as the entry point for all shell commands. See pytin-agentd-hv project.
+    HOOK_SCRIPT_NAME = 'vps_cmd_proxy'
+
     def __init__(self, tracker, **context):
         assert tracker
 
-        assert 'node_id' in context
-        assert 'hook_name' in context
+        assert 'routing_key' in context
 
         self.task_name = 'tasks.async.shell_hook'
         self.tracker = tracker
-        self.node_id = context['node_id']
-        self.hook_name = context['hook_name']
+        self.routing_key = context['routing_key']
         self.context = context
 
     def execute(self):
@@ -41,10 +44,11 @@ class ShellHookTask(CloudTask):
 
         logger.info("Executing task %s with tracker id %s" % (self.task_name, self.tracker.id))
 
-        async_task = agentd_proxy.send_task(self.task_name,
-                                            countdown=3,
-                                            routing_key='cn16.tasks',
-                                            kwargs={'hook_name': self.hook_name, 'options': self.context['options']})
+        async_task = self.REMOTE_WORKER.send_task(self.task_name,
+                                                  queue=self.routing_key,
+                                                  routing_key=self.routing_key,
+                                                  kwargs={'hook_name': self.HOOK_SCRIPT_NAME,
+                                                          'options': self.context['options']})
 
         logger.info("    got Celery ID %s" % async_task.id)
 
@@ -53,12 +57,12 @@ class ShellHookTask(CloudTask):
         self.tracker.context = tracker_context
         self.tracker.save()
 
-    def wait_to_end(self):
+    def get_result(self):
         ctask_id = self.tracker.context['celery_task_id']
 
         logger.warning("Waiting for the Celery task: %s" % ctask_id)
 
-        ctask = agentd_proxy.AsyncResult(ctask_id)
+        ctask = self.REMOTE_WORKER.AsyncResult(ctask_id)
 
         last_line = ''
         while not ctask.ready():
@@ -74,6 +78,11 @@ class ShellHookTask(CloudTask):
 
 
 class ProxMoxJBONServiceBackend(HypervisorBackend):
+    SHELL_HOOK_TASK_CLASS = ShellHookTask
+
+    TECH_HV_KVM = 'kvm'
+    TECH_HV_OPENVZ = 'openvz'
+
     """
     Cloud Service: Just bunch of ProxMox nodes.
     Every node have a pytin-agent running. When task is submitted to this backend it actually submitted
@@ -88,137 +97,80 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             'types': ['kvm']
         },
         # 130: {
-        #     'types': ['openvz']
+        #     'types': [self.TECH_HV_OPENVZ]
         # }
     }
 
     def start_vps(self, **options):
+        assert 'vmid' in options
+        assert 'node_id' in options
         assert 'tech' in options
 
         hyper_tech = options['tech']
 
-        if hyper_tech == 'kvm':
-            return self.start_vps_kvm(**options)
-        elif hyper_tech == 'openvz':
-            return self.start_vps_openvz(**options)
+        if hyper_tech == self.TECH_HV_KVM:
+            start_subcommand = 'start.qm'
+        elif hyper_tech == self.TECH_HV_OPENVZ:
+            start_subcommand = 'start.ovz'
         else:
             raise Exception("Tech %s is not supported by the backend.")
 
-    def start_vps_openvz(self, vmid, **options):
-        assert vmid > 0
-
-        selected_cmdb_node_id = options['node_id']
-
         task_options = {
-            'VMID': vmid,
-            'SUBCOMMAND': 'start.ovz',
+            'VMID': options['vmid'],
+            'SUBCOMMAND': start_subcommand,
             'USER_NAME': options['user'] if 'user' in options else ''
         }
 
-        task_tracker = self.send_task(ShellHookTask,
-                                      node_id=selected_cmdb_node_id,
-                                      hook_name='vps_cmd_proxy',
-                                      options=task_options)
-
-        return task_tracker
-
-    def start_vps_kvm(self, vmid, **options):
-        assert vmid > 0
-
-        selected_cmdb_node_id = options['node_id']
-
-        task_options = {
-            'VMID': vmid,
-            'SUBCOMMAND': 'start.qm',
-            'USER_NAME': options['user'] if 'user' in options else ''
-        }
-
-        task_tracker = self.send_task(ShellHookTask,
-                                      node_id=selected_cmdb_node_id,
-                                      hook_name='vps_cmd_proxy',
-                                      options=task_options)
-
-        return task_tracker
+        return self.internal_shell_hook_command(options['node_id'], **task_options)
 
     def stop_vps(self, **options):
+        assert 'vmid' in options
+        assert 'node_id' in options
         assert 'tech' in options
 
         hyper_tech = options['tech']
 
-        if hyper_tech == 'kvm':
-            return self.stop_vps_kvm(**options)
-        elif hyper_tech == 'openvz':
-            return self.stop_vps_openvz(**options)
+        if hyper_tech == self.TECH_HV_KVM:
+            stop_subcommand = 'stop.qm'
+        elif hyper_tech == self.TECH_HV_OPENVZ:
+            stop_subcommand = 'stop.ovz'
         else:
             raise Exception("Tech %s is not supported by the backend.")
 
-    def stop_vps_openvz(self, vmid, **options):
-        assert vmid > 0
-
-        selected_cmdb_node_id = options['node_id']
-
         task_options = {
-            'VMID': vmid,
-            'SUBCOMMAND': 'stop.ovz',
+            'VMID': options['vmid'],
+            'SUBCOMMAND': stop_subcommand,
             'USER_NAME': options['user'] if 'user' in options else ''
         }
 
-        task_tracker = self.send_task(ShellHookTask,
-                                      node_id=selected_cmdb_node_id,
-                                      hook_name='vps_cmd_proxy',
-                                      options=task_options)
-
-        return task_tracker
-
-    def stop_vps_kvm(self, vmid, **options):
-        assert vmid > 0
-
-        selected_cmdb_node_id = options['node_id']
-
-        task_options = {
-            'VMID': vmid,
-            'SUBCOMMAND': 'stop.qm',
-            'USER_NAME': options['user'] if 'user' in options else ''
-        }
-
-        task_tracker = self.send_task(ShellHookTask,
-                                      node_id=selected_cmdb_node_id,
-                                      hook_name='vps_cmd_proxy',
-                                      options=task_options)
-
-        return task_tracker
+        return self.internal_shell_hook_command(options['node_id'], **task_options)
 
     def create_vps(self, **options):
         assert 'tech' in options
+        assert 'node_id' in options
+        assert 'vmid' in options
+        assert 'template' in options
+        assert 'cpu' in options
+        assert 'ram' in options
+        assert 'hdd' in options
+        assert 'user' in options
 
+        logger.debug(options)
+
+        hv_node_id = options['node_id']
         hyper_tech = options['tech']
 
-        if hyper_tech == 'kvm':
-            return self.create_vps_kvm(**options)
-        elif hyper_tech == 'openvz':
-            return self.create_vps_openvz(**options)
+        if 'ip' in options and options['ip']:
+            ip, gateway, netmask = self.find_ip_info(options['ip'])
         else:
-            raise Exception("Tech %s is not supported by the backend.")
+            ip, gateway, netmask = self.lease_ip(hv_node_id)
 
-    def create_vps_openvz(self, **options):
-        assert 'node_id' in options
-        assert 'vmid' in options
-        assert 'template' in options
-        assert 'cpu' in options
-        assert 'ram' in options
-        assert 'hdd' in options
-        assert 'user' in options
-        assert 'ip' in options
-
-        selected_cmdb_node_id = options['node_id']
-
-        ip, gateway, netmask = self._find_ip_info(options['ip'])
-
+        # Common options
         task_options = {
             # Change this parameters
             'USER_NAME': options['user'] if 'user' in options else '',
             'VMID': options['vmid'],
-            'VMNAME': "vm%s.%s" % (options['vmid'], options['template']),
+            'VMNAME': "vm%s.%s.%s" % (options['vmid'], options['template'], options['tech']),
 
             # HDD size in Gb
             'HDDGB': options['hdd'],
@@ -229,94 +181,41 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             # CPU cores
             'VCPU': options['cpu'],
 
-            'IP_ADDRS': [ip],
-            'GW': gateway,
-            'NETMASK': netmask,
-
-            # CentOS version
-            'SUBCOMMAND': 'create.ovz',
-            'TEMPLATE': options['template']
-        }
-
-        task_tracker = self.send_task(ShellHookTask,
-                                      node_id=selected_cmdb_node_id,
-                                      hook_name='vps_cmd_proxy',
-                                      options=task_options)
-
-        return task_tracker
-
-    def create_vps_kvm(self, **options):
-        assert 'node_id' in options
-        assert 'vmid' in options
-        assert 'template' in options
-        assert 'cpu' in options
-        assert 'ram' in options
-        assert 'hdd' in options
-        assert 'user' in options
-        assert 'ip' in options
-
-        selected_cmdb_node_id = options['node_id']
-
-        ip, gateway, netmask = self._find_ip_info(options['ip'])
-
-        task_options = {
-            # Change this parameters
-            'USER_NAME': options['user'] if 'user' in options else '',
-            'VMID': options['vmid'],
-            'VMNAME': "vm%s.%s" % (options['vmid'], options['template']),
-
-            # HDD size in Gb
-            'HDDGB': options['hdd'],
-
-            # RAM size in Gb
-            'MEMMB': options['ram'],
-
-            # CPU cores
-            'VCPU': options['cpu'],
+            'DNS1': '46.17.46.200',
+            'DNS2': '46.17.40.200',
 
             'IPADDR': ip,
             'GW': gateway,
             'NETMASK': netmask,
-
-            # CentOS version
-            'SUBCOMMAND': options['template']
         }
 
-        task_tracker = self.send_task(ShellHookTask,
-                                      node_id=selected_cmdb_node_id,
-                                      hook_name='vps_cmd_proxy',
-                                      options=task_options)
-
-        return task_tracker
-
-    def _find_ip_info(self, ip_address):
-        """
-        Search and return info about IP address: gateway and netmask.
-        Check only in IPNetworkPools that is free.
-        :param ip_address:
-        :return: tuple (ip, gw, netmask)
-        """
-        assert ip_address
-
-        target_net_pool = None
-        found_ips = IPAddress.active.filter(address=ip_address)
-        if len(found_ips) > 0:
-            found_ip = found_ips[0]
-            target_net_pool = found_ip.get_origin()
+        if hyper_tech == self.TECH_HV_KVM:
+            # SUBCOMMAND is the specific script name used to deploy specific OS version
+            task_options['SUBCOMMAND'] = options['template']
+        elif hyper_tech == self.TECH_HV_OPENVZ:
+            # TEMPLATE is the OS version to deploy on OpenVZ
+            task_options['SUBCOMMAND'] = 'create.ovz'
+            task_options['TEMPLATE'] = options['template']
         else:
-            for ip_net_pool in IPNetworkPool.active.find(status=Resource.STATUS_FREE):
-                if ip_net_pool.can_add(ip_address):
-                    target_net_pool = ip_net_pool
-                    break
+            raise Exception("Tech %s is not supported by the backend.")
 
-        if not target_net_pool:
-            raise Exception("IP %s have no origin" % ip_address)
+        return self.internal_shell_hook_command(hv_node_id, **task_options)
 
-        # checking IP pool
-        netmask = target_net_pool.get_option_value('netmask', default=None)
-        gateway = target_net_pool.get_option_value('gateway', default=None)
+    def internal_shell_hook_command(self, target_node_id, **task_options):
+        """Run ShellHook remotely. All commands are proxied via vps_cmd_proxy.sh script to the specific
+                scripts that are used to deploy specific VPS templates: CentOS, Debian, etc.
+        :param task_options: Параметры запуска скрипта.
+        :return: TaskTracker
+        """
+        assert target_node_id > 0
 
-        if not netmask or not gateway:
-            raise Exception("IP pool %s have no network settings." % target_net_pool)
+        target_node = Server.active.get(pk=target_node_id)
+        routing_key = target_node.get_option_value('agentd_taskqueue', default=None)
+        if not routing_key:
+            raise ValueError("Missing agentd_taskqueue in node %s" % target_node_id)
 
-        return ip_address, gateway, netmask
+        logger.info("Send task to queue %s for node %s" % (routing_key, target_node_id))
+
+        return self.send_task(self.SHELL_HOOK_TASK_CLASS,
+                              routing_key=routing_key,
+                              options=task_options)

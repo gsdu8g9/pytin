@@ -1,13 +1,12 @@
 from __future__ import unicode_literals
 
-import argparse
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from prettytable import PrettyTable
 
-from cloud.models import CloudConfig, TaskTrackerStatus
+from cloud.models import CmdbCloudConfig, TaskTrackerStatus
 from cloud.provisioning.backends.proxmox import ProxMoxJBONServiceBackend
 from cmdb.settings import logger
 
@@ -18,8 +17,8 @@ class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False):
         super(Command, self).__init__(stdout, stderr, no_color)
 
-        self.cloud = CloudConfig()
-        self.task_tracker = self.cloud.get_task_tracker()
+        self.cloud = CmdbCloudConfig()
+        self.task_tracker = self.cloud.task_tracker
         self.backend = ProxMoxJBONServiceBackend(self.cloud)
 
     def add_arguments(self, parser):
@@ -53,7 +52,7 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--node', type=int, help="CMDB node ID.", required=True)
         vps_cmd_parser.add_argument('--vmid', type=int, help="Set ID of the VM..", required=True)
         vps_cmd_parser.add_argument('--user', help="Specify user name for the VM.")
-        vps_cmd_parser.add_argument('--ip', nargs=argparse.ONE_OR_MORE, help="Specify user name for the VM.")
+        vps_cmd_parser.add_argument('--ip', help="Specify IP address for the VM.")
         vps_cmd_parser.add_argument('--ram', type=int, help="Set RAM amount (Mb).", default=512)
         vps_cmd_parser.add_argument('--hdd', type=int, help="Set HDD amount (Gb).", default=5)
         vps_cmd_parser.add_argument('--cpu', type=int, help="Number of vCPU cores.", default=1)
@@ -73,7 +72,7 @@ class Command(BaseCommand):
             hdd = int(options['hdd'])
             cpu = int(options['cpu'])
             template = options['template']
-            ip_addr = options['ip'][0]
+            ip_addr = options['ip']
 
             tracker = self.backend.create_vps(
                 node_id=node_id,
@@ -104,7 +103,7 @@ class Command(BaseCommand):
             logger.info("Attached to the task tracker %s. Ctrl-C to exit." % tracker.id)
 
             try:
-                result_data = tracker.wait_to_end()
+                result_data = tracker.get_result()
                 logger.info(result_data)
             except Exception, ex:
                 logger.error(ex.message)
@@ -119,7 +118,7 @@ class Command(BaseCommand):
             tracker = self.task_tracker.get(tracker_id)
 
             logger.info("Attached to task tracker %s. Ctrl-C to detach." % tracker_id)
-            print tracker.wait_to_end()
+            print tracker.get_result()
         else:
             limit = int(options['limit'])
 

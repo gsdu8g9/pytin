@@ -5,7 +5,9 @@ import json
 from django.db import models
 from django.utils import timezone
 
+from assets.models import Server
 from cmdb.lib import loader
+from resources.models import Resource
 
 
 class TaskTrackerStatus(object):
@@ -127,7 +129,7 @@ class CloudTaskTracker(models.Model):
 
         return CloudTaskTracker.objects.filter(**query)
 
-    def wait_to_end(self):
+    def get_result(self):
         if self.is_success:
             return self.return_data
 
@@ -135,7 +137,7 @@ class CloudTaskTracker(models.Model):
             return self.error
 
         try:
-            result_data = self.task.wait_to_end()
+            result_data = self.task.get_result()
 
             self.success(result_data)
 
@@ -145,10 +147,15 @@ class CloudTaskTracker(models.Model):
             raise ex
 
 
-class CloudConfig(object):
+class CmdbCloudConfig(object):
     """
     Entry point for the CMDB data query.
     """
+    task_tracker = CloudTaskTracker
 
-    def get_task_tracker(self):
-        return CloudTaskTracker
+    def get_hypervisors(self):
+        """
+        Returns the known hypervisors from the cloud.
+        :return:
+        """
+        return Server.active.filter(role='hypervisor', status=Resource.STATUS_INUSE).order_by('id')

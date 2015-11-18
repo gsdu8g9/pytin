@@ -72,7 +72,7 @@ smartreload () {
         mv ${CHECK_FILE}.1 ${CHECK_FILE}
 
         while read zone; do
-            if [ ${zone} != "" ];
+            if [ "${zone}" != "" ];
             then
                 echo "Retransfer zone" ${zone}
                 ${SYS_RNDC} retransfer ${zone}

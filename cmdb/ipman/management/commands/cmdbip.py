@@ -83,7 +83,7 @@ class Command(BaseCommand):
         ip_pool_ids = options['pool-id']
         ip_count = options['count']
 
-        rent_ips = IPAddressPool.globally_available(ip_pool_ids, count=ip_count)
+        rent_ips = IPAddressPool.lease_ips(ip_pool_ids, count=ip_count)
         self._print_addresses(rent_ips)
 
     def _handle_pool_get_next(self, *args, **options):

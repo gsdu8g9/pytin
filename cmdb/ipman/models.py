@@ -169,7 +169,7 @@ class IPAddressPool(Resource):
             yield ip_address
 
     @staticmethod
-    def globally_available(ip_pool_ids, count=1):
+    def lease_ips(ip_pool_ids, count=1):
         """
         Returns given number of IPs from different IP address pools.
         """
@@ -196,7 +196,6 @@ class IPAddressPool(Resource):
 
             try:
                 ip = ip_pool_resource.available().next()
-
                 ip.lock()
                 ip.touch()
 

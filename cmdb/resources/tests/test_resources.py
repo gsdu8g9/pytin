@@ -2,14 +2,83 @@
 from __future__ import unicode_literals
 
 from django.core.exceptions import ValidationError
-
 from django.test import TestCase
 
-from assets.models import VirtualServer
+from assets.models import VirtualServer, RegionResource, Datacenter, Server, Rack
+from ipman.models import IPNetworkPool
 from resources.models import Resource, ResourceOption, ModelFieldChecker
 
 
 class ResourceTest(TestCase):
+    def setUp(self):
+        Resource.objects.all().delete()
+
+    def test_mptt_tree_navigation_single_tree(self):
+        russia = RegionResource.objects.create(name='Russia')
+
+        moscow = RegionResource.objects.create(name='Moscow', parent=russia)
+        dc1 = Datacenter.objects.create(name='Test DC 1', parent=moscow)
+        rack1 = Rack.objects.create(name='Test Rack 1', parent=dc1)
+        srv1 = Server.objects.create(name='Test server 1', parent=rack1)
+        pools_group1 = RegionResource.objects.create(name='Test DC 1 IP Pools', parent=dc1)
+        pool1 = IPNetworkPool.objects.create(network='192.168.0.0/23', parent=pools_group1, status=Resource.STATUS_FREE)
+        pool11 = IPNetworkPool.objects.create(network='192.169.0.0/23', parent=pools_group1,
+                                              status=Resource.STATUS_INUSE)
+
+        kazan = RegionResource.objects.create(name='Kazan', parent=russia)
+        dc2 = Datacenter.objects.create(name='Test DC 2', parent=kazan)
+        rack2 = Rack.objects.create(name='Test Rack 2', parent=dc2)
+        srv2 = Server.objects.create(name='Test server 1', parent=rack2)
+        pools_group2 = RegionResource.objects.create(name='Test DC 2 IP Pools', parent=dc2)
+        pool2 = IPNetworkPool.objects.create(network='172.168.0.0/23', parent=pools_group2)
+
+        # find Pool of the server
+        my_dcs_raw = Datacenter.active.filter(lft__lt=srv1.lft, rght__gt=srv1.rght, tree_id=srv1.tree_id)
+        self.assertEqual(1, len(my_dcs_raw))
+        self.assertEqual(dc1.id, my_dcs_raw[0].id)
+
+        # Find Datacenter
+        my_dcs = srv1.filter_parents(Datacenter)
+        self.assertEqual(1, len(my_dcs))
+        self.assertEqual(dc1.id, my_dcs[0].id)
+
+        # Find free IPNetworkPool (we have free and used IP pools in  this DC)
+        my_ippools = my_dcs[0].filter_childs(IPNetworkPool, status=Resource.STATUS_FREE)
+        self.assertEqual(1, len(my_ippools))
+        self.assertEqual('192.168.0.0/23', unicode(my_ippools[0]))
+
+    def test_mptt_tree_navigation_two_trees(self):
+        moscow = RegionResource.objects.create(name='Moscow')
+        dc1 = Datacenter.objects.create(name='Test DC 1', parent=moscow)
+        rack1 = Rack.objects.create(name='Test Rack 1', parent=dc1)
+        srv1 = Server.objects.create(name='Test server 1', parent=rack1)
+        pools_group1 = RegionResource.objects.create(name='Test DC 1 IP Pools', parent=dc1)
+        pool1 = IPNetworkPool.objects.create(network='192.168.0.0/23', parent=pools_group1, status=Resource.STATUS_FREE)
+        pool11 = IPNetworkPool.objects.create(network='192.169.0.0/23', parent=pools_group1,
+                                              status=Resource.STATUS_INUSE)
+
+        kazan = RegionResource.objects.create(name='Kazan')
+        dc2 = Datacenter.objects.create(name='Test DC 2', parent=kazan)
+        rack2 = Rack.objects.create(name='Test Rack 2', parent=dc2)
+        srv2 = Server.objects.create(name='Test server 1', parent=rack2)
+        pools_group2 = RegionResource.objects.create(name='Test DC 2 IP Pools', parent=dc2)
+        pool2 = IPNetworkPool.objects.create(network='172.168.0.0/23', parent=pools_group2)
+
+        # find Pool of the server
+        my_dcs_raw = Datacenter.active.filter(lft__lt=srv1.lft, rght__gt=srv1.rght, tree_id=srv1.tree_id)
+        self.assertEqual(1, len(my_dcs_raw))
+        self.assertEqual(dc1.id, my_dcs_raw[0].id)
+
+        # Find Datacenter
+        my_dcs = srv1.filter_parents(Datacenter)
+        self.assertEqual(1, len(my_dcs))
+        self.assertEqual(dc1.id, my_dcs[0].id)
+
+        # Find free IPNetworkPool (we have free and used IP pools in  this DC)
+        my_ippools = my_dcs[0].filter_childs(IPNetworkPool, status=Resource.STATUS_FREE)
+        self.assertEqual(1, len(my_ippools))
+        self.assertEqual('192.168.0.0/23', unicode(my_ippools[0]))
+
     def test_cast_type(self):
         resource = Resource.objects.create(number=15, name='Test cast')
         self.assertEqual('Resource', resource.type)
