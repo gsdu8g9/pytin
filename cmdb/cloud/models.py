@@ -150,12 +150,21 @@ class CloudTaskTracker(models.Model):
 class CmdbCloudConfig(object):
     """
     Entry point for the CMDB data query.
+
+    Every hypervisor node in CMDB must have options: role = hypervisor and hypervisor_tech (kvm, openvz, etc).
     """
+    TECH_HV_KVM = 'kvm'
+    TECH_HV_OPENVZ = 'openvz'
+
     task_tracker = CloudTaskTracker
 
-    def get_hypervisors(self):
+    def get_hypervisors(self, tech=TECH_HV_KVM):
         """
         Returns the known hypervisors from the cloud.
         :return:
         """
-        return Server.active.filter(role='hypervisor', status=Resource.STATUS_INUSE).order_by('id')
+        assert tech
+
+        return Server.active.filter(role='hypervisor',
+                                    hypervisor_tech=tech,
+                                    status=Resource.STATUS_INUSE).order_by('id')

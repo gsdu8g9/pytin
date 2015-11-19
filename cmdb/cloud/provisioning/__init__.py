@@ -44,6 +44,9 @@ class CloudBackend(object):
 
 
 class HypervisorBackend(CloudBackend):
+    def __init__(self, cloud):
+        super(HypervisorBackend, self).__init__(cloud)
+
     def create_vps(self, **options):
         raise Exception(_("Not implemented."))
 

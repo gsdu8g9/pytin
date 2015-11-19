@@ -6,7 +6,9 @@ import time
 from celery import Celery
 
 from assets.models import Server
+from cloud.models import CmdbCloudConfig
 from cloud.provisioning import HypervisorBackend, CloudTask
+from cloud.provisioning.schedulers import RatingBasedScheduler
 from cmdb.settings import logger, PROXMOX_BACKEND
 
 agentd_proxy = Celery('agentd',
@@ -32,11 +34,11 @@ class ShellHookTask(CloudTask):
     def __init__(self, tracker, **context):
         assert tracker
 
-        assert 'routing_key' in context
+        assert 'queue' in context
 
         self.task_name = 'tasks.async.shell_hook'
         self.tracker = tracker
-        self.routing_key = context['routing_key']
+        self.queue = context['queue']
         self.context = context
 
     def execute(self):
@@ -45,8 +47,8 @@ class ShellHookTask(CloudTask):
         logger.info("Executing task %s with tracker id %s" % (self.task_name, self.tracker.id))
 
         async_task = self.REMOTE_WORKER.send_task(self.task_name,
-                                                  queue=self.routing_key,
-                                                  routing_key=self.routing_key,
+                                                  queue=self.queue,
+                                                  routing_key=self.queue,
                                                   kwargs={'hook_name': self.HOOK_SCRIPT_NAME,
                                                           'options': self.context['options']})
 
@@ -78,42 +80,34 @@ class ShellHookTask(CloudTask):
 
 
 class ProxMoxJBONServiceBackend(HypervisorBackend):
+    """
+    Just bunch of ProxMox nodes.
+    Every node have a pytin-agentd-hv running. When task is submitted to this backend it is actually submitted
+    to run remotely on the specific agent. Node to create VPS is selected by the scheduler.
+
+    Every hypervisor node in CMDB must have options: role = hypervisor and hypervisor_tech (kvm, openvz, etc).
+    """
+
     SHELL_HOOK_TASK_CLASS = ShellHookTask
 
-    TECH_HV_KVM = 'kvm'
-    TECH_HV_OPENVZ = 'openvz'
+    def __init__(self, cloud):
+        super(ProxMoxJBONServiceBackend, self).__init__(cloud)
 
-    """
-    Cloud Service: Just bunch of ProxMox nodes.
-    Every node have a pytin-agent running. When task is submitted to this backend it actually submitted
-    to run remotely on the specific agent. Node to create VPS is selected by the scheduler.
-    """
-
-    # TODO: This config should be loaded from CMDB
-    # Each node have CMDB representation. Also we get 'rating' and 'heartbeat' from CMDB.
-    # Each node must have pytin-agent-hv installed.
-    NODES = {
-        332: {
-            'types': ['kvm']
-        },
-        # 130: {
-        #     'types': [self.TECH_HV_OPENVZ]
-        # }
-    }
+        self.scheduler = RatingBasedScheduler()
 
     def start_vps(self, **options):
         assert 'vmid' in options
-        assert 'node_id' in options
-        assert 'tech' in options
+        assert 'node_id' in options and options['node_id'] > 0
 
-        hyper_tech = options['tech']
+        target_node = Server.active.get(pk=options['node_id'])
+        hyper_tech = target_node.get_option_value('hypervisor_tech', default='unknown')
 
-        if hyper_tech == self.TECH_HV_KVM:
+        if hyper_tech == CmdbCloudConfig.TECH_HV_KVM:
             start_subcommand = 'start.qm'
-        elif hyper_tech == self.TECH_HV_OPENVZ:
+        elif hyper_tech == CmdbCloudConfig.TECH_HV_OPENVZ:
             start_subcommand = 'start.ovz'
         else:
-            raise Exception("Tech %s is not supported by the backend.")
+            raise Exception("Tech %s is not supported by the backend." % hyper_tech)
 
         task_options = {
             'VMID': options['vmid'],
@@ -121,21 +115,23 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             'USER_NAME': options['user'] if 'user' in options else ''
         }
 
-        return self.internal_shell_hook_command(options['node_id'], **task_options)
+        target_node = Server.active.get(pk=options['node_id'])
+
+        return self.internal_shell_hook_command(target_node, **task_options)
 
     def stop_vps(self, **options):
         assert 'vmid' in options
-        assert 'node_id' in options
-        assert 'tech' in options
+        assert 'node_id' in options and options['node_id'] > 0
 
-        hyper_tech = options['tech']
+        target_node = Server.active.get(pk=options['node_id'])
+        hyper_tech = target_node.get_option_value('hypervisor_tech', default='unknown')
 
-        if hyper_tech == self.TECH_HV_KVM:
+        if hyper_tech == CmdbCloudConfig.TECH_HV_KVM:
             stop_subcommand = 'stop.qm'
-        elif hyper_tech == self.TECH_HV_OPENVZ:
+        elif hyper_tech == CmdbCloudConfig.TECH_HV_OPENVZ:
             stop_subcommand = 'stop.ovz'
         else:
-            raise Exception("Tech %s is not supported by the backend.")
+            raise Exception("Tech %s is not supported by the backend." % hyper_tech)
 
         task_options = {
             'VMID': options['vmid'],
@@ -143,11 +139,11 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             'USER_NAME': options['user'] if 'user' in options else ''
         }
 
-        return self.internal_shell_hook_command(options['node_id'], **task_options)
+        target_node = Server.active.get(pk=options['node_id'])
+
+        return self.internal_shell_hook_command(target_node, **task_options)
 
     def create_vps(self, **options):
-        assert 'tech' in options
-        assert 'node_id' in options
         assert 'vmid' in options
         assert 'template' in options
         assert 'cpu' in options
@@ -157,20 +153,26 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         logger.debug(options)
 
-        hv_node_id = options['node_id']
-        hyper_tech = options['tech']
+        if 'node_id' in options and options['node_id'] > 0:
+            target_node = Server.active.get(pk=options['node_id'])
+            hyper_tech = target_node.get_option_value('hypervisor_tech', default='unknown')
+        else:
+            assert 'tech' in options and options['tech']
+
+            hyper_tech = options['tech']
+            target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(tech=hyper_tech))
 
         if 'ip' in options and options['ip']:
             ip, gateway, netmask = self.find_ip_info(options['ip'])
         else:
-            ip, gateway, netmask = self.lease_ip(hv_node_id)
+            ip, gateway, netmask = self.lease_ip(target_node.id)
 
         # Common options
         task_options = {
             # Change this parameters
             'USER_NAME': options['user'] if 'user' in options else '',
             'VMID': options['vmid'],
-            'VMNAME': "vm%s.%s.%s" % (options['vmid'], options['template'], options['tech']),
+            'VMNAME': "vm%s.%s.%s" % (options['vmid'], options['template'], hyper_tech),
 
             # HDD size in Gb
             'HDDGB': options['hdd'],
@@ -189,33 +191,35 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             'NETMASK': netmask,
         }
 
-        if hyper_tech == self.TECH_HV_KVM:
+        if hyper_tech == CmdbCloudConfig.TECH_HV_KVM:
             # SUBCOMMAND is the specific script name used to deploy specific OS version
             task_options['SUBCOMMAND'] = options['template']
-        elif hyper_tech == self.TECH_HV_OPENVZ:
+        elif hyper_tech == CmdbCloudConfig.TECH_HV_OPENVZ:
             # TEMPLATE is the OS version to deploy on OpenVZ
             task_options['SUBCOMMAND'] = 'create.ovz'
             task_options['TEMPLATE'] = options['template']
         else:
-            raise Exception("Tech %s is not supported by the backend.")
+            raise Exception("Tech '%s' is not supported by the backend." % hyper_tech)
 
-        return self.internal_shell_hook_command(hv_node_id, **task_options)
+        return self.internal_shell_hook_command(target_node, **task_options)
 
-    def internal_shell_hook_command(self, target_node_id, **task_options):
+    def internal_shell_hook_command(self, target_node, **task_options):
         """Run ShellHook remotely. All commands are proxied via vps_cmd_proxy.sh script to the specific
                 scripts that are used to deploy specific VPS templates: CentOS, Debian, etc.
         :param task_options: Параметры запуска скрипта.
         :return: TaskTracker
         """
-        assert target_node_id > 0
+        assert target_node
 
-        target_node = Server.active.get(pk=target_node_id)
-        routing_key = target_node.get_option_value('agentd_taskqueue', default=None)
-        if not routing_key:
-            raise ValueError("Missing agentd_taskqueue in node %s" % target_node_id)
+        node_queue = target_node.get_option_value('agentd_taskqueue', default=None)
+        if not node_queue:
+            raise ValueError("Missing agentd_taskqueue in node %s" % target_node.id)
 
-        logger.info("Send task to queue %s for node %s" % (routing_key, target_node_id))
+        logger.info("Send task to queue %s for node %s" % (node_queue, target_node.id))
+
+        task_options['HV_NODE_ID'] = target_node.id
 
         return self.send_task(self.SHELL_HOOK_TASK_CLASS,
-                              routing_key=routing_key,
+                              cmdb_node_id=target_node.id,
+                              queue=node_queue,
                               options=task_options)

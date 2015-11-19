@@ -49,7 +49,8 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--tech', default='kvm',
                                     help="Hypervisor technology (must be supported by backend).")
         vps_cmd_parser.add_argument('--template', help="VPS template.", default='centos.6.64bit')
-        vps_cmd_parser.add_argument('--node', type=int, help="CMDB node ID.", required=True)
+        vps_cmd_parser.add_argument('--node', type=int, default=0,
+                                    help="CMDB node ID. Scheduling is used if not specified.")
         vps_cmd_parser.add_argument('--vmid', type=int, help="Set ID of the VM..", required=True)
         vps_cmd_parser.add_argument('--user', help="Specify user name for the VM.")
         vps_cmd_parser.add_argument('--ip', help="Specify IP address for the VM.")
@@ -63,9 +64,9 @@ class Command(BaseCommand):
         tracker = None
 
         vmid = int(options['vmid'])
+        user_name = options['user']
         hyper_tech = options['tech']
         node_id = int(options['node'])
-        user_name = options['user']
 
         if options['create']:
             ram = int(options['ram'])
