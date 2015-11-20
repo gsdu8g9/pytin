@@ -53,7 +53,8 @@ INSTALLED_APPS = (
     'ipman',
     'assets',
     'importer',
-    'cloud'
+    'cloud',
+    'zabbix'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -89,6 +90,12 @@ REST_FRAMEWORK = {
 PROXMOX_BACKEND = {
     'MSG_BROKER': 'redis://127.0.0.1:8888/1',
     'MSG_BACKEND': 'redis://127.0.0.1:8888/2'
+}
+
+ZABBIX_APP = {
+    'SERVER_URL': 'http://127.0.0.1/',
+    'USER': 'Admin',
+    'PASSWORD': 'zabbix'
 }
 
 # Database

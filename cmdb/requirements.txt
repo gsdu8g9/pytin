@@ -19,6 +19,8 @@ pyasn1==0.1.7
 pycrypto==2.6.1
 pysnmp==4.2.5
 pytz==2014.10
+pyzabbix==0.7.3
 redis==2.10.5
+requests==2.8.1
 six==1.10.0
 wsgiref==0.1.2
