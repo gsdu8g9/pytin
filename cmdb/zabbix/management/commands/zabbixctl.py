@@ -36,7 +36,7 @@ class Command(BaseCommand):
                                         help="Create or update CMDB node attribute from the Zabbix metric.")
         tracker_cmd_parser.add_argument('--delete', action="store_true", help="Delete linked Zabbix item.")
         tracker_cmd_parser.add_argument('--list', action="store_true", help="List linked Zabbix items.")
-        tracker_cmd_parser.add_argument('--auto-poll', action="store_true", help="Poll linked metrics.")
+        tracker_cmd_parser.add_argument('--auto-poll', action="store_true", help="Poll all linked metrics.")
         self.register_handler('metric', self._handle_metrics)
 
     def _handle_metrics(self, *args, **options):
@@ -47,20 +47,15 @@ class Command(BaseCommand):
                 cmdb_attr = linked_metric.cmdb_node_option.name
                 metric_id = linked_metric.zbx_metric_id
 
-                logger.info("Auto populate %s.%s from zabbix item %s" % (cmdb_node.id, cmdb_attr, metric_id))
+                logger.info("Auto populate %s.%s from Zabbix item %s." % (cmdb_node.id, cmdb_attr, metric_id))
 
                 linked_metric = self._populate_attribute(cmdb_node, cmdb_attr, metric_id)
                 logger.info(linked_metric)
 
         elif options['list']:
-            assert options['cmdb_node']
-
-            cmdb_node_id = int(options['cmdb_node'])
-            cmdb_node = Resource.active.get(pk=cmdb_node_id)
-
-            logger.info("Linked metrics of CMDB node %s '%s'" % (cmdb_node.id, cmdb_node))
-            for linked_metric in ZabbixMetric.objects.filter(cmdb_node_option__resource=cmdb_node):
-                logger.info('    %s' % linked_metric)
+            logger.info("Linked metrics:")
+            for linked_metric in ZabbixMetric.objects.filter():
+                logger.info(linked_metric)
 
         elif options['delete']:
             assert options['zbx_item']

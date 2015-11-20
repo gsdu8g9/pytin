@@ -15,3 +15,15 @@ ZABBIX_APP = {
     'USER': 'Admin',
     'PASSWORD': 'zabbix'
 }
+
+
+CLI
+---
+
+В целях интеграции, существует возможность передавать значения метрик из Zabbix в аттрибуты объектов CMDB.
+После привязки будет создан аттрибут ATTRIBUTE ноды ID в CMDB.
+./manage.py zabbixctl metric --zbx-item ITEM-ID --cmdb-node ID --populate ATTRIBUTE
+
+
+Автоматически опросить все привязанные метрики и обновить аттрибуты объектов в CMDB.
+./manage.py zabbixctl metric --auto-poll
