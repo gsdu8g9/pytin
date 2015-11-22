@@ -44,13 +44,13 @@ if [ ! -e ./firstrun ]; then
     sh cldeploy -k ${activation_key}
     yum -y install lvemanager
     yum -y install cagefs
-    echo "[!] Don't forget to reboot and run this script again."
+    echo "[!!!] Don't forget to reboot and run this script again."
 
     echo "1" > ./firstrun
 else
-    /usr/sbin/cagefsctl --init
     yum -y groupinstall alt-php
-    yum -y update cagefs lvemanager
+    yum -y reinstall cagefs lvemanager
+    /usr/sbin/cagefsctl --init
 
 
     # CloudLinux doesn't provide support for ffmpeg related libraries due to legal/patent

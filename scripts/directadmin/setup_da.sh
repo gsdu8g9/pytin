@@ -11,6 +11,7 @@
 # bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup_da.sh)
 #
 
+yum clean all
 yum -y install nano wget openssh-clients gcc gcc-c++ flex bison make bind bind-libs bind-utils openssl openssl-devel perl perl-CPAN quota libaio libcom_err-devel libcurl-devel gd zlib-devel zip unzip libcap-devel cronie bzip2 cyrus-sasl-devel perl-ExtUtils-Embed autoconf automake libtool which patch db4-devel
 
 bash <(curl http://www.directadmin.com/setup.sh)

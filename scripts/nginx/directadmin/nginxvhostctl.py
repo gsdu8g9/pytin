@@ -85,7 +85,7 @@ class NginxVhostsConfigManager:
             raise Exception("DirectAdmin user config dir must exist: %s" % source_da_dir)
 
         self.working_dir = working_dir
-        self.tpl_ssl_vhost_file_name = os.path.join(self.working_dir, 'vhost_ssl.conf.tpl')
+        self.tpl_ssl_vhost_file_name = os.path.join(os.path.dirname(__file__), 'vhost_ssl.conf.tpl')
         if not os.path.exists(self.tpl_ssl_vhost_file_name):
             raise Exception("Place Nginx vhost template in the correct location: %s" % self.tpl_ssl_vhost_file_name)
 

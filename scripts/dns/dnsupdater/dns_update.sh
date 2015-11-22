@@ -26,27 +26,51 @@
 # All config parameters are in dns_updater.py script
 #
 # Usage:
-# dns_update.sh /path/to/named/zone/files
+# dns_update.sh /path/to/db/files /path/to/named/domains.list
 
 if [ -z $1 ];
 then
-    echo "named zones path?"
+    echo "Specify path to the zone DB files."
     exit 1
 fi
 
 NAMED_ZONES_PATH=$1
+DOMAINS_LIST_FILE=
 
-for file in `ls ${NAMED_ZONES_PATH}/*.db`; do
+if [ ! -z $2 ];
+then
+    echo "Using domain list: $2"
+    DOMAINS_LIST_FILE=$2
+fi
 
-    db_file=${file}
+for zone_db in `ls ${NAMED_ZONES_PATH}/*.db`; do
+    if [ "${zone_db}" != "" ];
+    then
+        db_file=${zone_db}
+        domain_name=$(basename ${db_file} .db)
 
-    echo "Updating: " ${db_file}
-    python dns_updater.py ${db_file}
+        if [ -e ${db_file} ]; then
+            if [ ! -z ${DOMAINS_LIST_FILE} ]; then
+                exists=$(cat ${DOMAINS_LIST_FILE} | grep "^$domain_name$")
 
-    # standartized way
-    perl -pi -e 's/[^ ]+ \d+ IN SOA/@ IN SOA/g' ${db_file}
-    perl -pi -e 's/ ([\d ]+)$/ \($1\)/g' ${db_file}
+                if [ -z ${exists} ]; then
+                    continue
+                fi
+            fi
 
+            echo "Updating:" ${db_file} "(${domain_name})"
+
+            cp ${db_file} ${db_file}.$(date +"%s")
+
+            python dns_updater.py ${db_file}
+
+            # Fix for DirectAdmin
+            perl -pi -e 's/[^ ]+ \d+ IN SOA/@ IN SOA/g' ${db_file}
+            perl -pi -e 's/ ([\d ]+)$/ \($1\)/g' ${db_file}
+        else
+            echo "Missing file: " ${db_file}
+        fi
+    fi
 done
 
 

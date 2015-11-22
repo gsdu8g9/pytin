@@ -37,12 +37,9 @@ import exceptions
 import os
 import sys
 
-import dns.zone
 import dns.rdata
 import dns.rdataset
-
-
-
+import dns.zone
 
 ####################
 #
@@ -141,7 +138,13 @@ class BindDbFileUpdater:
         else:
             zone_dataset.add(rdata_item, ttl=14400)
 
+    def update_serial(self):
+        for (name, ttl, rdata) in self.dns_zone.iterate_rdatas(dns.rdatatype.SOA):
+            rdata.serial += 1
+
     def save(self):
+        self.update_serial()
+
         self.dns_zone.to_file(self.db_file_path, relativize=False)
 
 
