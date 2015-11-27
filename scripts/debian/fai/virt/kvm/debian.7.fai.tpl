@@ -1,19 +1,19 @@
 #### Contents of the preconfiguration file (for wheezy)
 ### Localization
 # Preseeding only locale sets language, country and locale.
-d-i debian-installer/locale string en_US
+#d-i debian-installer/locale string en_US
 
 # The values can also be preseeded individually for greater flexibility.
-#d-i debian-installer/language string en
+d-i debian-installer/language string ru
 d-i debian-installer/country string RU
-#d-i debian-installer/locale string en_GB.UTF-8
+d-i debian-installer/locale string en_US.UTF-8
 # Optionally specify additional locales to be generated.
 #d-i localechooser/supported-locales multiselect en_US.UTF-8, nl_NL.UTF-8
 
 # Keyboard selection.
 # keymap is an alias for keyboard-configuration/xkb-keymap
-d-i keymap select us
-# d-i keyboard-configuration/toggle select No toggling
+d-i console-keymaps-at/keymap select us
+d-i keyboard-configuration/xkb-keymap select us
 
 ### Network configuration
 # Disable network configuration entirely. This is useful for cdrom
