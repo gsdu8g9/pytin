@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+
 from django.test import TestCase
 
 from events.models import HistoryEvent
@@ -10,6 +11,26 @@ class HistoryEventTest(TestCase):
     def setUp(self):
         super(HistoryEventTest, self).setUp()
         HistoryEvent.objects.filter().delete()
+
+    def test_resource_option_journaling(self):
+        """
+        Test journaling on/off
+        :return:
+        """
+        ip1 = IPAddress.objects.create(address='172.1.1.10')
+        self.assertEqual(1, len(HistoryEvent.objects.filter(type=HistoryEvent.CREATE)))
+        self.assertEqual(5, len(HistoryEvent.objects.all()))
+
+        ip1.set_option('testfield', 'testval1')
+        self.assertEqual(6, len(HistoryEvent.objects.all()))
+
+        ip1.set_option('testfield', 'testval2', journaling=False)
+        self.assertEqual(6, len(HistoryEvent.objects.all()))
+
+        # final state
+        self.assertEqual(6, len(HistoryEvent.objects.all()))
+        self.assertEqual(1, len(HistoryEvent.objects.filter(type=HistoryEvent.CREATE)))
+        self.assertEqual(5, len(HistoryEvent.objects.filter(type=HistoryEvent.UPDATE)))
 
     def test_core_fields_change(self):
         ip1 = IPAddress.objects.create(address='172.1.1.10')

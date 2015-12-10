@@ -70,16 +70,17 @@ class GenericCmdbImporter(object):
                     continue
 
                 switch = switch_port.typed_parent
+                rack = switch.typed_parent
 
                 if switch.is_mounted:
-                    if server.parent and link_unresolved_to and server.parent.id == link_unresolved_to.id:
+                    if server.parent and server.parent.id != rack.id:
                         # clean parent unresolved group, to try to relink
                         server.parent = None
 
                     if not server.parent:
                         logger.info("Update server %s parent %s->%s" % (server, server.parent_id, switch.parent_id))
 
-                        server.mount_to(switch.typed_parent)
+                        server.mount_to(rack)
 
             if link_unresolved_to and not server.parent:
                 server.parent = link_unresolved_to
