@@ -162,10 +162,10 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         if 'node_id' in options and options['node_id'] > 0:
             target_node = Server.active.get(pk=options['node_id'])
-            hyper_driver = target_node.get_option_value('hypervisor_tech', default='unknown')
+            hyper_driver = target_node.get_option_value('hypervisor_driver', default='unknown')
         else:
-            (driver, hyper_driver, tpl) = options['template'].split('.', 2)
-            target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(tech=hyper_driver))
+            (hyper_driver, tpl) = options['template'].split('.', 1)
+            target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(driver=hyper_driver))
 
         if 'ip' in options and options['ip']:
             ip, gateway, netmask = self.find_ip_info(options['ip'])

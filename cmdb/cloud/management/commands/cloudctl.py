@@ -46,8 +46,8 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--create', action="store_true", help="Create VPS server.")
         vps_cmd_parser.add_argument('--start', action="store_true", help="Start VPS server.")
         vps_cmd_parser.add_argument('--stop', action="store_true", help="Stop VPS server.")
-        vps_cmd_parser.add_argument('--tech', default='kvm',
-                                    help="Hypervisor technology (must be supported by backend).")
+        vps_cmd_parser.add_argument('--driver', default='kvm',
+                                    help="Hypervisor driver, used to manage VPS (must be supported by backend).")
         vps_cmd_parser.add_argument('--template', help="VPS template.", default='centos.6.64bit')
         vps_cmd_parser.add_argument('--node', type=int, default=0,
                                     help="CMDB node ID. Scheduling is used if not specified.")
@@ -65,7 +65,6 @@ class Command(BaseCommand):
 
         vmid = int(options['vmid'])
         user_name = options['user']
-        hyper_tech = options['tech']
         node_id = int(options['node'])
 
         if options['create']:
@@ -76,29 +75,32 @@ class Command(BaseCommand):
             ip_addr = options['ip']
 
             tracker = self.backend.create_vps(
-                node_id=node_id,
-                vmid=vmid,
-                template=template,
-                user=user_name,
-                ram=ram,
-                hdd=hdd,
-                cpu=cpu,
-                ip=ip_addr,
-                tech=hyper_tech)
+                    node_id=node_id,
+                    vmid=vmid,
+                    template=template,
+                    user=user_name,
+                    ram=ram,
+                    hdd=hdd,
+                    cpu=cpu,
+                    ip=ip_addr)
 
         elif options['stop']:
+            hyper_driver = options['driver']
+
             tracker = self.backend.stop_vps(
-                node_id=node_id,
-                vmid=vmid,
-                user=user_name,
-                tech=hyper_tech)
+                    node_id=node_id,
+                    vmid=vmid,
+                    user=user_name,
+                    driver=hyper_driver)
 
         elif options['start']:
+            hyper_driver = options['driver']
+
             tracker = self.backend.start_vps(
-                node_id=node_id,
-                vmid=vmid,
-                user=user_name,
-                tech=hyper_tech)
+                    node_id=node_id,
+                    vmid=vmid,
+                    user=user_name,
+                    driver=hyper_driver)
 
         if tracker:
             logger.info("Attached to the task tracker %s. Ctrl-C to exit." % tracker.id)
@@ -137,7 +139,7 @@ class Command(BaseCommand):
         trackers = self.task_tracker.find(status=status).order_by('-id')[:limit]
 
         table = PrettyTable(
-            ['id', 'task_class', 'status', 'created', 'updated', 'time-delta'])
+                ['id', 'task_class', 'status', 'created', 'updated', 'time-delta'])
         table.padding_width = 1
 
         for tracker in trackers:

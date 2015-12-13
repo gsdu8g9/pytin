@@ -67,7 +67,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.start_vps(
             node_id=node_id,
@@ -95,7 +95,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.stop_vps(
             node_id=node_id,
@@ -123,7 +123,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_OPENVZ)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.start_vps(
             node_id=node_id,
@@ -151,7 +151,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_OPENVZ)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.stop_vps(
             node_id=node_id,
@@ -185,7 +185,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         template = 'centos6'
         ip_addr = '192.168.0.25'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_OPENVZ)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         node_id = self.srv1.id
         vmid = 11111
@@ -217,10 +217,10 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
         self.assertEqual('test_task_queue', tracker.context['queue'])
 
-        self.assertEqual(CmdbCloudConfig.TECH_HV_OPENVZ, check_data_opts['tech'])
+        self.assertEqual(CmdbCloudConfig.TECH_HV_OPENVZ, check_data_opts['driver'])
         self.assertEqual('centos6', check_data_opts['template'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('vm11111.centos6.openvz', check_data_opts['vm_name'])
+        self.assertEqual('v11111.openvz.pytin', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.25', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
@@ -242,7 +242,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         template = 'centos6'
         ip_addr = '192.169.0.15'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         node_id = self.srv1.id
         vmid = 11111
@@ -273,9 +273,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
         self.assertEqual('test_task_queue', tracker.context['queue'])
 
-        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['tech'])
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['vm_name'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.169.0.15', check_data_opts['ip'])
         self.assertEqual('192.169.0.1', check_data_opts['gateway'])
@@ -295,7 +295,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         cpu = 2
         template = 'centos6'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         node_id = self.srv1.id
         vmid = 11111
@@ -327,9 +327,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
         self.assertEqual('test_task_queue', tracker.context['queue'])
 
-        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['tech'])
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['vm_name'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
@@ -349,7 +349,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         cpu = 2
         template = 'centos6'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         node_id = self.srv1.id
         vmid = 11111
@@ -380,9 +380,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
         self.assertEqual('test_task_queue', tracker.context['queue'])
 
-        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['tech'])
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['vm_name'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
@@ -398,29 +398,29 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         Создание VPS без указания ноды (автовыбор) и без указания IP (выделить)
         """
         s1 = Server.objects.create(name='CN1', rating=10, role='hypervisor', parent=self.rack1, agentd_taskqueue='s1',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
 
         s2 = Server.objects.create(name='CN2', role='hypervisor', parent=self.rack1, agentd_taskqueue='s2',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM,
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM,
                                    status=Resource.STATUS_LOCKED)
 
         s3 = Server.objects.create(name='CN3', role='hypervisor', parent=self.rack1, agentd_taskqueue='s3',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM,
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM,
                                    status=Resource.STATUS_INUSE)
 
         s4 = Server.objects.create(name='CN4', rating=15, role='hypervisor', parent=self.rack1, agentd_taskqueue='s4',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
 
         s5 = Server.objects.create(name='Some server', status=Resource.STATUS_INUSE, parent=self.rack1)
 
         s6 = Server.objects.create(name='CN6', role='hypervisor', parent=self.rack1, agentd_taskqueue='s6',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_OPENVZ,
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_OPENVZ,
                                    status=Resource.STATUS_INUSE)
 
         ram = 1024
         hdd = 50
         cpu = 2
-        template = 'centos6'
+        template = 'kvm.centos6'
 
         hv_tech = CmdbCloudConfig.TECH_HV_KVM
 
@@ -434,7 +434,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
             ram=ram,
             hdd=hdd,
             cpu=cpu,
-            tech=hv_tech)
+            driver=hv_tech)
 
         self.assertEqual(s4.id, tracker.context['cmdb_node_id'])
         self.assertEqual('s4', tracker.context['queue'])
@@ -456,8 +456,8 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         # selected best node for the VPS
         self.assertEqual(s4.id, tracker.context['cmdb_node_id'])
 
-        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['tech'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['vm_name'])
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
