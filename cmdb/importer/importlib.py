@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import unicode_literals
-from assets.analyzers import CmdbAnalyzer
 
+from assets.analyzers import CmdbAnalyzer
 from assets.models import SwitchPort, PortConnection, ServerPort, Server, VirtualServer, VirtualServerPort
 from cmdb.settings import logger
 from ipman.models import IPAddress, IPAddressPool
@@ -73,12 +73,14 @@ class GenericCmdbImporter(object):
                 rack = switch.typed_parent
 
                 if switch.is_mounted:
+                    server_parent_id = server.parent_id
+
                     if server.parent and server.parent.id != rack.id:
                         # clean parent unresolved group, to try to relink
                         server.parent = None
 
                     if not server.parent:
-                        logger.info("Update server %s parent %s->%s" % (server, server.parent_id, switch.parent_id))
+                        logger.info("Update server %s parent %s->%s" % (server, server_parent_id, switch.parent_id))
 
                         server.mount_to(rack)
 

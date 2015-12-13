@@ -15,11 +15,11 @@ agentd_proxy = Celery('agentd',
                       backend=PROXMOX_BACKEND['MSG_BACKEND'])
 
 agentd_proxy.conf.update(
-    CELERY_TASK_SERIALIZER='json',
-    CELERY_RESULT_SERIALIZER='json',
-    CELERY_ACCEPT_CONTENT=['json'],
-    CELERY_TIMEZONE='Europe/Moscow',
-    CELERY_ENABLE_UTC=True
+        CELERY_TASK_SERIALIZER='json',
+        CELERY_RESULT_SERIALIZER='json',
+        CELERY_ACCEPT_CONTENT=['json'],
+        CELERY_TIMEZONE='Europe/Moscow',
+        CELERY_ENABLE_UTC=True
 )
 
 
@@ -96,7 +96,10 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
     Every node have a pytin-agentd-hv running. When task is submitted to this backend it is actually submitted
     to run remotely on the specific agent. Node to create VPS is selected by the scheduler.
 
-    Every hypervisor node in CMDB must have options: role = hypervisor and hypervisor_tech (kvm, openvz, etc).
+    Every hypervisor node in CMDB must have options:
+        role = hypervisor.
+        hypervisor_driver (kvm, openvz, etc).
+        agentd_taskqueue: task queue used to feed the specific agent.
     """
 
     def __init__(self, cloud):
@@ -129,13 +132,21 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             ram: amount of RAM in Mb
             hdd: amount of HDD space in Gb
             user: user name
+            template: template name used to create VPS.
+                      It is in form: <driver>.param1.param2..paramN (kvm.centos.6.x86_64.directadmin)
+                        driver: method of provisioning. Different drivers supports
+                                different templates and provisioning depth.
+                                Drivers can work with different virtualization technologies.
 
         Optional:
-            template: template name used to create VPS. If it is not specified, then empty VPS is created.
-            ip: apply IP address to the VPS
-            node_id: ID of the hypervisor node
-                -or-
-            tech: select technology (kvm, openvz). Scheduler is used to find the best node for the VPS.
+            ip: apply IP address to the VPS.
+            node_id: ID of the hypervisor node. If not specified, scheduler is used to select the best node,
+                     based on template.
+
+        Populated parameters:
+            hostname: hostname of the virtual machine
+            driver: used driver to control the VPS (got from the template string)
+            ip, gateway, netmask, dns1, dns2: network interface config
 
         :param options: Options used to create VPS.
         :return: TaskTracker instance to chesk progress.
@@ -145,27 +156,25 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
         assert 'ram' in options
         assert 'hdd' in options
         assert 'user' in options
+        assert 'template' in options
 
         logger.debug(options)
 
         if 'node_id' in options and options['node_id'] > 0:
             target_node = Server.active.get(pk=options['node_id'])
-            hyper_tech = target_node.get_option_value('hypervisor_tech', default='unknown')
+            hyper_driver = target_node.get_option_value('hypervisor_tech', default='unknown')
         else:
-            assert 'tech' in options and options['tech']
-
-            hyper_tech = options['tech']
-            target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(tech=hyper_tech))
+            (driver, hyper_driver, tpl) = options['template'].split('.', 2)
+            target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(tech=hyper_driver))
 
         if 'ip' in options and options['ip']:
             ip, gateway, netmask = self.find_ip_info(options['ip'])
         else:
             ip, gateway, netmask = self.lease_ip(target_node.id)
 
-        tpl_name = options['template'] if 'template' in options else 'empty'
-
         # update some options
-        options['vm_name'] = "vm%s.%s.%s" % (options['vmid'], tpl_name, hyper_tech)
+        options['driver'] = hyper_driver
+        options['hostname'] = "v%s.%s.pytin" % (options['vmid'], hyper_driver)
         options['dns1'] = '46.17.46.200'
         options['dns2'] = '46.17.40.200'
         options['ip'] = ip
@@ -193,7 +202,7 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
         logger.info("Send task %s to queue %s for node %s" % (task_class, node_queue, target_node.id))
 
         task_options['node_id'] = target_node.id
-        task_options['tech'] = target_node.get_option_value('hypervisor_tech', default='unknown')
+        task_options['driver'] = target_node.get_option_value('hypervisor_driver', default='unknown')
 
         return self.send_task(task_class,
                               cmdb_node_id=target_node.id,
