@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import time
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
@@ -57,8 +58,36 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--ram', type=int, help="Set RAM amount (Mb).", default=512)
         vps_cmd_parser.add_argument('--hdd', type=int, help="Set HDD amount (Gb).", default=5)
         vps_cmd_parser.add_argument('--cpu', type=int, help="Number of vCPU cores.", default=1)
-
         self.register_handler('vps', self._handle_vps)
+
+        hv_cmd_parser = subparsers.add_parser('hypervisors', help='Manage hypervisors.')
+        hv_cmd_parser.add_argument('--list', action="store_true", help="List known hypervisors.")
+        self.register_handler('hypervisors', self._handle_hypervisors)
+
+    def _handle_hypervisors(self, *args, **options):
+        if options['list']:
+            table = PrettyTable(['node', 'group', 'label', 'hypervisor_driver', 'rating', 'agentd_heartbeat'])
+            table.padding_width = 1
+            table.sortby = 'rating'
+
+            for hypervisor in self.cloud.get_hypervisors():
+                hyper_driver = hypervisor.get_option_value('hypervisor_driver', default=None)
+
+                if hyper_driver:
+                    current_time_stamp = int(time.time())
+                    agentd_heartbeat = hypervisor.get_option_value('agentd_heartbeat', default=0)
+                    agentd_heartbeat_value = agentd_heartbeat if (current_time_stamp - int(
+                        agentd_heartbeat)) < 90 else "%s (!)" % agentd_heartbeat
+
+                    table.add_row([hypervisor.id,
+                                   hypervisor.get_option_value('group'),
+                                   hypervisor.get_option_value('label'),
+                                   hypervisor.get_option_value('hypervisor_driver'),
+                                   hypervisor.get_option_value('rating', default=0),
+                                   agentd_heartbeat_value,
+                                   ])
+
+            logger.info(table.get_string(reversesort=True))
 
     def _handle_vps(self, *args, **options):
         tracker = None

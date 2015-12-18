@@ -24,6 +24,11 @@ agentd_proxy.conf.update(
 
 
 class VpsControlTask(CloudTask):
+    """
+    Basic implementation of the VPS control task. Derived classes must define task_name property
+    along with the specific agent task logic.
+    """
+
     # Remote interface used to execute tasks
     REMOTE_WORKER = agentd_proxy
     task_name = ''
@@ -87,10 +92,6 @@ class VpsStopTask(VpsControlTask):
 
 
 class ProxMoxJBONServiceBackend(HypervisorBackend):
-    TASK_CREATE = VpsCreateTask
-    TASK_START = VpsStartTask
-    TASK_STOP = VpsStopTask
-
     """
     Just bunch of ProxMox nodes.
     Every node have a pytin-agentd-hv running. When task is submitted to this backend it is actually submitted
@@ -100,7 +101,12 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
         role = hypervisor.
         hypervisor_driver (kvm, openvz, etc).
         agentd_taskqueue: task queue used to feed the specific agent.
+        agentd_heartbeat: last heartbeat time.
     """
+
+    TASK_CREATE = VpsCreateTask
+    TASK_START = VpsStartTask
+    TASK_STOP = VpsStopTask
 
     def __init__(self, cloud):
         super(ProxMoxJBONServiceBackend, self).__init__(cloud)
@@ -165,7 +171,7 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             hyper_driver = target_node.get_option_value('hypervisor_driver', default='unknown')
         else:
             (hyper_driver, tpl) = options['template'].split('.', 1)
-            target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(driver=hyper_driver))
+            target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(hypervisor_driver=hyper_driver))
 
         if 'ip' in options and options['ip']:
             ip, gateway, netmask = self.find_ip_info(options['ip'])

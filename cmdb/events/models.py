@@ -118,7 +118,7 @@ def resource_option_post_save(sender, instance, created, **kwargs):
     field_name = instance.name
     field_new_value = instance.value
 
-    # ability to ignore some fields (such as heartbeat), to prevent flooding.
+    # ability to ignore some fields (such as heartbeat), to prevent event table flooding.
     if not instance.journaling:
         return
 

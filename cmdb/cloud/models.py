@@ -151,20 +151,24 @@ class CmdbCloudConfig(object):
     """
     Entry point for the CMDB data query.
 
-    Every hypervisor node in CMDB must have options: role = hypervisor and hypervisor_driver (kvm, openvz, etc).
+    Every hypervisor node in CMDB must have options:
+        role = hypervisor.
+        hypervisor_driver (kvm, openvz, etc).
+        agentd_taskqueue: task queue used to feed the specific agent.
+        agentd_heartbeat: last heartbeat time.
     """
     TECH_HV_KVM = 'kvm'
     TECH_HV_OPENVZ = 'openvz'
 
     task_tracker = CloudTaskTracker
 
-    def get_hypervisors(self, driver=TECH_HV_KVM):
+    def get_hypervisors(self, **query):
         """
-        Returns the known hypervisors from the cloud.
+        Returns the known hypervisors from the cloud. Query can contain hypervisor_driver option.
         :return:
         """
-        assert driver
 
-        return Server.active.filter(role='hypervisor',
-                                    hypervisor_driver=driver,
-                                    status=Resource.STATUS_INUSE).order_by('id')
+        query['role'] = 'hypervisor'
+        query['status'] = Resource.STATUS_INUSE
+
+        return Server.active.filter(**query).order_by('id')

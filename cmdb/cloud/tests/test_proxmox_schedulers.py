@@ -28,7 +28,7 @@ class ProxMoxSchedulersTest(TestCase):
         s6 = Server.objects.create(name='CN6', role='hypervisor', hypervisor_driver=CmdbCloudConfig.TECH_HV_OPENVZ,
                                    status=Resource.STATUS_INUSE)
 
-        hvisors = self.cloud.get_hypervisors()
+        hvisors = self.cloud.get_hypervisors(hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM)
         self.assertEqual(3, len(hvisors))
 
         scheduler = RatingBasedScheduler()
@@ -48,7 +48,7 @@ class ProxMoxSchedulersTest(TestCase):
         s6 = Server.objects.create(name='CN6', role='hypervisor', hypervisor_driver=CmdbCloudConfig.TECH_HV_OPENVZ,
                                    status=Resource.STATUS_INUSE)
 
-        hvisors = self.cloud.get_hypervisors()
+        hvisors = self.cloud.get_hypervisors(hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM)
         self.assertEqual(3, len(hvisors))
 
         scheduler = RoundRobinScheduler()
