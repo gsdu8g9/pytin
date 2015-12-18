@@ -167,6 +167,10 @@ class L3Switch(object):
         # arp address table
         oid = '.1.3.6.1.2.1.4.22.1.2'
         for name, value in _snmp_walk(host, community, oid):
+            if not value.startswith('0x'):
+                logger.warning("Not valid ARP record: mac:%s <- ip:%s", (value, name))
+                continue
+
             name_parts = name.split('.')
             ip_address = ".".join([name_parts[x] for x in range(len(name_parts) - 4, len(name_parts))])
             self._add_server_port_ip(value[2:].upper(), ip_address)
@@ -205,6 +209,8 @@ class L3Switch(object):
     def _add_server_port_ip(self, server_port_mac, ip_address):
         assert server_port_mac
         assert ip_address
+
+        logger.debug("%s <- %s" % (server_port_mac, ip_address))
 
         server_port_mac = _normalize_mac(server_port_mac)
 
