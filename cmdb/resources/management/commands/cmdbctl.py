@@ -1,11 +1,10 @@
 from __future__ import unicode_literals
 
-from argparse import ArgumentParser
 import argparse
-
-from django.core.management.base import BaseCommand
+from argparse import ArgumentParser
 
 from django.apps import apps
+from django.core.management.base import BaseCommand
 
 from cmdb.settings import logger
 from resources.iterators import PathIterator, TreeIterator
@@ -61,10 +60,11 @@ class Command(BaseCommand):
         res_list_cmd.add_argument('-f', '--show-fields', default='id,self,status', help="Comma separated field list:\
                                                     supported fields are from the resource.")
         res_list_cmd.add_argument('-s', '--status',
-                                  help="Comma separated statuses of the resource. If status is used, you can search in deleted resources.",
+                                  help="Comma separated statuses of the resource. If status is used, "
+                                       "you can search in deleted resources.",
                                   choices=[choice[0] for choice in Resource.STATUS_CHOICES])
         res_list_cmd.add_argument('--index', action="store_true",
-                                  help="Comma separated field list: supported fields are from the resource.")
+                                  help="Update name fields of the resources.")
         res_list_cmd.add_argument('filter', nargs=argparse.ZERO_OR_MORE, help="Key=Value pairs.")
         self._register_handler('search', self._handle_command_search)
 
@@ -126,7 +126,7 @@ class Command(BaseCommand):
                 resource.name = unicode(resource)
                 resource.save()
 
-            logger.info("Updated resources: %s" % updated)
+            logger.debug("Updated resources: %s" % updated)
             return
 
         # apply status

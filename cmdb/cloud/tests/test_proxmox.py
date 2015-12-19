@@ -70,7 +70,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.start_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             user=user_name)
 
@@ -98,7 +98,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.stop_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             user=user_name)
 
@@ -126,7 +126,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.start_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             user=user_name)
 
@@ -154,7 +154,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.stop_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             user=user_name)
 
@@ -192,7 +192,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             template=template,
             user=user_name,
@@ -249,7 +249,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             template=template,
             user=user_name,
@@ -302,7 +302,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             template=template,
             user=user_name,
@@ -356,7 +356,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node_id=node_id,
+            node=node_id,
             vmid=vmid,
             template=template,
             user=user_name,

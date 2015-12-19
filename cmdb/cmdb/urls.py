@@ -7,5 +7,6 @@ urlpatterns = [
     url(r'^v1/auth/', obtain_auth_token),
     url(r'^v1/', include('resources.urls')),
     url(r'^v1/', include('ipman.urls')),
+    url(r'^v1/', include('cloud.urls')),
     url(r'^admin/', include(admin.site.urls)),
 ]

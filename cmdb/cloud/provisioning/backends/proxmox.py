@@ -115,17 +115,17 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
     def start_vps(self, **options):
         assert 'vmid' in options
-        assert 'node_id' in options and options['node_id'] > 0
+        assert 'node' in options and options['node'] > 0
 
-        target_node = Server.active.get(pk=options['node_id'])
+        target_node = Server.active.get(pk=options['node'])
 
         return self.internal_send_task(self.TASK_START, target_node, **options)
 
     def stop_vps(self, **options):
         assert 'vmid' in options
-        assert 'node_id' in options and options['node_id'] > 0
+        assert 'node' in options and options['node'] > 0
 
-        target_node = Server.active.get(pk=options['node_id'])
+        target_node = Server.active.get(pk=options['node'])
 
         return self.internal_send_task(self.TASK_STOP, target_node, **options)
 
@@ -146,7 +146,7 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         Optional:
             ip: apply IP address to the VPS.
-            node_id: ID of the hypervisor node. If not specified, scheduler is used to select the best node,
+            node: ID of the hypervisor node. If not specified, scheduler is used to select the best node,
                      based on template.
 
         Populated parameters:
@@ -166,8 +166,8 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         logger.debug(options)
 
-        if 'node_id' in options and options['node_id'] > 0:
-            target_node = Server.active.get(pk=options['node_id'])
+        if 'node' in options and options['node'] > 0:
+            target_node = Server.active.get(pk=options['node'])
             hyper_driver = target_node.get_option_value('hypervisor_driver', default='unknown')
         else:
             (hyper_driver, tpl) = options['template'].split('.', 1)
@@ -207,7 +207,7 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
 
         logger.info("Send task %s to queue %s for node %s" % (task_class, node_queue, target_node.id))
 
-        task_options['node_id'] = target_node.id
+        task_options['node'] = target_node.id
         task_options['driver'] = target_node.get_option_value('hypervisor_driver', default='unknown')
 
         return self.send_task(task_class,

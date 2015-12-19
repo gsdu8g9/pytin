@@ -77,7 +77,7 @@ class Command(BaseCommand):
                     current_time_stamp = int(time.time())
                     agentd_heartbeat = hypervisor.get_option_value('agentd_heartbeat', default=0)
                     agentd_heartbeat_value = agentd_heartbeat if (current_time_stamp - int(
-                        agentd_heartbeat)) < 90 else "%s (!)" % agentd_heartbeat
+                            agentd_heartbeat)) < 90 else "%s (!)" % agentd_heartbeat
 
                     table.add_row([hypervisor.id,
                                    hypervisor.get_option_value('group'),
@@ -104,7 +104,7 @@ class Command(BaseCommand):
             ip_addr = options['ip']
 
             tracker = self.backend.create_vps(
-                    node_id=node_id,
+                    node=node_id,
                     vmid=vmid,
                     template=template,
                     user=user_name,
@@ -117,7 +117,7 @@ class Command(BaseCommand):
             hyper_driver = options['driver']
 
             tracker = self.backend.stop_vps(
-                    node_id=node_id,
+                    node=node_id,
                     vmid=vmid,
                     user=user_name,
                     driver=hyper_driver)
@@ -126,7 +126,7 @@ class Command(BaseCommand):
             hyper_driver = options['driver']
 
             tracker = self.backend.start_vps(
-                    node_id=node_id,
+                    node=node_id,
                     vmid=vmid,
                     user=user_name,
                     driver=hyper_driver)

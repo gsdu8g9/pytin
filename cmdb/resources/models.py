@@ -586,7 +586,7 @@ class Resource(MPTTModel):
 
     def filter_parents(self, resource_class, *args, **query):
         """
-        Check that node is inside parent lft and rght leaf IDs
+        Returns parent nodes.
         :param resource_class:
         :param args:
         :param query:
@@ -602,7 +602,7 @@ class Resource(MPTTModel):
 
     def filter_childs(self, resource_class, *args, **query):
         """
-        Check that node is inside parent lft and rght leaf IDs
+        Returns childs of this node.
         :param resource_class:
         :param args:
         :param query:
