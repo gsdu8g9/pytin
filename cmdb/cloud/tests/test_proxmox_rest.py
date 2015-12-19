@@ -77,35 +77,23 @@ class ResourcesAPITests(APITestCase):
 
         payload = {
             'node': self.srv1.id,
-            'vm_id': 11111,
-            'user': 'unittest',
-            'action': 'start'
+            'vmid': 11111,
+            'user': 'unittest'
         }
 
-        response = self.client.patch('/v1/vps/%s/start/' % payload['vm_id'], payload)
-
-        print response
+        response = self.client.patch('/v1/vps/%s/start/' % payload['vmid'], payload)
 
         self.assertEqual(200, response.status_code)
 
-        # tracker = self.backend.start_vps(
-        #     node=node_id,
-        #     vmid=vmid,
-        #     user=user_name)
-        #
-        # self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
-        #
-        # check_data = tracker.get_result()
-        #
-        # check_data_opts = check_data[2]['options'] = check_data[2]['options']
-        #
-        # self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
-        #
-        # # Задача, которая будет выполнена на агенте.
-        # self.assertEqual('tasks.async.mock_vps_control', check_data[0])
-        # self.assertEqual(None, check_data[1])
-        #
-        # # параметры VPS
-        # self.assertEqual(11111, check_data_opts['vmid'])
-        # self.assertEqual('unittest', check_data_opts['user'])
-        #
+    def test_vps_stop(self):
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
+
+        payload = {
+            'node': self.srv1.id,
+            'vmid': 11111,
+            'user': 'unittest'
+        }
+
+        response = self.client.patch('/v1/vps/%s/stop/' % payload['vmid'], payload)
+
+        self.assertEqual(200, response.status_code)

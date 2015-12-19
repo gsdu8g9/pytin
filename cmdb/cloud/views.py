@@ -1,13 +1,16 @@
 from __future__ import unicode_literals
 
+from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import detail_route
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from assets.models import VirtualServer
-from cloud.models import CloudTaskTracker
-from cloud.serializers import CloudTaskTrackerSerializer, VirtualServerSerializer
+from cloud.models import CloudTaskTracker, CmdbCloudConfig
+from cloud.provisioning.backends.proxmox import ProxMoxJBONServiceBackend
+from cloud.serializers import CloudTaskTrackerSerializer, VirtualServerSerializer, StartStopSerializer
+from cmdb.settings import logger
 
 
 class CloudTaskTrackerViewSet(viewsets.mixins.RetrieveModelMixin,
@@ -27,8 +30,38 @@ class VirtualServerViewSet(viewsets.GenericViewSet):
 
     @detail_route(methods=['patch'])
     def start(self, request, pk=None):
-        return Response({"start": request.data})
+        indata = StartStopSerializer(data=request.data)
+        if not indata.is_valid():
+            return Response(indata.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info("Starting VPS: %s" % request.data)
+
+        # hardcoded backend
+        cloud = CmdbCloudConfig()
+        backend = ProxMoxJBONServiceBackend(cloud)
+
+        tracker = backend.start_vps(**indata.data)
+
+        serializer = CloudTaskTrackerSerializer(tracker)
+
+        return Response(serializer.data)
 
     @detail_route(methods=['patch'])
     def stop(self, request, pk=None):
-        return Response({"stop": request.data})
+        indata = StartStopSerializer(data=request.data)
+        if not indata.is_valid():
+            return Response(indata.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info("Stopping VPS: %s" % request.data)
+
+        # hardcoded backend
+        cloud = CmdbCloudConfig()
+        backend = ProxMoxJBONServiceBackend(cloud)
+
+        tracker = backend.stop_vps(**indata.data)
+
+        serializer = CloudTaskTrackerSerializer(tracker)
+
+        return Response(serializer.data)
