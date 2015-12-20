@@ -34,7 +34,10 @@ class MockVpsControlTask(VpsControlTask):
 
     REMOTE_WORKER = CeleryEmulator()
 
-    def get_result(self):
+    def poll(self):
+        return True, self.REMOTE_WORKER.sent_tasks[0]
+
+    def wait(self):
         return self.REMOTE_WORKER.sent_tasks[0]
 
 
@@ -76,7 +79,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
@@ -104,7 +107,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
@@ -132,7 +135,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
@@ -160,7 +163,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
@@ -203,7 +206,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
@@ -260,7 +263,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
@@ -314,7 +317,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
@@ -367,7 +370,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
@@ -441,7 +444,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)

@@ -1,8 +1,6 @@
 # coding=utf-8
 from __future__ import unicode_literals
 
-import time
-
 from celery import Celery
 
 from assets.models import Server
@@ -59,24 +57,23 @@ class VpsControlTask(CloudTask):
         self.tracker.context = tracker_context
         self.tracker.save()
 
-    def get_result(self):
+    def _get_async_task(self):
+        assert 'celery_task_id' in self.tracker.context
+
         ctask_id = self.tracker.context['celery_task_id']
+        return self.REMOTE_WORKER.AsyncResult(ctask_id)
 
-        logger.warning("Waiting for the Celery task: %s" % ctask_id)
+    def poll(self):
+        """
+        Check task state.
+        :return: Tuple (ready, result/progress info)
+        """
+        async_task = self._get_async_task()
 
-        ctask = self.REMOTE_WORKER.AsyncResult(ctask_id)
+        if async_task.ready():
+            return True, async_task.get()
 
-        last_line = ''
-        while not ctask.ready():
-            if ctask.status == 'PROGRESS':
-                if 'line' in ctask.info and last_line != ctask.info['line']:
-                    logger.info("stdout: %s" % ctask.info['line'])
-                    last_line = ctask.info['line']
-                    self.tracker.progress()
-
-            time.sleep(1)
-
-        return ctask.get()
+        return False, async_task.info.get('stdout', '')
 
 
 class VpsCreateTask(VpsControlTask):

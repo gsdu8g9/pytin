@@ -135,7 +135,7 @@ class Command(BaseCommand):
             logger.info("Attached to the task tracker %s. Ctrl-C to exit." % tracker.id)
 
             try:
-                result_data = tracker.get_result()
+                result_data = tracker.wait()
                 logger.info(result_data)
             except Exception, ex:
                 logger.error(ex.message)
@@ -150,7 +150,7 @@ class Command(BaseCommand):
             tracker = self.task_tracker.get(tracker_id)
 
             logger.info("Attached to task tracker %s. Ctrl-C to detach." % tracker_id)
-            print tracker.get_result()
+            print tracker.wait()
         else:
             limit = int(options['limit'])
 

@@ -36,7 +36,10 @@ class MockVpsControlTask(VpsControlTask):
 
     REMOTE_WORKER = CeleryEmulator()
 
-    def get_result(self):
+    def poll(self):
+        return True, self.REMOTE_WORKER.sent_tasks[0]
+
+    def wait(self):
         return self.REMOTE_WORKER.sent_tasks[0]
 
 
@@ -82,8 +85,12 @@ class ResourcesAPITests(APITestCase):
         }
 
         response = self.client.patch('/v1/vps/%s/start/' % payload['vmid'], payload)
-
         self.assertEqual(200, response.status_code)
+
+        # cloud_tasks
+        task_info = self.client.get('/v1/cloud_tasks/%s/' % response.data['id'])
+        self.assertEqual(200, response.status_code)
+        self.assertEqual('success', task_info.data['status'])
 
     def test_vps_stop(self):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
@@ -95,5 +102,9 @@ class ResourcesAPITests(APITestCase):
         }
 
         response = self.client.patch('/v1/vps/%s/stop/' % payload['vmid'], payload)
-
         self.assertEqual(200, response.status_code)
+
+        # cloud_tasks
+        task_info = self.client.get('/v1/cloud_tasks/%s/' % response.data['id'])
+        self.assertEqual(200, response.status_code)
+        self.assertEqual('success', task_info.data['status'])

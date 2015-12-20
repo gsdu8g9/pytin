@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
 
 import json
+import time
 
 from django.db import models
 from django.utils import timezone
 
 from assets.models import Server
 from cmdb.lib import loader
+from cmdb.settings import logger
 from resources.models import Resource
 
 
@@ -129,7 +131,7 @@ class CloudTaskTracker(models.Model):
 
         return CloudTaskTracker.objects.filter(**query)
 
-    def get_result(self):
+    def poll(self):
         if self.is_success:
             return self.return_data
 
@@ -137,11 +139,41 @@ class CloudTaskTracker(models.Model):
             return self.error
 
         try:
-            result_data = self.task.get_result()
-
-            self.success(result_data)
+            ready, result_data = self.task.poll()
+            if ready:
+                self.success(result_data)
+            else:
+                logger.info("progress: %s" % result_data)
+                self.progress()
 
             return result_data
+        except Exception, ex:
+            self.failed(ex.message)
+            raise ex
+
+    def wait(self):
+        if self.is_success:
+            return self.return_data
+
+        if self.is_failed:
+            return self.error
+
+        try:
+            last_data = ''
+            while True:
+                ready, result_data = self.task.poll()
+                if ready:
+                    self.success(result_data)
+                    return result_data
+
+                # in progress
+                self.tracker.progress()
+
+                if last_data != result_data:
+                    last_data = result_data
+                    logger.info("progress: %s" % last_data)
+
+                time.sleep(1)
         except Exception, ex:
             self.failed(ex.message)
             raise ex

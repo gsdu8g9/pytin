@@ -18,7 +18,11 @@ class CloudTask(object):
     def execute(self):
         raise Exception(_("Not implemented."))
 
-    def get_result(self):
+    def poll(self):
+        """
+        Async retrieve task status.
+        :return:
+        """
         raise Exception(_("Not implemented."))
 
 
@@ -38,9 +42,7 @@ class CloudBackend(object):
         """
         assert cloud_task_class
 
-        tracker = self.task_tracker.execute(cloud_task_class, **kwargs)
-
-        return tracker
+        return self.task_tracker.execute(cloud_task_class, **kwargs)
 
 
 class HypervisorBackend(CloudBackend):

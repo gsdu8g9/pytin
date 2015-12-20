@@ -26,6 +26,14 @@ class CloudTaskTrackerSerializer(serializers.ModelSerializer):
         model = CloudTaskTracker
         fields = ('id', 'task_class', 'status', 'created_at', 'updated_at', 'error', 'context_json', 'return_json')
 
+    def to_representation(self, instance):
+        assert instance
+
+        # refresh tracker state
+        instance.poll()
+
+        return super(CloudTaskTrackerSerializer, self).to_representation(instance)
+
 
 class VirtualServerSerializer(serializers.ModelSerializer):
     class Meta:
