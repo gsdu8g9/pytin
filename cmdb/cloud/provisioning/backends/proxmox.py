@@ -73,7 +73,7 @@ class VpsControlTask(CloudTask):
         if async_task.ready():
             return True, async_task.get()
 
-        return False, async_task.info.get('stdout', '')
+        return False, async_task.info.get('stdout', '') if async_task.info else ''
 
 
 class VpsCreateTask(VpsControlTask):
