@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 from cloud.views import CloudTaskTrackerViewSet, VirtualServerViewSet
 
 router = DefaultRouter()
-router.register('cloud_tasks', CloudTaskTrackerViewSet, base_name='cloud_tasks')
+router.register('cloud_tasks', CloudTaskTrackerViewSet)
 router.register('vps', VirtualServerViewSet)
 
 urlpatterns = [

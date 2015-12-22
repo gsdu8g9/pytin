@@ -16,7 +16,7 @@ from cmdb.settings import logger
 class CloudTaskTrackerViewSet(viewsets.mixins.RetrieveModelMixin,
                               viewsets.GenericViewSet):
     """
-    ViewSet used to control cloud tasks. Is able to retrieve the state of the task.
+    ViewSet used to control cloud tasks. Is only able to retrieve the state of the task.
     """
     queryset = CloudTaskTracker.objects.filter()
     serializer_class = CloudTaskTrackerSerializer
