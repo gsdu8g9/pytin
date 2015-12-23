@@ -33,6 +33,7 @@ class RatingBasedScheduler(ProvisionScheduler):
             node_rating = node.get_option_value(self.RATING_ATTR, default=0)
 
             if node_rating > max_rating:
+                max_rating = node_rating
                 best_node = node
 
         if not best_node:

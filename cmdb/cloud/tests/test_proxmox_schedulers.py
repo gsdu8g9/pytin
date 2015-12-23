@@ -16,13 +16,13 @@ class ProxMoxSchedulersTest(TestCase):
         self.cloud = CmdbCloudConfig()
 
     def test_ratingbased(self):
-        s1 = Server.objects.create(name='CN1', rating=10, role='hypervisor',
+        s1 = Server.objects.create(name='CN1', rating=15, role='hypervisor',
                                    hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
         s2 = Server.objects.create(name='CN2', role='hypervisor', hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM,
                                    status=Resource.STATUS_LOCKED)
         s3 = Server.objects.create(name='CN3', role='hypervisor', hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM,
                                    status=Resource.STATUS_INUSE)
-        s4 = Server.objects.create(name='CN4', rating=15, role='hypervisor',
+        s4 = Server.objects.create(name='CN4', rating=10, role='hypervisor',
                                    hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
         s5 = Server.objects.create(name='Some server', status=Resource.STATUS_INUSE)
         s6 = Server.objects.create(name='CN6', role='hypervisor', hypervisor_driver=CmdbCloudConfig.TECH_HV_OPENVZ,
@@ -33,7 +33,7 @@ class ProxMoxSchedulersTest(TestCase):
 
         scheduler = RatingBasedScheduler()
         node = scheduler.get_best_node(hvisors)
-        self.assertEqual(s4.id, node.id)
+        self.assertEqual(s1.id, node.id)
 
     def test_roundrobin(self):
         s1 = Server.objects.create(name='CN1', role='hypervisor', hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM,

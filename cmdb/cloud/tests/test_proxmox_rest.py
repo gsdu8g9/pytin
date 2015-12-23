@@ -88,12 +88,11 @@ class ResourcesAPITests(APITestCase):
 
         payload = {
             'vmid': 11111,
-            'template': template,
-            # 'node': self.srv1.id,
-            'user': 'unittest',
             'ram': ram,
             'hdd': hdd,
-            'cpu': cpu
+            'cpu': cpu,
+            'user': 'unittest',
+            'template': template,
         }
 
         response = self.client.post('/v1/vps/', payload)
