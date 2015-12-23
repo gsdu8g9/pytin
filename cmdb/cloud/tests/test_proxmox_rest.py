@@ -1,6 +1,8 @@
 # coding=utf-8
 from __future__ import unicode_literals
 
+import json
+
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
@@ -74,6 +76,38 @@ class ResourcesAPITests(APITestCase):
         ProxMoxJBONServiceBackend.TASK_CREATE = MockVpsControlTask
         ProxMoxJBONServiceBackend.TASK_START = MockVpsControlTask
         ProxMoxJBONServiceBackend.TASK_STOP = MockVpsControlTask
+
+    def test_vps_create(self):
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.use()
+
+        ram = 1024
+        hdd = 50
+        cpu = 2
+        template = 'kvm.centos6'
+
+        payload = {
+            'vmid': 11111,
+            'template': template,
+            # 'node': self.srv1.id,
+            'user': 'unittest',
+            'ram': ram,
+            'hdd': hdd,
+            'cpu': cpu
+        }
+
+        response = self.client.post('/v1/vps/', payload)
+        self.assertEqual(200, response.status_code)
+
+        # cloud_tasks
+        task_info = self.client.get('/v1/cloud_tasks/%s/' % response.data['id'])
+        self.assertEqual(200, response.status_code)
+        self.assertEqual('success', task_info.data['status'])
+
+        context = json.loads(task_info.data['context_json'])
+        self.assertEqual(self.srv1.id, context['cmdb_node_id'])
+        self.assertEqual('192.168.0.2', context['options']['ip'])
+        self.assertEqual('192.168.0.1', context['options']['gateway'])
 
     def test_vps_start(self):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)

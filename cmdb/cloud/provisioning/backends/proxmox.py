@@ -142,7 +142,6 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
                                 Drivers can work with different virtualization technologies.
 
         Optional:
-            ip: apply IP address to the VPS.
             node: ID of the hypervisor node. If not specified, scheduler is used to select the best node,
                      based on template.
 
@@ -170,10 +169,7 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             (hyper_driver, tpl) = options['template'].split('.', 1)
             target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(hypervisor_driver=hyper_driver))
 
-        if 'ip' in options and options['ip']:
-            ip, gateway, netmask = self.find_ip_info(options['ip'])
-        else:
-            ip, gateway, netmask = self.lease_ip(target_node.id)
+        ip, gateway, netmask = self.lease_ip(target_node.id)
 
         # update some options
         options['driver'] = hyper_driver

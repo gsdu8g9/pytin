@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from assets.models import VirtualServer
 from cloud.models import CloudTaskTracker, CmdbCloudConfig
 from cloud.provisioning.backends.proxmox import ProxMoxJBONServiceBackend
-from cloud.serializers import CloudTaskTrackerSerializer, VirtualServerSerializer, StartStopSerializer
+from cloud.serializers import CloudTaskTrackerSerializer, StartStopSerializer, \
+    CreateVpsSerializer
 from cmdb.settings import logger
 
 
@@ -23,10 +24,28 @@ class CloudTaskTrackerViewSet(viewsets.mixins.RetrieveModelMixin,
     pagination_class = PageNumberPagination
 
 
-class VirtualServerViewSet(viewsets.GenericViewSet):
+class VirtualServerViewSet(viewsets.mixins.CreateModelMixin,
+                           viewsets.GenericViewSet):
     queryset = VirtualServer.active.filter()
-    serializer_class = VirtualServerSerializer
     pagination_class = PageNumberPagination
+
+    def create(self, request, *args, **kwargs):
+        indata = CreateVpsSerializer(data=request.data)
+        if not indata.is_valid():
+            return Response(indata.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info("Creating VPS: %s" % indata.data)
+
+        # hardcoded backend
+        cloud = CmdbCloudConfig()
+        backend = ProxMoxJBONServiceBackend(cloud)
+
+        tracker = backend.create_vps(**indata.data)
+
+        serializer = CloudTaskTrackerSerializer(tracker)
+
+        return Response(serializer.data)
 
     @detail_route(methods=['patch'])
     def start(self, request, pk=None):
@@ -35,7 +54,7 @@ class VirtualServerViewSet(viewsets.GenericViewSet):
             return Response(indata.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info("Starting VPS: %s" % request.data)
+        logger.info("Starting VPS: %s" % indata.data)
 
         # hardcoded backend
         cloud = CmdbCloudConfig()
@@ -54,7 +73,7 @@ class VirtualServerViewSet(viewsets.GenericViewSet):
             return Response(indata.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info("Stopping VPS: %s" % request.data)
+        logger.info("Stopping VPS: %s" % indata.data)
 
         # hardcoded backend
         cloud = CmdbCloudConfig()

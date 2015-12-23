@@ -73,9 +73,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.start_vps(
-            node=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -101,9 +101,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.stop_vps(
-            node=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -129,9 +129,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.start_vps(
-            node=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -157,9 +157,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.stop_vps(
-            node=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -195,14 +195,14 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            ip=ip_addr)
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                ip=ip_addr)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -225,7 +225,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(11111, check_data_opts['vmid'])
         self.assertEqual('v11111.openvz.pytin', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
-        self.assertEqual('192.168.0.25', check_data_opts['ip'])
+        self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
         self.assertEqual('255.255.254.0', check_data_opts['netmask'])
         self.assertEqual(50, check_data_opts['hdd'])
@@ -251,15 +251,16 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         vmid = 11111
         user_name = 'unittest'
 
+        # ip parameter is ignored
         tracker = self.backend.create_vps(
-            node=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            ip=ip_addr)
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                ip=ip_addr)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -280,8 +281,8 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(11111, check_data_opts['vmid'])
         self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
-        self.assertEqual('192.169.0.15', check_data_opts['ip'])
-        self.assertEqual('192.169.0.1', check_data_opts['gateway'])
+        self.assertEqual('192.168.0.2', check_data_opts['ip'])
+        self.assertEqual('192.168.0.1', check_data_opts['gateway'])
         self.assertEqual('255.255.254.0', check_data_opts['netmask'])
         self.assertEqual(50, check_data_opts['hdd'])
         self.assertEqual(1024, check_data_opts['ram'])
@@ -305,14 +306,14 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            # ip=, we need to lease IP
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                # ip=, we need to lease IP
         )
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
@@ -359,14 +360,14 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            ip=None)
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                ip=None)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -431,13 +432,13 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            driver=hv_tech)
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                driver=hv_tech)
 
         self.assertEqual(s4.id, tracker.context['cmdb_node_id'])
         self.assertEqual('s4', tracker.context['queue'])
