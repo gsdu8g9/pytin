@@ -31,6 +31,7 @@ class CreateVpsSerializer(serializers.Serializer):
 
     # optional
     node = serializers.IntegerField(required=False)
+    rootpass = serializers.CharField(max_length=55, required=False)
 
     def validate(self, data):
         if data['vmid'] <= 0:
@@ -49,7 +50,7 @@ class CreateVpsSerializer(serializers.Serializer):
             raise serializers.ValidationError("template must be defined")
 
         if 'node' in data and data['node'] <= 0:
-            raise serializers.ValidationError("node must be defined")
+            raise serializers.ValidationError("node must be >= 0")
 
         return data
 
