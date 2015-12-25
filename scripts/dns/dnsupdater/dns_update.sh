@@ -43,6 +43,9 @@ then
     DOMAINS_LIST_FILE=$2
 fi
 
+SAVED_DB_PATH=${NAMED_ZONES_PATH}/$(date +"%s")
+mkdir -p ${SAVED_DB_PATH}
+
 for zone_db in `ls ${NAMED_ZONES_PATH}/*.db`; do
     if [ "${zone_db}" != "" ];
     then
@@ -60,7 +63,7 @@ for zone_db in `ls ${NAMED_ZONES_PATH}/*.db`; do
 
             echo "Updating:" ${db_file} "(${domain_name})"
 
-            cp ${db_file} ${db_file}.$(date +"%s")
+            cp ${db_file} ${SAVED_DB_PATH}/$(basename ${db_file})
 
             python dns_updater.py ${db_file}
 

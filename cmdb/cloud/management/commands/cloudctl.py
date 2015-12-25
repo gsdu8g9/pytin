@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import time
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
@@ -46,8 +47,8 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--create', action="store_true", help="Create VPS server.")
         vps_cmd_parser.add_argument('--start', action="store_true", help="Start VPS server.")
         vps_cmd_parser.add_argument('--stop', action="store_true", help="Stop VPS server.")
-        vps_cmd_parser.add_argument('--tech', default='kvm',
-                                    help="Hypervisor technology (must be supported by backend).")
+        vps_cmd_parser.add_argument('--driver', default='kvm',
+                                    help="Hypervisor driver, used to manage VPS (must be supported by backend).")
         vps_cmd_parser.add_argument('--template', help="VPS template.", default='centos.6.64bit')
         vps_cmd_parser.add_argument('--node', type=int, default=0,
                                     help="CMDB node ID. Scheduling is used if not specified.")
@@ -57,15 +58,42 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--ram', type=int, help="Set RAM amount (Mb).", default=512)
         vps_cmd_parser.add_argument('--hdd', type=int, help="Set HDD amount (Gb).", default=5)
         vps_cmd_parser.add_argument('--cpu', type=int, help="Number of vCPU cores.", default=1)
-
         self.register_handler('vps', self._handle_vps)
+
+        hv_cmd_parser = subparsers.add_parser('hypervisors', help='Manage hypervisors.')
+        hv_cmd_parser.add_argument('--list', action="store_true", help="List known hypervisors.")
+        self.register_handler('hypervisors', self._handle_hypervisors)
+
+    def _handle_hypervisors(self, *args, **options):
+        if options['list']:
+            table = PrettyTable(['node', 'group', 'label', 'hypervisor_driver', 'rating', 'agentd_heartbeat'])
+            table.padding_width = 1
+            table.sortby = 'rating'
+
+            for hypervisor in self.cloud.get_hypervisors():
+                hyper_driver = hypervisor.get_option_value('hypervisor_driver', default=None)
+
+                if hyper_driver:
+                    current_time_stamp = int(time.time())
+                    agentd_heartbeat = hypervisor.get_option_value('agentd_heartbeat', default=0)
+                    agentd_heartbeat_value = agentd_heartbeat if (current_time_stamp - int(
+                            agentd_heartbeat)) < 90 else "%s (!)" % agentd_heartbeat
+
+                    table.add_row([hypervisor.id,
+                                   hypervisor.get_option_value('group'),
+                                   hypervisor.get_option_value('label'),
+                                   hypervisor.get_option_value('hypervisor_driver'),
+                                   hypervisor.get_option_value('rating', default=0),
+                                   agentd_heartbeat_value,
+                                   ])
+
+            logger.info(table.get_string(reversesort=True))
 
     def _handle_vps(self, *args, **options):
         tracker = None
 
         vmid = int(options['vmid'])
         user_name = options['user']
-        hyper_tech = options['tech']
         node_id = int(options['node'])
 
         if options['create']:
@@ -76,35 +104,38 @@ class Command(BaseCommand):
             ip_addr = options['ip']
 
             tracker = self.backend.create_vps(
-                node_id=node_id,
-                vmid=vmid,
-                template=template,
-                user=user_name,
-                ram=ram,
-                hdd=hdd,
-                cpu=cpu,
-                ip=ip_addr,
-                tech=hyper_tech)
+                    node=node_id,
+                    vmid=vmid,
+                    template=template,
+                    user=user_name,
+                    ram=ram,
+                    hdd=hdd,
+                    cpu=cpu,
+                    ip=ip_addr)
 
         elif options['stop']:
+            hyper_driver = options['driver']
+
             tracker = self.backend.stop_vps(
-                node_id=node_id,
-                vmid=vmid,
-                user=user_name,
-                tech=hyper_tech)
+                    node=node_id,
+                    vmid=vmid,
+                    user=user_name,
+                    driver=hyper_driver)
 
         elif options['start']:
+            hyper_driver = options['driver']
+
             tracker = self.backend.start_vps(
-                node_id=node_id,
-                vmid=vmid,
-                user=user_name,
-                tech=hyper_tech)
+                    node=node_id,
+                    vmid=vmid,
+                    user=user_name,
+                    driver=hyper_driver)
 
         if tracker:
             logger.info("Attached to the task tracker %s. Ctrl-C to exit." % tracker.id)
 
             try:
-                result_data = tracker.get_result()
+                result_data = tracker.wait()
                 logger.info(result_data)
             except Exception, ex:
                 logger.error(ex.message)
@@ -119,7 +150,7 @@ class Command(BaseCommand):
             tracker = self.task_tracker.get(tracker_id)
 
             logger.info("Attached to task tracker %s. Ctrl-C to detach." % tracker_id)
-            print tracker.get_result()
+            print tracker.wait()
         else:
             limit = int(options['limit'])
 
@@ -137,7 +168,7 @@ class Command(BaseCommand):
         trackers = self.task_tracker.find(status=status).order_by('-id')[:limit]
 
         table = PrettyTable(
-            ['id', 'task_class', 'status', 'created', 'updated', 'time-delta'])
+                ['id', 'task_class', 'status', 'created', 'updated', 'time-delta'])
         table.padding_width = 1
 
         for tracker in trackers:

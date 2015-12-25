@@ -119,14 +119,14 @@ class Command(BaseCommand):
 
         if not options['skip_arp']:
             for switch in Resource.active.filter(**query):
-                logger.info("Found switch: %s" % switch)
+                logger.info("* Found switch: %s" % switch)
                 if switch.has_option('snmp_provider_key'):
                     snmp_provider_key = switch.get_option_value('snmp_provider_key')
                     if snmp_provider_key in self.registered_providers:
                         hostname = switch.get_option_value('snmp_host')
                         community = switch.get_option_value('snmp_community')
 
-                        logger.info("\tdata: ID:%d\t%s\t%s" % (switch.id, hostname, community))
+                        logger.info("host: %s" % hostname)
                         provider = self.registered_providers[snmp_provider_key]()
                         provider.from_snmp(hostname, community)
 

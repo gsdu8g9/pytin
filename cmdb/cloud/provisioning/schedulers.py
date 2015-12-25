@@ -28,11 +28,12 @@ class RatingBasedScheduler(ProvisionScheduler):
         assert node_list
 
         best_node = None
-        max_rating = 0
+        max_rating = -1
         for node in node_list:
             node_rating = node.get_option_value(self.RATING_ATTR, default=0)
 
             if node_rating > max_rating:
+                max_rating = node_rating
                 best_node = node
 
         if not best_node:

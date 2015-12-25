@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
 
 import json
+import time
 
 from django.db import models
 from django.utils import timezone
 
 from assets.models import Server
 from cmdb.lib import loader
+from cmdb.settings import logger
 from resources.models import Resource
 
 
@@ -129,7 +131,7 @@ class CloudTaskTracker(models.Model):
 
         return CloudTaskTracker.objects.filter(**query)
 
-    def get_result(self):
+    def poll(self):
         if self.is_success:
             return self.return_data
 
@@ -137,11 +139,41 @@ class CloudTaskTracker(models.Model):
             return self.error
 
         try:
-            result_data = self.task.get_result()
-
-            self.success(result_data)
+            ready, result_data = self.task.poll()
+            if ready:
+                self.success(result_data)
+            else:
+                logger.info("progress: %s" % result_data)
+                self.progress()
 
             return result_data
+        except Exception, ex:
+            self.failed(ex.message)
+            raise ex
+
+    def wait(self):
+        if self.is_success:
+            return self.return_data
+
+        if self.is_failed:
+            return self.error
+
+        try:
+            last_data = ''
+            while True:
+                ready, result_data = self.task.poll()
+                if ready:
+                    self.success(result_data)
+                    return result_data
+
+                # in progress
+                self.tracker.progress()
+
+                if last_data != result_data:
+                    last_data = result_data
+                    logger.info("progress: %s" % last_data)
+
+                time.sleep(1)
         except Exception, ex:
             self.failed(ex.message)
             raise ex
@@ -151,20 +183,24 @@ class CmdbCloudConfig(object):
     """
     Entry point for the CMDB data query.
 
-    Every hypervisor node in CMDB must have options: role = hypervisor and hypervisor_tech (kvm, openvz, etc).
+    Every hypervisor node in CMDB must have options:
+        role = hypervisor.
+        hypervisor_driver (kvm, openvz, etc).
+        agentd_taskqueue: task queue used to feed the specific agent.
+        agentd_heartbeat: last heartbeat time.
     """
     TECH_HV_KVM = 'kvm'
     TECH_HV_OPENVZ = 'openvz'
 
     task_tracker = CloudTaskTracker
 
-    def get_hypervisors(self, tech=TECH_HV_KVM):
+    def get_hypervisors(self, **query):
         """
-        Returns the known hypervisors from the cloud.
+        Returns the known hypervisors from the cloud. Query can contain hypervisor_driver option.
         :return:
         """
-        assert tech
 
-        return Server.active.filter(role='hypervisor',
-                                    hypervisor_tech=tech,
-                                    status=Resource.STATUS_INUSE).order_by('id')
+        query['role'] = 'hypervisor'
+        query['status'] = Resource.STATUS_INUSE
+
+        return Server.active.filter(**query).order_by('id')

@@ -277,6 +277,7 @@ class ResourceOption(models.Model):
     updated_at = models.DateTimeField('Date updated', auto_now_add=True, db_index=True)
     format = models.CharField(max_length=25, db_index=True, choices=FORMAT_CHOICES, default=FORMAT_STRING)
     value = models.TextField('Option value')
+    journaling = models.BooleanField(default=True)
 
     value_format_handler = None
 
@@ -459,7 +460,7 @@ class Resource(MPTTModel):
     def typed_parent(self):
         return self.parent.as_leaf_class()
 
-    def set_option(self, name, value, format=None):
+    def set_option(self, name, value, format=None, journaling=True):
         """
         Set resource option. If format is omitted, then format is guessed from value type.
         """
@@ -472,6 +473,7 @@ class Resource(MPTTModel):
             defaults=dict(
                 value=value,
                 format=format,
+                journaling=journaling
             )
         )
 
@@ -584,7 +586,7 @@ class Resource(MPTTModel):
 
     def filter_parents(self, resource_class, *args, **query):
         """
-        Check that node is inside parent lft and rght leaf IDs
+        Returns parent nodes.
         :param resource_class:
         :param args:
         :param query:
@@ -600,7 +602,7 @@ class Resource(MPTTModel):
 
     def filter_childs(self, resource_class, *args, **query):
         """
-        Check that node is inside parent lft and rght leaf IDs
+        Returns childs of this node.
         :param resource_class:
         :param args:
         :param query:

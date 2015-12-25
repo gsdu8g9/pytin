@@ -57,8 +57,8 @@ else
     # restrictions associated with that product. If you believe that you are not subject to
     # such legal restrictions, or have a license to use ffmpeg licenses from the patent right
     # holders, you can install needed libraries by installing EPEL and RPM Fusion repositories.
-    #rpm -ivh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
-    #rpm -ivh http://download1.rpmfusion.org/free/el/updates/6/i386/rpmfusion-free-release-6-1.noarch.rpm
+    rpm -ivh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    rpm -ivh http://download1.rpmfusion.org/free/el/updates/6/x86_64/rpmfusion-free-release-6-1.noarch.rpm
 
     yum -y install ffmpeg ffmpeg-libs lame-libs librtmp x264-libs xvidcore
     cagefsctl --force-update

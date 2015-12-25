@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from assets.models import RegionResource, Datacenter, Rack, Server
 from cloud.models import CmdbCloudConfig, TaskTrackerStatus
-from cloud.provisioning.backends.proxmox import ShellHookTask, ProxMoxJBONServiceBackend
+from cloud.provisioning.backends.proxmox import ProxMoxJBONServiceBackend, VpsControlTask
 from ipman.models import IPNetworkPool
 from resources.models import Resource
 
@@ -29,10 +29,15 @@ class CeleryEmulator(object):
         return self.MockAsyncTask()
 
 
-class MockShellHookTask(ShellHookTask):
+class MockVpsControlTask(VpsControlTask):
+    task_name = 'tasks.async.mock_vps_control'
+
     REMOTE_WORKER = CeleryEmulator()
 
-    def get_result(self):
+    def poll(self):
+        return True, self.REMOTE_WORKER.sent_tasks[0]
+
+    def wait(self):
         return self.REMOTE_WORKER.sent_tasks[0]
 
 
@@ -52,147 +57,125 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.srv1.set_option('agentd_taskqueue', 'test_task_queue')
 
-        MockShellHookTask.REMOTE_WORKER.sent_tasks = []
+        MockVpsControlTask.REMOTE_WORKER.sent_tasks = []
 
         self.cloud = CmdbCloudConfig()
         self.backend = ProxMoxJBONServiceBackend(self.cloud)
-        self.backend.SHELL_HOOK_TASK_CLASS = MockShellHookTask
+        ProxMoxJBONServiceBackend.TASK_CREATE = MockVpsControlTask
+        ProxMoxJBONServiceBackend.TASK_START = MockVpsControlTask
+        ProxMoxJBONServiceBackend.TASK_STOP = MockVpsControlTask
 
     def test_start_vps_kvm(self):
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.start_vps(
-            node_id=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('start.qm', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('unittest', check_data_opts['user'])
 
     def test_stop_vps_kvm(self):
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.stop_vps(
-            node_id=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('stop.qm', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('unittest', check_data_opts['user'])
 
     def test_start_vps_openvz(self):
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_OPENVZ)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.start_vps(
-            node_id=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('start.ovz', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('unittest', check_data_opts['user'])
 
     def test_stop_vps_openvz(self):
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_OPENVZ)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.stop_vps(
-            node_id=node_id,
-            vmid=vmid,
-            user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('stop.ovz', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('unittest', check_data_opts['user'])
 
     def test_create_vps_openvz(self):
         """
@@ -205,315 +188,286 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         template = 'centos6'
         ip_addr = '192.168.0.25'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_OPENVZ)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-            node_id=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            ip=ip_addr)
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                ip=ip_addr)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
 
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('create.ovz', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual('centos6', check_data_opts['TEMPLATE'])
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('vm11111.centos6.openvz', check_data_opts['VMNAME'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
-        self.assertEqual('192.168.0.25', check_data_opts['IPADDR'])
-        self.assertEqual('192.168.0.1', check_data_opts['GW'])
-        self.assertEqual('255.255.254.0', check_data_opts['NETMASK'])
-        self.assertEqual(50, check_data_opts['HDDGB'])
-        self.assertEqual(1024, check_data_opts['MEMMB'])
-        self.assertEqual(2, check_data_opts['VCPU'])
-        self.assertEqual('46.17.46.200', check_data_opts['DNS1'])
-        self.assertEqual('46.17.40.200', check_data_opts['DNS2'])
+        self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
+        self.assertEqual('test_task_queue', tracker.context['queue'])
+
+        self.assertEqual(CmdbCloudConfig.TECH_HV_OPENVZ, check_data_opts['driver'])
+        self.assertEqual('centos6', check_data_opts['template'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('v11111.openvz.pytin', check_data_opts['hostname'])
+        self.assertEqual('unittest', check_data_opts['user'])
+        self.assertEqual('192.168.0.2', check_data_opts['ip'])
+        self.assertEqual('192.168.0.1', check_data_opts['gateway'])
+        self.assertEqual('255.255.254.0', check_data_opts['netmask'])
+        self.assertEqual(50, check_data_opts['hdd'])
+        self.assertEqual(1024, check_data_opts['ram'])
+        self.assertEqual(2, check_data_opts['cpu'])
+        self.assertEqual('46.17.46.200', check_data_opts['dns1'])
+        self.assertEqual('46.17.40.200', check_data_opts['dns2'])
 
     def test_create_vps_kvm(self):
         """
         Test creating VPS KVM
         :return:
         """
-        cloud = CmdbCloudConfig()
-        backend = ProxMoxJBONServiceBackend(cloud)
-        backend.SHELL_HOOK_TASK_CLASS = MockShellHookTask
-
         ram = 1024
         hdd = 50
         cpu = 2
         template = 'centos6'
         ip_addr = '192.169.0.15'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
-        tracker = backend.create_vps(
-            node_id=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            ip=ip_addr)
+        # ip parameter is ignored
+        tracker = self.backend.create_vps(
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                ip=ip_addr)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('centos6', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['VMNAME'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
-        self.assertEqual('192.169.0.15', check_data_opts['IPADDR'])
-        self.assertEqual('192.169.0.1', check_data_opts['GW'])
-        self.assertEqual('255.255.254.0', check_data_opts['NETMASK'])
-        self.assertEqual(50, check_data_opts['HDDGB'])
-        self.assertEqual(1024, check_data_opts['MEMMB'])
-        self.assertEqual(2, check_data_opts['VCPU'])
-        self.assertEqual('46.17.46.200', check_data_opts['DNS1'])
-        self.assertEqual('46.17.40.200', check_data_opts['DNS2'])
+        self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
+        self.assertEqual('test_task_queue', tracker.context['queue'])
+
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('unittest', check_data_opts['user'])
+        self.assertEqual('192.168.0.2', check_data_opts['ip'])
+        self.assertEqual('192.168.0.1', check_data_opts['gateway'])
+        self.assertEqual('255.255.254.0', check_data_opts['netmask'])
+        self.assertEqual(50, check_data_opts['hdd'])
+        self.assertEqual(1024, check_data_opts['ram'])
+        self.assertEqual(2, check_data_opts['cpu'])
+        self.assertEqual('46.17.46.200', check_data_opts['dns1'])
+        self.assertEqual('46.17.40.200', check_data_opts['dns2'])
 
     def test_create_vps_kvm_rent_ip(self):
         """
         Создание VPS без указания IP. IP будет выделен автоматически из свободного пула.
         """
-        cloud = CmdbCloudConfig()
-        backend = ProxMoxJBONServiceBackend(cloud)
-        backend.SHELL_HOOK_TASK_CLASS = MockShellHookTask
-
         ram = 1024
         hdd = 50
         cpu = 2
         template = 'centos6'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
-        tracker = backend.create_vps(
-            node_id=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            # ip=, IP must be leased
+        tracker = self.backend.create_vps(
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                # ip=, we need to lease IP
         )
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('centos6', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['VMNAME'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
-        self.assertEqual('192.168.0.2', check_data_opts['IPADDR'])
-        self.assertEqual('192.168.0.1', check_data_opts['GW'])
-        self.assertEqual('255.255.254.0', check_data_opts['NETMASK'])
-        self.assertEqual(50, check_data_opts['HDDGB'])
-        self.assertEqual(1024, check_data_opts['MEMMB'])
-        self.assertEqual(2, check_data_opts['VCPU'])
-        self.assertEqual('46.17.46.200', check_data_opts['DNS1'])
-        self.assertEqual('46.17.40.200', check_data_opts['DNS2'])
+        self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
+        self.assertEqual('test_task_queue', tracker.context['queue'])
+
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('unittest', check_data_opts['user'])
+        self.assertEqual('192.168.0.2', check_data_opts['ip'])
+        self.assertEqual('192.168.0.1', check_data_opts['gateway'])
+        self.assertEqual('255.255.254.0', check_data_opts['netmask'])
+        self.assertEqual(50, check_data_opts['hdd'])
+        self.assertEqual(1024, check_data_opts['ram'])
+        self.assertEqual(2, check_data_opts['cpu'])
+        self.assertEqual('46.17.46.200', check_data_opts['dns1'])
+        self.assertEqual('46.17.40.200', check_data_opts['dns2'])
 
     def test_create_vps_kvm_rent_ip__ip_is_empty(self):
         """
         Создание VPS с указанным пустым IP. IP будет выделен автоматически из свободного пула.
         """
-        cloud = CmdbCloudConfig()
-        backend = ProxMoxJBONServiceBackend(cloud)
-        backend.SHELL_HOOK_TASK_CLASS = MockShellHookTask
-
         ram = 1024
         hdd = 50
         cpu = 2
         template = 'centos6'
 
-        self.srv1.set_option('hypervisor_tech', CmdbCloudConfig.TECH_HV_KVM)
+        self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         node_id = self.srv1.id
         vmid = 11111
         user_name = 'unittest'
 
-        tracker = backend.create_vps(
-            node_id=node_id,
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            ip=None)
+        tracker = self.backend.create_vps(
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                ip=None)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('centos6', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['VMNAME'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
-        self.assertEqual('192.168.0.2', check_data_opts['IPADDR'])
-        self.assertEqual('192.168.0.1', check_data_opts['GW'])
-        self.assertEqual('255.255.254.0', check_data_opts['NETMASK'])
-        self.assertEqual(50, check_data_opts['HDDGB'])
-        self.assertEqual(1024, check_data_opts['MEMMB'])
-        self.assertEqual(2, check_data_opts['VCPU'])
-        self.assertEqual('46.17.46.200', check_data_opts['DNS1'])
-        self.assertEqual('46.17.40.200', check_data_opts['DNS2'])
+        self.assertEqual(self.srv1.id, tracker.context['cmdb_node_id'])
+        self.assertEqual('test_task_queue', tracker.context['queue'])
+
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
+        self.assertEqual(11111, check_data_opts['vmid'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('unittest', check_data_opts['user'])
+        self.assertEqual('192.168.0.2', check_data_opts['ip'])
+        self.assertEqual('192.168.0.1', check_data_opts['gateway'])
+        self.assertEqual('255.255.254.0', check_data_opts['netmask'])
+        self.assertEqual(50, check_data_opts['hdd'])
+        self.assertEqual(1024, check_data_opts['ram'])
+        self.assertEqual(2, check_data_opts['cpu'])
+        self.assertEqual('46.17.46.200', check_data_opts['dns1'])
+        self.assertEqual('46.17.40.200', check_data_opts['dns2'])
 
     def test_create_vps_kvm_schedule_node_rent_ip(self):
         """
         Создание VPS без указания ноды (автовыбор) и без указания IP (выделить)
         """
-        cloud = CmdbCloudConfig()
-        backend = ProxMoxJBONServiceBackend(cloud)
-        backend.SHELL_HOOK_TASK_CLASS = MockShellHookTask
-
-        # Server.objects.all().delete()
-
         s1 = Server.objects.create(name='CN1', rating=10, role='hypervisor', parent=self.rack1, agentd_taskqueue='s1',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
 
         s2 = Server.objects.create(name='CN2', role='hypervisor', parent=self.rack1, agentd_taskqueue='s2',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM,
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM,
                                    status=Resource.STATUS_LOCKED)
 
         s3 = Server.objects.create(name='CN3', role='hypervisor', parent=self.rack1, agentd_taskqueue='s3',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM,
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM,
                                    status=Resource.STATUS_INUSE)
 
         s4 = Server.objects.create(name='CN4', rating=15, role='hypervisor', parent=self.rack1, agentd_taskqueue='s4',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_KVM, status=Resource.STATUS_INUSE)
 
         s5 = Server.objects.create(name='Some server', status=Resource.STATUS_INUSE, parent=self.rack1)
 
         s6 = Server.objects.create(name='CN6', role='hypervisor', parent=self.rack1, agentd_taskqueue='s6',
-                                   hypervisor_tech=CmdbCloudConfig.TECH_HV_OPENVZ,
+                                   hypervisor_driver=CmdbCloudConfig.TECH_HV_OPENVZ,
                                    status=Resource.STATUS_INUSE)
 
         ram = 1024
         hdd = 50
         cpu = 2
-        template = 'centos6'
+        template = 'kvm.centos6'
 
         hv_tech = CmdbCloudConfig.TECH_HV_KVM
 
         vmid = 11111
         user_name = 'unittest'
 
-        tracker = backend.create_vps(
-            vmid=vmid,
-            template=template,
-            user=user_name,
-            ram=ram,
-            hdd=hdd,
-            cpu=cpu,
-            tech=hv_tech)
+        tracker = self.backend.create_vps(
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                driver=hv_tech)
 
         self.assertEqual(s4.id, tracker.context['cmdb_node_id'])
         self.assertEqual('s4', tracker.context['queue'])
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
-        check_data = tracker.get_result()
+        check_data = tracker.wait()
         check_data_opts = check_data[2]['options'] = check_data[2]['options']
 
         self.assertEqual(TaskTrackerStatus.STATUS_SUCCESS, tracker.status)
 
         # Задача, которая будет выполнена на агенте.
-        self.assertEqual('tasks.async.shell_hook', check_data[0])
+        self.assertEqual('tasks.async.mock_vps_control', check_data[0])
         self.assertEqual(None, check_data[1])
 
-        # Скрипт, для передачи управления специальным скриптам, которые создают VPS (SUBCOMMAND).
-        self.assertEqual('vps_cmd_proxy', check_data[2]['hook_name'])
-
-        # SUBCOMMAND - название спец скрипта, поднимает CentOS, Debian и тд.
-        self.assertEqual('centos6', check_data_opts['SUBCOMMAND'])
-
         # параметры VPS
-        self.assertEqual(11111, check_data_opts['VMID'])
+        self.assertEqual(11111, check_data_opts['vmid'])
 
         # selected best node for the VPS
-        self.assertEqual(s4.id, check_data_opts['HV_NODE_ID'])
-        self.assertEqual('vm11111.centos6.kvm', check_data_opts['VMNAME'])
-        self.assertEqual('unittest', check_data_opts['USER_NAME'])
-        self.assertEqual('192.168.0.2', check_data_opts['IPADDR'])
-        self.assertEqual('192.168.0.1', check_data_opts['GW'])
-        self.assertEqual('255.255.254.0', check_data_opts['NETMASK'])
-        self.assertEqual(50, check_data_opts['HDDGB'])
-        self.assertEqual(1024, check_data_opts['MEMMB'])
-        self.assertEqual(2, check_data_opts['VCPU'])
-        self.assertEqual('46.17.46.200', check_data_opts['DNS1'])
-        self.assertEqual('46.17.40.200', check_data_opts['DNS2'])
+        self.assertEqual(s4.id, tracker.context['cmdb_node_id'])
+
+        self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
+        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('unittest', check_data_opts['user'])
+        self.assertEqual('192.168.0.2', check_data_opts['ip'])
+        self.assertEqual('192.168.0.1', check_data_opts['gateway'])
+        self.assertEqual('255.255.254.0', check_data_opts['netmask'])
+        self.assertEqual(50, check_data_opts['hdd'])
+        self.assertEqual(1024, check_data_opts['ram'])
+        self.assertEqual(2, check_data_opts['cpu'])
+        self.assertEqual('46.17.46.200', check_data_opts['dns1'])
+        self.assertEqual('46.17.40.200', check_data_opts['dns2'])

@@ -9,7 +9,7 @@ from resources.models import Resource, ResourceOption
 class ResourceOptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceOption
-        fields = ('id', 'name', 'value', 'format', 'updated_at')
+        fields = ('id', 'name', 'value', 'format', 'updated_at', 'journaling')
 
 
 class ResourceSerializer(serializers.ModelSerializer):

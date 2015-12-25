@@ -5,6 +5,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from assets.models import Server, ServerPort
+from events.models import HistoryEvent
 from resources.models import Resource
 
 
@@ -66,6 +67,40 @@ class ResourcesAPITests(APITestCase):
         self.assertEqual('someval1', response.data['options'][0]['value'])
         self.assertEqual('somename2', response.data['options'][1]['name'])
         self.assertEqual('someval2', response.data['options'][1]['value'])
+
+    def test_resource_update_journaling_off(self):
+        """
+        Testing updates with joutnaling on/off.
+        :return:
+        """
+        res1 = Resource.objects.create(name='res1')
+        res2 = Server.objects.create(name='res2', parent=res1, extrafield='extravalue', extrafield2='extravalue2')
+
+        self.assertEqual(4, len(HistoryEvent.objects.all()))
+
+        # journaled updates
+        response = self.client.put('/v1/resources/%s/' % res2.id,
+                                   {'status': Resource.STATUS_INUSE,
+                                    'name': 'res2_ed',
+                                    'options': [
+                                        {'name': 'extrafield', 'value': 'extravalue_ed'},
+                                        {'name': 'extrafield2', 'value': 'extravalue2_ed'}
+                                    ]
+                                    },
+                                   format='json')
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(8, len(HistoryEvent.objects.all()))
+
+        # journaling is off
+        self.client.put('/v1/resources/%s/' % res2.id,
+                        {'options': [
+                            {'name': 'extrafield', 'value': 'extravalue_ed2', 'journaling': False},
+                            {'name': 'extrafield2', 'value': 'extravalue2_ed2'}
+                        ]
+                        },
+                        format='json')
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(9, len(HistoryEvent.objects.all()))
 
     def test_resource_update(self):
         res1 = Resource.objects.create(name='res1')

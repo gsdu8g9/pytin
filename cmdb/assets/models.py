@@ -359,7 +359,7 @@ class Rack(AssetResource):
         proxy = True
 
     def __unicode__(self):
-        return "%s (%s, %sU)" % (self.name, self.label, self.size)
+        return self.name
 
     @property
     def size(self):
@@ -398,3 +398,17 @@ class VirtualServer(AssetResource):
     @property
     def ethernet_ports(self):
         return VirtualServerPort.active.filter(parent=self)
+
+    @property
+    def tech(self):
+        """
+        Getting the VPS virtualization technology.
+        :return:
+        """
+        return self.get_option_value('tech', default='')
+
+    @tech.setter
+    def tech(self, value):
+        assert value is not None, "Parameter 'value' must be defined."
+
+        self.set_option('tech', value)

@@ -7,7 +7,6 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from cmdb.settings import logger
-
 from resources.models import Resource, ResourceOption
 
 RESOURCE_HISTORY_FIELDS = ['parent_id', 'name', 'type', 'status']
@@ -118,6 +117,11 @@ def resource_option_post_init(sender, instance, **kwargs):
 def resource_option_post_save(sender, instance, created, **kwargs):
     field_name = instance.name
     field_new_value = instance.value
+
+    # ability to ignore some fields (such as heartbeat), to prevent event table flooding.
+    if not instance.journaling:
+        return
+
     history_field = '_original_value'
     if hasattr(instance, history_field):
         field_old_value = getattr(instance, history_field)
