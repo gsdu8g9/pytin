@@ -167,7 +167,7 @@ class CloudTaskTracker(models.Model):
                     return result_data
 
                 # in progress
-                self.tracker.progress()
+                self.progress()
 
                 if last_data != result_data:
                     last_data = result_data
