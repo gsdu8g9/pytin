@@ -1,5 +1,6 @@
 zbx_adaptec.py - скрипт для контроллеров Adaptec
 zbx_zpool.py - скрипт для ZFS пулов
+zbx_md.py - скрипт для программных RAID
 
 /etc/sudoers.d/zpoolconf
 

@@ -97,19 +97,12 @@ def main():
         """
         Сформировать пакет данных
         """
-        str_jdump = '{"data": ['
+        devices = []
         for id_controller,controller in enumerate(controllers):
             for id_device,device in enumerate(controller[1]):
-                str_jdump += '{"{#CONTROLLER}": "' + controller[0] + '",'
-                str_jdump += '"{#PDEVICE}": "' + device + '"}'
-                if id_device + 1 < len(controller[1]):
-                    str_jdump += ','
-            if id_controller + 1 < len(controllers):
-                str_jdump += ','
-        str_jdump += ']}'
-        jdump = json.loads(str_jdump)
-        gf = json.dumps(jdump, indent=4)
-        print gf
+                devices.append({"{#CONTROLLER}": controller[0], "{#PDEVICE}": device})
+        result = json.dumps({"data": devices})
+        print result
         sys.exit(0)
 
     if args.test:

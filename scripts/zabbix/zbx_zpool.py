@@ -54,6 +54,7 @@ def main():
     mutex_group1 = group1.add_mutually_exclusive_group(required=True)
     mutex_group1.add_argument("--discovery", dest="discovery", action='store_true', help="Обнаружение")
     mutex_group1.add_argument("--pool", dest="pool", help="Имя пула")
+    mutex_group1.add_argument("--size", dest="poolsize", help="Размер пула")
     mutex_group1.add_argument("--status", dest="status", help="Состояние пула")
 
     args = parser.parse_args()
@@ -63,14 +64,15 @@ def main():
     Обнаружение пулов и дисков
     """
     if args.discovery:
-        outinfo = subprocess.Popen(['sudo', cmd_zpool, 'list', '-H'], stdout=subprocess.PIPE)
+        cmd = ['sudo', cmd_zpool, 'list', '-H', '-o', 'name']
+        cmd = ' '.join(cmd)
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         pools = []
         """
         Получить список пулов
         """
         for line in outinfo.stdout.readlines():
-            line = line.replace("\n", "")
-            pool = line.split('\s')
+            pool = line.replace("\n", "")
             pools.append(pool)
         """
         Получить список дисков на каждом пуле
@@ -80,16 +82,11 @@ def main():
         """
         Сформировать пакет данных
         """
-        str_jdump = '{"data": ['
+        data = []
         for id_pool,pool in enumerate(pools):
-            str_jdump += '{"{#POOLNAME}": "' + pool[0] + '"}'
-#                str_jdump += '"{#POOLDEVICE}": "' + device + '"}'
-            if id_pool + 1 < len(pools):
-                str_jdump += ','
-        str_jdump += ']}'
-        jdump = json.loads(str_jdump)
-        gf = json.dumps(jdump, indent=4)
-        print gf
+            data.append({"{#POOLNAME}": pool[0]})
+        result = json.dumps({"data": data})
+        print result
         sys.exit(0)
 
     if args.test:
@@ -120,6 +117,16 @@ def main():
                     result = '6'
                 else:
                     result = '0'
+    elif args.poolsize:
+        cmd = ['sudo', cmd_zpool, 'get', '-p', 'size', args.poolsize]
+        cmd = ' '.join(cmd)
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        for line in outinfo.stdout.readlines():
+            data = line.split()
+            if data[0] == args.poolsize:
+                result = data[2]
+                print result
+                sys.exit(0)
 
     if result:
         if len(result) > 0:
