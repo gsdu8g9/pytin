@@ -332,6 +332,7 @@ class Resource(MPTTModel):
     STATUS_FAILED = 'failed'
     STATUS_LOCKED = 'locked'
     STATUS_DELETED = 'deleted'
+    STATUSES_NOT_DELETED = [STATUS_FREE, STATUS_INUSE, STATUS_FAILED, STATUS_LOCKED]
     STATUS_CHOICES = (
         (STATUS_FREE, 'Free to use'),
         (STATUS_INUSE, 'Used by someone'),

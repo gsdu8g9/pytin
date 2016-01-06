@@ -78,6 +78,7 @@ class Command(BaseCommand):
         # DELETE
         res_delete_cmd = subparsers.add_parser('delete', help="Delete resource objects.")
         res_delete_cmd.add_argument('resource-id', type=int, nargs='+', help="IDs of the resources to delete.")
+        res_delete_cmd.add_argument('--recursive', action='store_true', help="Delete resource recursively.")
         self._register_handler('delete', self._handle_command_delete)
 
     def handle(self, *args, **options):
@@ -92,7 +93,22 @@ class Command(BaseCommand):
     def _handle_command_delete(self, *args, **options):
         for res_id in options['resource-id']:
             resource = Resource.active.get(pk=res_id)
-            resource.delete()
+
+            if options['recursive']:
+                self._recursive_delete(resource)
+            else:
+                resource.delete()
+
+    def _recursive_delete(self, node):
+        assert node
+
+        print node
+
+        for child in node.filter_childs(Resource):
+            if child.id != node.id:
+                self._recursive_delete(child)
+
+        node.delete()
 
     def _handle_command_add(self, *args, **options):
         parsed_data = self._parse_reminder_arguments(options['fields'])
