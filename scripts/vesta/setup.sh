@@ -37,16 +37,17 @@ function set_conf {
 case $(head -n1 /etc/issue | cut -f 1 -d ' ') in
 Debian|Ubuntu)
     wget --no-check-certificate https://raw.githubusercontent.com/servancho/pytin/master/scripts/debian/default.sh
+    wget http://vestacp.com/pub/vst-install.sh -O /root/vst-install.sh
     bash default.sh
     set_conf
     ;;
 CentOS)
     bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
+    curl -o /root/vst-install.sh http://vestacp.com/pub/vst-install.sh
     set_conf
     ;;
     *)
     ;;
 esac
 
-curl -O http://vestacp.com/pub/vst-install.sh
-bash vst-install.sh --force
+bash /root/vst-install.sh --force --lang ru
