@@ -50,6 +50,10 @@ if [ $? -ne 0 ]; then
 
         cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
         perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
+        perl -pi -e 's/SET_REFRESH=\"10\"/SET_REFRESH=\"0\"/' /etc/apf/conf.apf
+        perl -pi -e 's/RESV_DNS=\"1\"/RESV_DNS=\"0\"/' /etc/apf/conf.apf
+        perl -pi -e 's/LOG_DROP=\"0\"/LOG_DROP=\"1\"/' /etc/apf/conf.apf
+        perl -pi -e 's/DLIST_RESERVED=\"1\"/DLIST_RESERVED=\"0\"/' /etc/apf/conf.apf
 
         echo "10.0.0.0/24" >> /etc/apf/allow_hosts.rules
 
