@@ -35,45 +35,19 @@ function set_conf {
 
 # Detect OS
 case $(head -n1 /etc/issue | cut -f 1 -d ' ') in
-Debian)
+Debian|Ubuntu)
     wget --no-check-certificate https://raw.githubusercontent.com/servancho/pytin/master/scripts/debian/default.sh
+    wget http://vestacp.com/pub/vst-install.sh -O /root/vst-install.sh
     bash default.sh
     set_conf
-    wget http://vestacp.com/pub/vst-install.sh
-    bash vst-install.sh
-
-    # Force install
-    if [ $? -ne 0 ];
-    then
-    bash vst-install-debian.sh --force
-    fi
     ;;
-
-Ubuntu)
-    wget --no-check-certificate https://raw.githubusercontent.com/servancho/pytin/master/scripts/debian/default.sh
-    bash default.sh
-    set_conf
-    wget http://vestacp.com/pub/vst-install-ubuntu.sh
-    bash vst-install-ubuntu.sh
-
-    # Force install
-    if [ $? -ne 0 ];
-    then
-        bash vst-install-ubuntu.sh --force
-    fi
-    ;;
-
 CentOS)
     bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/centos/setup.sh)
+    curl -o /root/vst-install.sh http://vestacp.com/pub/vst-install.sh
     set_conf
-    bash <(curl http://vestacp.com/pub/vst-install.sh)
-
-    # Force install
-    if [ $? -ne 0 ];
-    then
-        bash vst-install-rhel.sh --force
-    fi
     ;;
     *)
     ;;
 esac
+
+bash /root/vst-install.sh --force --lang ru

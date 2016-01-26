@@ -1,0 +1,475 @@
+root@users:~# mdadm --detail /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 498368 (486.77 MiB 510.33 MB)
+  Used Dev Size : 498368 (486.77 MiB 510.33 MB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:06:26 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 46% complete
+
+           Name : users:0  (local to host users)
+           UUID : 9edb81f2:e327722a:763cdf2e:cfe9952e
+         Events : 46
+
+    Number   Major   Minor   RaidDevice State
+       0       8        1        0      active sync   /dev/sda1
+       2       8       17        1      spare rebuilding   /dev/sdb1
+root@users:~# mdadm --detail /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 498368 (486.77 MiB 510.33 MB)
+  Used Dev Size : 498368 (486.77 MiB 510.33 MB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:06:32 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 62% complete
+
+           Name : users:0  (local to host users)
+           UUID : 9edb81f2:e327722a:763cdf2e:cfe9952e
+         Events : 49
+
+    Number   Major   Minor   RaidDevice State
+       0       8        1        0      active sync   /dev/sda1
+       2       8       17        1      spare rebuilding   /dev/sdb1
+root@users:~# mdadm --detail /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 498368 (486.77 MiB 510.33 MB)
+  Used Dev Size : 498368 (486.77 MiB 510.33 MB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:06:32 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 65% complete
+
+           Name : users:0  (local to host users)
+           UUID : 9edb81f2:e327722a:763cdf2e:cfe9952e
+         Events : 49
+
+    Number   Major   Minor   RaidDevice State
+       0       8        1        0      active sync   /dev/sda1
+       2       8       17        1      spare rebuilding   /dev/sdb1
+root@users:~# mdadm --detail /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 498368 (486.77 MiB 510.33 MB)
+  Used Dev Size : 498368 (486.77 MiB 510.33 MB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:06:32 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 65% complete
+
+           Name : users:0  (local to host users)
+           UUID : 9edb81f2:e327722a:763cdf2e:cfe9952e
+         Events : 49
+
+    Number   Major   Minor   RaidDevice State
+       0       8        1        0      active sync   /dev/sda1
+       2       8       17        1      spare rebuilding   /dev/sdb1
+
+
+root@users:~# mdadm --detail /dev/md2
+/dev/md2:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 1936882496 (1847.16 GiB 1983.37 GB)
+  Used Dev Size : 1936882496 (1847.16 GiB 1983.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:07:52 2016
+          State : clean, degraded, resyncing (DELAYED) 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+           Name : users:2  (local to host users)
+           UUID : ee7e0526:d83f2c81:b01372e6:2a89b6a5
+         Events : 1394
+
+    Number   Major   Minor   RaidDevice State
+       0       8        6        0      active sync   /dev/sda6
+       2       8       22        1      spare rebuilding   /dev/sdb6
+
+
+root@users:~# mdadm --detail /dev/md1
+/dev/md1:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 15990656 (15.25 GiB 16.37 GB)
+  Used Dev Size : 15990656 (15.25 GiB 16.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:07:08 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 3% complete
+
+           Name : users:1  (local to host users)
+           UUID : 9c80c3ee:1ea1e28c:df587d9c:2a791c6d
+         Events : 13
+
+    Number   Major   Minor   RaidDevice State
+       0       8        5        0      active sync   /dev/sda5
+       2       8       21        1      spare rebuilding   /dev/sdb5
+
+root@users:~# mdadm --detail /dev/md1
+/dev/md1:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 15990656 (15.25 GiB 16.37 GB)
+  Used Dev Size : 15990656 (15.25 GiB 16.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:08:41 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 9% complete
+
+           Name : users:1  (local to host users)
+           UUID : 9c80c3ee:1ea1e28c:df587d9c:2a791c6d
+         Events : 14
+
+    Number   Major   Minor   RaidDevice State
+       0       8        5        0      active sync   /dev/sda5
+       2       8       21        1      spare rebuilding   /dev/sdb5
+root@users:~# mdadm --detail /dev/md2
+/dev/md2:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 1936882496 (1847.16 GiB 1983.37 GB)
+  Used Dev Size : 1936882496 (1847.16 GiB 1983.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:09:36 2016
+          State : clean, degraded, resyncing (DELAYED) 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+           Name : users:2  (local to host users)
+           UUID : ee7e0526:d83f2c81:b01372e6:2a89b6a5
+         Events : 1596
+
+    Number   Major   Minor   RaidDevice State
+       0       8        6        0      active sync   /dev/sda6
+       2       8       22        1      spare rebuilding   /dev/sdb6
+root@users:~# mdadm --detail /dev/md1
+/dev/md1:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 15990656 (15.25 GiB 16.37 GB)
+  Used Dev Size : 15990656 (15.25 GiB 16.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:21:30 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 58% complete
+
+           Name : users:1  (local to host users)
+           UUID : 9c80c3ee:1ea1e28c:df587d9c:2a791c6d
+         Events : 22
+
+    Number   Major   Minor   RaidDevice State
+       0       8        5        0      active sync   /dev/sda5
+       2       8       21        1      spare rebuilding   /dev/sdb5
+root@users:~# mdadm --detail /dev/md2
+/dev/md2:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 1936882496 (1847.16 GiB 1983.37 GB)
+  Used Dev Size : 1936882496 (1847.16 GiB 1983.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:22:10 2016
+          State : clean, degraded, resyncing (DELAYED) 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+           Name : users:2  (local to host users)
+           UUID : ee7e0526:d83f2c81:b01372e6:2a89b6a5
+         Events : 3050
+
+    Number   Major   Minor   RaidDevice State
+       0       8        6        0      active sync   /dev/sda6
+       2       8       22        1      spare rebuilding   /dev/sdb6
+root@users:~# mdadm --detail /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 498368 (486.77 MiB 510.33 MB)
+  Used Dev Size : 498368 (486.77 MiB 510.33 MB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:06:46 2016
+          State : clean 
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 0
+
+           Name : users:0  (local to host users)
+           UUID : 9edb81f2:e327722a:763cdf2e:cfe9952e
+         Events : 56
+
+    Number   Major   Minor   RaidDevice State
+       0       8        1        0      active sync   /dev/sda1
+       2       8       17        1      active sync   /dev/sdb1
+root@users:~# mdadm --detail /dev/md1
+/dev/md1:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 15990656 (15.25 GiB 16.37 GB)
+  Used Dev Size : 15990656 (15.25 GiB 16.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:25:54 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 76% complete
+
+           Name : users:1  (local to host users)
+           UUID : 9c80c3ee:1ea1e28c:df587d9c:2a791c6d
+         Events : 25
+
+    Number   Major   Minor   RaidDevice State
+       0       8        5        0      active sync   /dev/sda5
+       2       8       21        1      spare rebuilding   /dev/sdb5
+root@users:~# mdadm --detail /dev/md2
+/dev/md2:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 1936882496 (1847.16 GiB 1983.37 GB)
+  Used Dev Size : 1936882496 (1847.16 GiB 1983.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:26:15 2016
+          State : clean, degraded, resyncing (DELAYED) 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+           Name : users:2  (local to host users)
+           UUID : ee7e0526:d83f2c81:b01372e6:2a89b6a5
+         Events : 3518
+
+    Number   Major   Minor   RaidDevice State
+       0       8        6        0      active sync   /dev/sda6
+       2       8       22        1      spare rebuilding   /dev/sdb6
+root@users:~# mdadm --detail /dev/md1
+/dev/md1:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 15990656 (15.25 GiB 16.37 GB)
+  Used Dev Size : 15990656 (15.25 GiB 16.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:32:12 2016
+          State : clean 
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 0
+
+           Name : users:1  (local to host users)
+           UUID : 9c80c3ee:1ea1e28c:df587d9c:2a791c6d
+         Events : 30
+
+    Number   Major   Minor   RaidDevice State
+       0       8        5        0      active sync   /dev/sda5
+       2       8       21        1      active sync   /dev/sdb5
+root@users:~# mdadm --detail /dev/md2
+/dev/md2:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 1936882496 (1847.16 GiB 1983.37 GB)
+  Used Dev Size : 1936882496 (1847.16 GiB 1983.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:33:59 2016
+          State : active, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 0% complete
+
+           Name : users:2  (local to host users)
+           UUID : ee7e0526:d83f2c81:b01372e6:2a89b6a5
+         Events : 4431
+
+    Number   Major   Minor   RaidDevice State
+       0       8        6        0      active sync   /dev/sda6
+       2       8       22        1      spare rebuilding   /dev/sdb6
+root@users:~# mdadm --detail /dev/md1
+/dev/md1:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 15990656 (15.25 GiB 16.37 GB)
+  Used Dev Size : 15990656 (15.25 GiB 16.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:32:12 2016
+          State : clean 
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 0
+
+           Name : users:1  (local to host users)
+           UUID : 9c80c3ee:1ea1e28c:df587d9c:2a791c6d
+         Events : 30
+
+    Number   Major   Minor   RaidDevice State
+       0       8        5        0      active sync   /dev/sda5
+       2       8       21        1      active sync   /dev/sdb5
+root@users:~# mdadm --detail /dev/md2
+/dev/md2:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 1936882496 (1847.16 GiB 1983.37 GB)
+  Used Dev Size : 1936882496 (1847.16 GiB 1983.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Thu Jan 14 22:52:16 2016
+          State : clean, degraded, recovering 
+ Active Devices : 1
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 1
+
+ Rebuild Status : 0% complete
+
+           Name : users:2  (local to host users)
+           UUID : ee7e0526:d83f2c81:b01372e6:2a89b6a5
+         Events : 6568
+
+    Number   Major   Minor   RaidDevice State
+       0       8        6        0      active sync   /dev/sda6
+       2       8       22        1      spare rebuilding   /dev/sdb6
+root@users:~# mdadm --detail /dev/md2
+/dev/md2:
+        Version : 1.2
+  Creation Time : Thu Jan 14 20:58:38 2016
+     Raid Level : raid1
+     Array Size : 1936882496 (1847.16 GiB 1983.37 GB)
+  Used Dev Size : 1936882496 (1847.16 GiB 1983.37 GB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Fri Jan 15 12:15:06 2016
+          State : clean 
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 0
+
+           Name : users:2  (local to host users)
+           UUID : ee7e0526:d83f2c81:b01372e6:2a89b6a5
+         Events : 28609
+
+    Number   Major   Minor   RaidDevice State
+       0       8        6        0      active sync   /dev/sda6
+       2       8       22        1      active sync   /dev/sdb6
