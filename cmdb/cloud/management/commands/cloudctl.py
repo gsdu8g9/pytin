@@ -47,8 +47,6 @@ class Command(BaseCommand):
         vps_cmd_parser.add_argument('--create', action="store_true", help="Create VPS server.")
         vps_cmd_parser.add_argument('--start', action="store_true", help="Start VPS server.")
         vps_cmd_parser.add_argument('--stop', action="store_true", help="Stop VPS server.")
-        vps_cmd_parser.add_argument('--driver', default='kvm',
-                                    help="Hypervisor driver, used to manage VPS (must be supported by backend).")
         vps_cmd_parser.add_argument('--template', help="VPS template.", default='centos.6.64bit')
         vps_cmd_parser.add_argument('--node', type=int, default=0,
                                     help="CMDB node ID. Scheduling is used if not specified.")
@@ -114,22 +112,16 @@ class Command(BaseCommand):
                     ip=ip_addr)
 
         elif options['stop']:
-            hyper_driver = options['driver']
-
             tracker = self.backend.stop_vps(
                     node=node_id,
                     vmid=vmid,
-                    user=user_name,
-                    driver=hyper_driver)
+                    user=user_name)
 
         elif options['start']:
-            hyper_driver = options['driver']
-
             tracker = self.backend.start_vps(
                     node=node_id,
                     vmid=vmid,
-                    user=user_name,
-                    driver=hyper_driver)
+                    user=user_name)
 
         if tracker:
             logger.info("Attached to the task tracker %s. Ctrl-C to exit." % tracker.id)
