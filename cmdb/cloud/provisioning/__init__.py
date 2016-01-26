@@ -63,7 +63,7 @@ class HypervisorBackend(CloudBackend):
         Rent IP for the VPS on the node.
         :param node_id: Node, on which VPS is created.
         :param count: Number of IPs to rent.
-        :return: list of rented IPs
+        :return: tuple (ip, gw, netmask, dns1, dns2)
         """
         assert node_id > 0
 
@@ -89,7 +89,7 @@ class HypervisorBackend(CloudBackend):
         Search and return info about IP address: gateway and netmask.
         Check only in IPNetworkPools that is free.
         :param ip_address:
-        :return: tuple (ip, gw, netmask)
+        :return: tuple (ip, gw, netmask, dns1, dns2)
         """
         assert ip_address
 
@@ -115,11 +115,13 @@ class HypervisorBackend(CloudBackend):
         # checking IP pool
         netmask = target_net_pool.get_option_value('netmask', default=None)
         gateway = target_net_pool.get_option_value('gateway', default=None)
+        dns1 = target_net_pool.get_option_value('dns1', default=None)
+        dns2 = target_net_pool.get_option_value('dns2', default=None)
 
         if not netmask or not gateway:
             raise Exception("IP pool %s have no network settings." % target_net_pool)
 
-        return ip_address, gateway, netmask
+        return ip_address, gateway, netmask, dns1, dns2
 
 
 class CloudServiceHandler(object):

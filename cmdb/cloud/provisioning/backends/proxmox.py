@@ -144,6 +144,7 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
         Optional:
             node: ID of the hypervisor node. If not specified, scheduler is used to select the best node,
                      based on template.
+            rootpass: root password for the KVM
 
         Populated parameters:
             hostname: hostname of the virtual machine
@@ -169,13 +170,13 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             (hyper_driver, tpl) = options['template'].split('.', 1)
             target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(hypervisor_driver=hyper_driver))
 
-        ip, gateway, netmask = self.lease_ip(target_node.id)
+        ip, gateway, netmask, dns1, dns2 = self.lease_ip(target_node.id)
 
         # update some options
         options['driver'] = hyper_driver
-        options['hostname'] = "v%s.%s.pytin" % (options['vmid'], hyper_driver)
-        options['dns1'] = '46.17.46.200'
-        options['dns2'] = '46.17.40.200'
+        options['hostname'] = "v%s.%s.%s" % (options['vmid'], hyper_driver, options['user'])
+        options['dns1'] = dns1
+        options['dns2'] = dns2
         options['ip'] = ip
         options['gateway'] = gateway
         options['netmask'] = netmask

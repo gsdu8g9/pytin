@@ -102,7 +102,7 @@ class Command(BaseCommand):
     def _recursive_delete(self, node):
         assert node
 
-        print node
+        logger.info("Deleting %s" % node)
 
         for child in node.filter_childs(Resource):
             if child.id != node.id:

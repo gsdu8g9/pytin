@@ -19,7 +19,7 @@ class RatingBasedScheduler(ProvisionScheduler):
     This scheduler uses node rating option to select best node.
     Node must have the 'rating' option. This option can be populated from
     any source, such as UnixBench score or more complex metrics.
-    The rule is: higher rating is better.
+    The rule is: the higher rating is better.
     """
 
     RATING_ATTR = 'rating'

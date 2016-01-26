@@ -51,9 +51,11 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1 = Server.objects.create(name='Test hypervisor 1', role='hypervisor', parent=self.rack1)
         self.pools_group1 = RegionResource.objects.create(name='Test DC 1 IP Pools', parent=self.dc1)
         self.pool1 = IPNetworkPool.objects.create(network='192.168.0.0/23', parent=self.pools_group1,
-                                                  status=Resource.STATUS_FREE)
+                                                  status=Resource.STATUS_FREE,
+                                                  dns1='46.17.46.200', dns2='46.17.40.200')
         self.pool11 = IPNetworkPool.objects.create(network='192.169.0.0/23', parent=self.pools_group1,
-                                                   status=Resource.STATUS_INUSE)
+                                                   status=Resource.STATUS_INUSE,
+                                                   dns1='46.17.46.200', dns2='46.17.40.200')
 
         self.srv1.set_option('agentd_taskqueue', 'test_task_queue')
 
@@ -223,7 +225,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(CmdbCloudConfig.TECH_HV_OPENVZ, check_data_opts['driver'])
         self.assertEqual('centos6', check_data_opts['template'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('v11111.openvz.pytin', check_data_opts['hostname'])
+        self.assertEqual('v11111.openvz.unittest', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
@@ -279,7 +281,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('v11111.kvm.unittest', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
@@ -333,7 +335,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('v11111.kvm.unittest', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
@@ -386,7 +388,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
         self.assertEqual(11111, check_data_opts['vmid'])
-        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('v11111.kvm.unittest', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
@@ -461,7 +463,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(s4.id, tracker.context['cmdb_node_id'])
 
         self.assertEqual(CmdbCloudConfig.TECH_HV_KVM, check_data_opts['driver'])
-        self.assertEqual('v11111.kvm.pytin', check_data_opts['hostname'])
+        self.assertEqual('v11111.kvm.unittest', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
         self.assertEqual('192.168.0.2', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
