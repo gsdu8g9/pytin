@@ -170,7 +170,8 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             (hyper_driver, tpl) = options['template'].split('.', 1)
             target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(hypervisor_driver=hyper_driver))
 
-        ip, gateway, netmask, dns1, dns2 = self.lease_ip(target_node.id)
+        ip, gateway, netmask, dns1, dns2 = self.find_ip_info(options['id']) if 'ip' in options else self.lease_ip(
+                target_node.id)
 
         # update some options
         options['driver'] = hyper_driver
