@@ -7,6 +7,30 @@ from ipman.models import IPAddress, IPNetworkPool, IPAddressPool
 from resources.models import Resource
 
 
+def generate_password(length=15):
+    """
+    Method used to generate passwords during provisioning processes.
+    :param length:
+    :return:
+    """
+    from random import choice
+
+    charsets = [
+        'abcdefghijklmnopqrstuvwxyz',
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        '0123456789',
+        '^!\$%&/()=?{[]}+~#-_.:,;<>|\\',
+    ]
+
+    pwd = []
+    charset = choice(charsets)
+    while len(pwd) < length:
+        pwd.append(choice(charset))
+        charset = choice(list(set(charsets) - {charset}))
+
+    return "".join(pwd)
+
+
 class CloudTask(object):
     def __init__(self, tracker, **context):
         assert tracker

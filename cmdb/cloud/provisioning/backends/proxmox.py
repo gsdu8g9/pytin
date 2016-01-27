@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from celery import Celery
 
 from assets.models import Server
-from cloud.provisioning import HypervisorBackend, CloudTask
+from cloud.provisioning import HypervisorBackend, CloudTask, generate_password
 from cloud.provisioning.schedulers import RatingBasedScheduler
 from cmdb.settings import logger, PROXMOX_BACKEND
 
@@ -170,8 +170,13 @@ class ProxMoxJBONServiceBackend(HypervisorBackend):
             (hyper_driver, tpl) = options['template'].split('.', 1)
             target_node = self.scheduler.get_best_node(self.cloud.get_hypervisors(hypervisor_driver=hyper_driver))
 
-        ip, gateway, netmask, dns1, dns2 = self.find_ip_info(options['ip']) if 'ip' in options else self.lease_ip(
-                target_node.id)
+        if 'ip' in options and options['ip']:
+            ip, gateway, netmask, dns1, dns2 = self.find_ip_info(options['ip'])
+        else:
+            ip, gateway, netmask, dns1, dns2 = self.lease_ip(target_node.id)
+
+        if 'rootpass' not in options:
+            options['rootpass'] = generate_password()
 
         # update some options
         options['driver'] = hyper_driver

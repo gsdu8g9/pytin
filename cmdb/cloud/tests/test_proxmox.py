@@ -227,7 +227,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(11111, check_data_opts['vmid'])
         self.assertEqual('v11111.openvz.unittest', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
-        self.assertEqual('192.168.0.2', check_data_opts['ip'])
+        self.assertEqual('192.168.0.25', check_data_opts['ip'])
         self.assertEqual('192.168.0.1', check_data_opts['gateway'])
         self.assertEqual('255.255.254.0', check_data_opts['netmask'])
         self.assertEqual(50, check_data_opts['hdd'])
@@ -235,6 +235,7 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(2, check_data_opts['cpu'])
         self.assertEqual('46.17.46.200', check_data_opts['dns1'])
         self.assertEqual('46.17.40.200', check_data_opts['dns2'])
+        self.assertEqual(15, len(check_data_opts['rootpass']))
 
     def test_create_vps_kvm(self):
         """
@@ -283,14 +284,15 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.assertEqual(11111, check_data_opts['vmid'])
         self.assertEqual('v11111.kvm.unittest', check_data_opts['hostname'])
         self.assertEqual('unittest', check_data_opts['user'])
-        self.assertEqual('192.168.0.2', check_data_opts['ip'])
-        self.assertEqual('192.168.0.1', check_data_opts['gateway'])
+        self.assertEqual('192.169.0.15', check_data_opts['ip'])
+        self.assertEqual('192.169.0.1', check_data_opts['gateway'])
         self.assertEqual('255.255.254.0', check_data_opts['netmask'])
         self.assertEqual(50, check_data_opts['hdd'])
         self.assertEqual(1024, check_data_opts['ram'])
         self.assertEqual(2, check_data_opts['cpu'])
         self.assertEqual('46.17.46.200', check_data_opts['dns1'])
         self.assertEqual('46.17.40.200', check_data_opts['dns2'])
+        self.assertEqual(15, len(check_data_opts['rootpass']))
 
     def test_create_vps_kvm_rent_ip(self):
         """
