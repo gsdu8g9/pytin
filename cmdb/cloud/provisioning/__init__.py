@@ -19,7 +19,6 @@ def generate_password(length=15):
         'abcdefghijklmnopqrstuvwxyz',
         'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
         '0123456789',
-        '^!\$%&/()=?{[]}+~#-_.:,;<>|\\',
     ]
 
     pwd = []

@@ -91,6 +91,12 @@ class ResourcesAPITests(APITestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual(8, len(HistoryEvent.objects.all()))
 
+        extrafield_opt = res2.get_option('extrafield')
+        self.assertTrue(extrafield_opt.journaling)
+
+        extrafield_opt = res2.get_option('extrafield2')
+        self.assertTrue(extrafield_opt.journaling)
+
         # journaling is off
         self.client.put('/v1/resources/%s/' % res2.id,
                         {'options': [
@@ -101,6 +107,12 @@ class ResourcesAPITests(APITestCase):
                         format='json')
         self.assertEqual(200, response.status_code)
         self.assertEqual(9, len(HistoryEvent.objects.all()))
+
+        extrafield_opt = res2.get_option('extrafield')
+        self.assertFalse(extrafield_opt.journaling)
+
+        extrafield_opt = res2.get_option('extrafield2')
+        self.assertTrue(extrafield_opt.journaling)
 
     def test_resource_update(self):
         res1 = Resource.objects.create(name='res1')
