@@ -32,7 +32,7 @@ class ResourceAdmin(DjangoMpttAdmin):
     ]
 
     def filter_tree_queryset(self, queryset):
-        return queryset.exclude(status__in=[Resource.STATUS_DELETED])
+        return queryset.exclude(status__in=[Resource.STATUS_DELETED, Resource.STATUS_FAILED])
 
 
 class ResourceOptionAdmin(admin.ModelAdmin):

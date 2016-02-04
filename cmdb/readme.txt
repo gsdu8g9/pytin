@@ -198,8 +198,8 @@ Use cases
     cmdbctl list linked_port_id=server port id
 
 
-     python manage.py cmdbctl list address="46.17.40.111"
-     python manage.py assetctl server [-o] 46.17.46.111
+    python manage.py cmdbctl list address="46.17.40.111"
+    python manage.py assetctl server [-o] 46.17.46.111
 
 
 REST API

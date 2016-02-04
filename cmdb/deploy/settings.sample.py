@@ -105,6 +105,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(os.path.dirname(BASE_DIR), 'db/cmdb.sqlite3'),
+    },
+    'mysql': {
+        'ENGINE': 'django.db.backends.mysql',
+        'HOST': '/var/run/mysql',
+        'NAME': 'cmdb',
+        'USER': 'cmdb',
+        'PASSWORD': 'password',
+        'CHARSET': "utf8"
     }
 }
 
