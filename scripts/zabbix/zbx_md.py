@@ -28,7 +28,7 @@ cmd_mdadm = '/sbin/mdadm'
 """
 if len(cmd_mdadm) == 0:
     o = open('output','a') #open for append
-    outinfo = subprocess.Popen(['whereis', 'mdadm'], stdout=subprocess.PIPE)
+    outinfo = subprocess.Popen(['which', 'mdadm'], stdout=subprocess.PIPE)
     var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
     for line in open('/etc/zabbix/zbx_md.py'):
        line = line.replace("cmd_mdadm = '/sbin/mdadm'", "cmd_mdadm = '" + var1[1] + "'")

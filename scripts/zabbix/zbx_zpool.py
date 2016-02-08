@@ -36,7 +36,7 @@ cmd_zpool = ''
 """
 if len(cmd_zpool) == 0:
     o = open('output','a') #open for append
-    outinfo = subprocess.Popen(['whereis', 'zpool'], stdout=subprocess.PIPE)
+    outinfo = subprocess.Popen(['which', 'zpool'], stdout=subprocess.PIPE)
     var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
     for line in open('/etc/zabbix/zbx_zpool.py'):
        line = line.replace("cmd_zpool = ''", "cmd_zpool = '" + var1[1] + "'")

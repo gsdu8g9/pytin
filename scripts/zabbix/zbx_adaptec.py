@@ -1,8 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: UTF-8 -*-
 
-# RemiZOffAlex
-#
 # Description:
 #   Информация от Adaptec
 #
@@ -18,6 +16,11 @@
 # zabbix_agetnd.conf:
 #   Timeout=15
 
+__author__ = 'RemiZOffAlex'
+__copyright__ = '(c) RemiZOffAlex'
+__license__ = 'MIT'
+__email__ = 'remizoffalex@mail.ru'
+
 import argparse
 import os
 import re
@@ -25,6 +28,20 @@ import subprocess
 import sys
 import traceback
 import json
+
+def read_json(filename):
+    """
+    Считываем данные в формате JSON из файла filename
+    """
+    result = None
+    with open(filename) as json_data:
+        result = json.load(json_data)
+        json_data.close()
+    return result
+
+def write_json(filename, jsondata):
+    with open(filename, 'w') as f:
+        json.dump(jsondata, f)
 
 dict_re = {'logdevnum': '^Logical device number ([0-9]+).*$',
     'status': '^\s*Status of logical device\s*:\s*(.*)$',
@@ -36,16 +53,19 @@ dict_re = {'logdevnum': '^Logical device number ([0-9]+).*$',
     'pdevicestate': '^\s*State\s*:\s*(.*)$',
     'pdevicesn': '^\s*Serial number\s*:\s*(.*)$'}
 
-cmd_arcconf = ''
+configfile = os.path.dirname(os.path.abspath(__file__)) + '/zbx_adaptec.json'
+config = {}
+if not os.path.isfile(configfile):
+    config = read_json(configfile)
 
 """
 Решение проблемы с нахождением утилиты
 """
-if len(cmd_arcconf) == 0:
+if 'arcconf' in config['arcconf']:
     o = open('output','a') #open for append
-    outinfo = subprocess.Popen(['whereis', 'arcconf'], stdout=subprocess.PIPE)
+    outinfo = subprocess.Popen(['which', 'arcconf'], stdout=subprocess.PIPE)
     var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
-    for line in open('/etc/zabbix/zbx_adaptec.py'):
+    for line in open(os.path.dirname(os.path.abspath(__file__)) + '/zbx_adaptec.json'):
        line = line.replace("cmd_arcconf = ''", "cmd_arcconf = '" + var1[1] + "'")
        o.write(line)
     o.close()
