@@ -17,25 +17,37 @@ import sys
 import traceback
 import json
 
+def read_json(filename):
+    """
+    Считываем данные в формате JSON из файла filename
+    """
+    result = None
+    with open(filename) as json_data:
+        result = json.load(json_data)
+        json_data.close()
+    return result
+
+def write_json(filename, jsondata):
+    with open(filename, 'w') as f:
+        json.dump(jsondata, f)
+
 dict_re = {'discovery': '^(md[0-9])\s\:\sactive\s(raid[0-9])\s(.*)$',
     'device': '^(sd.[0-9]).*$',
     'state': '^\s*State\ \:\s(\S*)\s*$'}
 
-cmd_mdadm = '/sbin/mdadm'
+configfile = os.path.dirname(os.path.abspath(__file__)) + '/zbx_config.json'
+config = {}
+if os.path.isfile(configfile):
+    config = read_json(configfile)
 
 """
 Решение проблемы с нахождением утилиты
 """
-if len(cmd_mdadm) == 0:
-    o = open('output','a') #open for append
+if not 'mdadm' in config[]:
     outinfo = subprocess.Popen(['which', 'mdadm'], stdout=subprocess.PIPE)
     var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
-    for line in open('/etc/zabbix/zbx_md.py'):
-       line = line.replace("cmd_mdadm = '/sbin/mdadm'", "cmd_mdadm = '" + var1[1] + "'")
-       o.write(line)
-    o.close()
-    os.rename('/etc/zabbix/output', '/etc/zabbix/zbx_md.py')
-    os.chmod('/etc/zabbix/zbx_md.py', 0550)
+    config['mdadm'] = var1[0]
+    write_json(configfile, config)
 
 def main():
     parser = argparse.ArgumentParser(description='MD RAID',
@@ -55,7 +67,10 @@ def main():
     Обнаружение контроллеров и дисков
     """
     if args.discovery:
-        outinfo = subprocess.Popen(['sudo', 'cat', '/proc/mdstat'], stdout=subprocess.PIPE)
+        cmd = ['cat', '/proc/mdstat']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         controllers = []
         """
         Получить список контроллеров
@@ -83,13 +98,18 @@ def main():
     if args.test:
         outinfo = subprocess.Popen(['cat', 'test/output.txt'], stdout=subprocess.PIPE)
     else:
-        pass
-#        outinfo = subprocess.Popen(['sudo', cmd_mdadm, '--detail'], stdout=subprocess.PIPE)
+        cmd = [config['mdadm'], '--detail']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
     lstatus = None
     result = None
     if args.state:
-        outinfo = subprocess.Popen(['sudo', cmd_mdadm, '--detail', str(args.state)], stdout=subprocess.PIPE)
+        cmd = [config['mdadm'], '--detail', str(args.state)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             lstatus = re.findall(dict_re['state'], line)
@@ -113,7 +133,10 @@ def main():
                 elif lstatus[0] == 'active-idle':
                     result = '9'
     elif args.level:
-        outinfo = subprocess.Popen(['sudo', cmd_mdadm, '--detail', str(args.level)], stdout=subprocess.PIPE)
+        cmd = [config['mdadm'], '--detail', str(args.level)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             lstatus = re.findall(dict_re['level'], line)

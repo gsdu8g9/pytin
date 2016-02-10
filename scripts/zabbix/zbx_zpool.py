@@ -26,24 +26,36 @@ import sys
 import traceback
 import json
 
+def read_json(filename):
+    """
+    Считываем данные в формате JSON из файла filename
+    """
+    result = None
+    with open(filename) as json_data:
+        result = json.load(json_data)
+        json_data.close()
+    return result
+
+def write_json(filename, jsondata):
+    with open(filename, 'w') as f:
+        json.dump(jsondata, f)
+
 dict_re = {'discovery': '^Logical device number ([0-9]+).*$',
     'pdevicesn': '^\s*Serial number\s*:\s*(.*)$'}
 
-cmd_zpool = ''
+configfile = os.path.dirname(os.path.abspath(__file__)) + '/zbx_config.json'
+config = {}
+if os.path.isfile(configfile):
+    config = read_json(configfile)
 
 """
 Решение проблемы с нахождением утилиты
 """
-if len(cmd_zpool) == 0:
-    o = open('output','a') #open for append
+if not 'zpool'in config:
     outinfo = subprocess.Popen(['which', 'zpool'], stdout=subprocess.PIPE)
     var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
-    for line in open('/etc/zabbix/zbx_zpool.py'):
-       line = line.replace("cmd_zpool = ''", "cmd_zpool = '" + var1[1] + "'")
-       o.write(line)
-    o.close()
-    os.rename('/etc/zabbix/output', '/etc/zabbix/zbx_zpool.py')
-    os.chmod('/etc/zabbix/zbx_zpool.py', 0550)
+    config['zpool'] = var1[0]
+    write_json(configfile, config)
 
 def main():
     parser = argparse.ArgumentParser(description='RAIDZ parser',
@@ -64,7 +76,9 @@ def main():
     Обнаружение пулов и дисков
     """
     if args.discovery:
-        cmd = ['sudo', cmd_zpool, 'list', '-H', '-o', 'name']
+        cmd = [config['zpool'], 'list', '-H', '-o', 'name']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
         cmd = ' '.join(cmd)
         outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         pools = []
@@ -92,12 +106,18 @@ def main():
     if args.test:
         outinfo = subprocess.Popen(['cat', 'test/output_zpool.txt'], stdout=subprocess.PIPE)
     else:
-        outinfo = subprocess.Popen(['sudo', cmd_zpool, 'list', '-H'], stdout=subprocess.PIPE)
+        cmd = [config['zpool'], 'list', '-H']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
     lstatus = None
     result = None
     if args.status:
-        outinfo = subprocess.Popen(['sudo', cmd_zpool, 'list', '-H', str(args.status)], stdout=subprocess.PIPE)
+        cmd = [config['zpool'], 'list', '-H', str(args.status)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             pool = line.split()
@@ -118,7 +138,9 @@ def main():
                 else:
                     result = '0'
     elif args.poolsize:
-        cmd = ['sudo', cmd_zpool, 'get', '-p', 'size', args.poolsize]
+        cmd = [config['zpool'], 'get', '-p', 'size', args.poolsize]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
         cmd = ' '.join(cmd)
         outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         for line in outinfo.stdout.readlines():
