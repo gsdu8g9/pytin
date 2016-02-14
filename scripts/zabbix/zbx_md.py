@@ -33,7 +33,16 @@ def write_json(filename, jsondata):
 
 dict_re = {'discovery': '^(md[0-9])\s\:\sactive\s(raid[0-9])\s(.*)$',
     'device': '^(sd.[0-9]).*$',
-    'state': '^\s*State\ \:\s(\S*)\s*$'}
+    'state': '^\s*State\ \:\s(\S*)\s*$',
+    'level': '^\s*Raid Level\s:\s(\S*)$',
+    'rebuild': '^\s*Rebuild Status\s:\s(\d*)\%\s\S*$',
+    'sizearray': '^\s*Array Size\s:\s(\d*).*$',
+    'devicesRaid': '^\s*Raid Devices\s:\s(\d*)$',
+    'devicesTotal': '^\s*Total Devices\s:\s(\d*)$',
+    'devicesActive': '^\s*Active Devices\s:\s(\d*)$',
+    'devicesWorking': '^\s*Working Devices\s:\s(\d*)$',
+    'devicesFailed': '^\s*Failed Devices\s:\s(\d*)$',
+    'devicesSpare': '^\s*Spare Devices\s:\s(\d*)$'}
 
 configfile = os.path.dirname(os.path.abspath(__file__)) + '/zbx_config.json'
 config = {}
@@ -43,7 +52,7 @@ if os.path.isfile(configfile):
 """
 Решение проблемы с нахождением утилиты
 """
-if not 'mdadm' in config[]:
+if not 'mdadm' in config:
     outinfo = subprocess.Popen(['which', 'mdadm'], stdout=subprocess.PIPE)
     var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
     config['mdadm'] = var1[0]
@@ -56,9 +65,16 @@ def main():
     parser.add_argument("--test", dest="test", action='store_true', help="Тестовый режим из файла")
     group1 = parser.add_argument_group('Команды')
     mutex_group1 = group1.add_mutually_exclusive_group(required=True)
-    mutex_group1.add_argument("--discovery", dest="discovery", action='store_true', help="Обнаружение")
-    mutex_group1.add_argument("--state", dest="state", help="Состояние устройства")
-    mutex_group1.add_argument("--level", dest="level", type=int, help="Уровень RAID")
+    mutex_group1.add_argument("--discovery", dest="discovery", action='store_true', help="Обнаружение md массивов и устройств")
+    mutex_group1.add_argument("--state", dest="state", help="Состояние RAID массива")
+    mutex_group1.add_argument("--level", dest="level", help="Уровень RAID массива")
+    mutex_group1.add_argument("--rebuild", dest="rebuild", help="Синхронизация массива")
+    mutex_group1.add_argument("--devicesRaid", dest="devicesRaid", help="Необходимое количество устройств для RAID массива")
+    mutex_group1.add_argument("--devicesTotal", dest="devicesTotal", help="Текущее количество устройств")
+    mutex_group1.add_argument("--devicesActive", dest="devicesActive", help="Количество активных устройств")
+    mutex_group1.add_argument("--devicesWorking", dest="devicesWorking", help="Количество рабочих устройств")
+    mutex_group1.add_argument("--devicesFailed", dest="devicesFailed", help="Количество неисправных устройств")
+    mutex_group1.add_argument("--devicesSpare", dest="devicesSpare", help="Количество запасных устройств")
 
     args = parser.parse_args()
 
@@ -90,7 +106,6 @@ def main():
         for id,controller in enumerate(controllers):
             devices.append({"{#MD_RAID}": controller[0],
                 "{#MD_DEVICE}": controller[1]})
-        jdump = json.loads(str_jdump)
         result = json.dumps({"data": devices})
         print result
         sys.exit(0)
@@ -132,6 +147,12 @@ def main():
                     result = '8'
                 elif lstatus[0] == 'active-idle':
                     result = '9'
+                elif lstatus[0] == 'active, degraded, recovering':
+                    result = '10'
+                elif lstatus[0] == 'clean, degraded, recovering':
+                    result = '11'
+                elif lstatus[0] == 'clean, degraded, resyncing (DELAYED)':
+                    result = '12'
     elif args.level:
         cmd = [config['mdadm'], '--detail', str(args.level)]
         if os.geteuid() != 0:
@@ -140,6 +161,76 @@ def main():
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             lstatus = re.findall(dict_re['level'], line)
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.rebuild:
+        cmd = [config['mdadm'], '--detail', str(args.rebuild)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            lstatus = re.findall(dict_re['rebuild'], line)
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.devicesRaid:
+        cmd = [config['mdadm'], '--detail', str(args.devicesRaid)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            lstatus = re.findall(dict_re['devicesRaid'], line)
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.devicesTotal:
+        cmd = [config['mdadm'], '--detail', str(args.devicesTotal)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            lstatus = re.findall(dict_re['devicesRaid'], line)
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.devicesActive:
+        cmd = [config['mdadm'], '--detail', str(args.devicesActive)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            lstatus = re.findall(dict_re['devicesRaid'], line)
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.devicesWorking:
+        cmd = [config['mdadm'], '--detail', str(args.devicesWorking)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            lstatus = re.findall(dict_re['devicesRaid'], line)
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.devicesFailed:
+        cmd = [config['mdadm'], '--detail', str(args.devicesFailed)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            lstatus = re.findall(dict_re['devicesRaid'], line)
+            if len(lstatus)>0:
+                result = lstatus
+    elif args.devicesSpare:
+        cmd = [config['mdadm'], '--detail', str(args.devicesSpare)]
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in outinfo.stdout.readlines():
+            line = line.replace("\n", "")
+            lstatus = re.findall(dict_re['devicesRaid'], line)
             if len(lstatus)>0:
                 result = lstatus
 

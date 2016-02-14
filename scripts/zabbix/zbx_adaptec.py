@@ -92,7 +92,7 @@ def main():
         cmd = [config['arcconf'], 'getversion']
         if os.geteuid() != 0:
             cmd = ['sudo'] + cmd
-        outinfo = subprocess.Popen([config['arcconf'], 'getversion'], stdout=subprocess.PIPE)
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         controllers = []
         """
         Получить список контроллеров

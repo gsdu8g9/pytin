@@ -40,6 +40,23 @@ def write_json(filename, jsondata):
     with open(filename, 'w') as f:
         json.dump(jsondata, f)
 
+def get_source(testmode, cmdtest, cmd):
+    """
+    Получить источник
+    """
+    result = []
+    if testmode:
+        outinfo = subprocess.Popen(cmdtest, stdout=subprocess.PIPE)
+        result = outinfo.stdout.readlines()
+    else:
+        cmd = cmd
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        result = outinfo.stdout.readlines()
+    return result
+
+
 dict_re = {'discovery': '^Logical device number ([0-9]+).*$',
     'pdevicesn': '^\s*Serial number\s*:\s*(.*)$'}
 
@@ -76,35 +93,41 @@ def main():
     Обнаружение пулов и дисков
     """
     if args.discovery:
-        cmd = [config['zpool'], 'list', '-H', '-o', 'name']
-        if os.geteuid() != 0:
-            cmd = ['sudo'] + cmd
-        cmd = ' '.join(cmd)
-        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        pools = []
+        outinfo = get_source(args.test,
+            ['cat', os.path.dirname(os.path.abspath(__file__)) + '/test/output_zpool.txt'],
+            [config['zpool'], 'list', '-H', '-o', 'name'])
+        pools = {}
         """
         Получить список пулов
         """
-        for line in outinfo.stdout.readlines():
+        for line in outinfo:
             pool = line.replace("\n", "")
-            pools.append(pool)
+            pools[pool] = []
         """
         Получить список дисков на каждом пуле
         """
         for pool in pools:
-            pass
+            outinfo = get_source(args.test,
+                ['cat', os.path.dirname(os.path.abspath(__file__)) + '/test/output_zpool.txt'],
+                [config['zpool'], 'list', '-vH', pool])
+            for line in outinfo[2:]:
+                line = line.replace("\n", "")
+                result = re.findall('^\s*(\S*).*$', line)
+                if len(result)>0:
+                    pools[pool].append(result[0])
         """
         Сформировать пакет данных
         """
         data = []
-        for id_pool,pool in enumerate(pools):
-            data.append({"{#POOLNAME}": pool[0]})
+        for pool in pools:
+            for device in pools[pool]:
+                data.append({"{#POOLNAME}": pool, "{#POOLDEVICE}": device})
         result = json.dumps({"data": data})
         print result
         sys.exit(0)
 
     if args.test:
-        outinfo = subprocess.Popen(['cat', 'test/output_zpool.txt'], stdout=subprocess.PIPE)
+        outinfo = subprocess.Popen(['cat', os.path.dirname(os.path.abspath(__file__)) + '/test/output_zpool.txt'], stdout=subprocess.PIPE)
     else:
         cmd = [config['zpool'], 'list', '-H']
         if os.geteuid() != 0:
