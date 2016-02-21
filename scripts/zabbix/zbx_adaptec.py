@@ -1,8 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: UTF-8 -*-
 
-# RemiZOffAlex
-#
 # Description:
 #   Информация от Adaptec
 #
@@ -18,6 +16,11 @@
 # zabbix_agetnd.conf:
 #   Timeout=15
 
+__author__ = 'RemiZOffAlex'
+__copyright__ = '(c) RemiZOffAlex'
+__license__ = 'MIT'
+__email__ = 'remizoffalex@mail.ru'
+
 import argparse
 import os
 import re
@@ -25,6 +28,20 @@ import subprocess
 import sys
 import traceback
 import json
+
+def read_json(filename):
+    """
+    Считываем данные в формате JSON из файла filename
+    """
+    result = None
+    with open(filename) as json_data:
+        result = json.load(json_data)
+        json_data.close()
+    return result
+
+def write_json(filename, jsondata):
+    with open(filename, 'w') as f:
+        json.dump(jsondata, f)
 
 dict_re = {'logdevnum': '^Logical device number ([0-9]+).*$',
     'status': '^\s*Status of logical device\s*:\s*(.*)$',
@@ -36,21 +53,19 @@ dict_re = {'logdevnum': '^Logical device number ([0-9]+).*$',
     'pdevicestate': '^\s*State\s*:\s*(.*)$',
     'pdevicesn': '^\s*Serial number\s*:\s*(.*)$'}
 
-cmd_arcconf = ''
+configfile = os.path.dirname(os.path.abspath(__file__)) + '/zbx_config.json'
+config = {}
+if os.path.isfile(configfile):
+    config = read_json(configfile)
 
 """
 Решение проблемы с нахождением утилиты
 """
-if len(cmd_arcconf) == 0:
-    o = open('output','a') #open for append
-    outinfo = subprocess.Popen(['whereis', 'arcconf'], stdout=subprocess.PIPE)
+if not 'arcconf' in config:
+    outinfo = subprocess.Popen(['which', 'arcconf'], stdout=subprocess.PIPE)
     var1 = outinfo.stdout.readlines()[0].replace("\n", "").split(' ')
-    for line in open('/etc/zabbix/zbx_adaptec.py'):
-       line = line.replace("cmd_arcconf = ''", "cmd_arcconf = '" + var1[1] + "'")
-       o.write(line)
-    o.close()
-    os.rename('/etc/zabbix/output', '/etc/zabbix/zbx_adaptec.py')
-    os.chmod('/etc/zabbix/zbx_adaptec.py', 0550)
+    config['arcconf'] = var1[0]
+    write_json(os.path.dirname(os.path.abspath(__file__)) + '/zbx_config.json', config)
 
 def main():
     parser = argparse.ArgumentParser(description='Adaptec parser',
@@ -74,7 +89,10 @@ def main():
     Обнаружение контроллеров и дисков
     """
     if args.discovery:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getversion'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getversion']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         controllers = []
         """
         Получить список контроллеров
@@ -88,7 +106,10 @@ def main():
         Получить список дисков на каждом контроллере
         """
         for id_controller,controller in enumerate(controllers):
-            outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', controller[0], 'pd'], stdout=subprocess.PIPE)
+            cmd = [config['arcconf'], 'getconfig', controller[0], 'pd']
+            if os.geteuid() != 0:
+                cmd = ['sudo'] + cmd
+            outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
             for line in outinfo.stdout.readlines():
                 line = line.replace("\n", "")
                 result = re.findall(dict_re['pdevice'], line)
@@ -108,19 +129,28 @@ def main():
     if args.test:
         outinfo = subprocess.Popen(['cat', 'test/output.txt'], stdout=subprocess.PIPE)
     else:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.model), 'al'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getconfig', str(args.model), 'al']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
     lstatus = None
     result = None
     if args.model:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.model), 'al'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getconfig', str(args.model), 'al']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             lstatus = re.findall(dict_re['model'], line)
             if len(lstatus) > 0:
                 result = lstatus
     elif args.status:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.status), 'al'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getconfig', str(args.status), 'al']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             lstatus = re.findall(dict_re['status'], line)
@@ -136,21 +166,30 @@ def main():
                 else:
                     result = '0'
     elif args.temperature:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.temperature), 'al'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getconfig', str(args.temperature), 'al']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             lstatus = re.findall(dict_re['temperature'], line)
             if len(lstatus) > 0:
                 result = lstatus
     elif args.level:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.level), 'al'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getconfig', str(args.level), 'al']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         for line in outinfo.stdout.readlines():
             line = line.replace("\n", "")
             lstatus = re.findall(dict_re['level'], line)
             if len(lstatus)>0:
                 result = lstatus
     elif args.drivestate:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.drivestate[0]), 'pd'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getconfig', str(args.drivestate[0]), 'pd']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         outtext = outinfo.stdout.readlines()
         for id_device,line in enumerate(outtext):
             line = line.replace("\n", "")
@@ -169,7 +208,10 @@ def main():
                                 result = '0'
 
     elif args.drivesn:
-        outinfo = subprocess.Popen(['sudo', cmd_arcconf, 'getconfig', str(args.drivesn[0]), 'pd'], stdout=subprocess.PIPE)
+        cmd = [config['arcconf'], 'getconfig', str(args.drivesn[0]), 'pd']
+        if os.geteuid() != 0:
+            cmd = ['sudo'] + cmd
+        outinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         outtext = outinfo.stdout.readlines()
         for id_device,line in enumerate(outtext):
             line = line.replace("\n", "")

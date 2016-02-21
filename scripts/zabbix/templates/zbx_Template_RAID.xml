@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>2.0</version>
-    <date>2015-09-02T01:52:08Z</date>
+    <date>2016-02-14T01:08:15Z</date>
     <groups>
         <group>
             <name>RAID</name>
@@ -113,7 +113,7 @@
                             <name>ZFS пул {#POOLNAME} перешёл в статус DEGRADED</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>ZFS пул {#POOLNAME} перешёл в статус DEGRADED</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -122,7 +122,7 @@
                             <name>ZFS пул {#POOLNAME} перешёл в статус FAULTED</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>ZFS пул {#POOLNAME} перешёл в статус FAULTED</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -131,7 +131,7 @@
                             <name>ZFS пул {#POOLNAME} перешёл в статус OFFLINE</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>ZFS пул {#POOLNAME} перешёл в статус OFFLINE</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -140,7 +140,7 @@
                             <name>ZFS пул {#POOLNAME} перешёл в статус REMOVED</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>ZFS пул {#POOLNAME} перешёл в статус REMOVED</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -149,8 +149,17 @@
                             <name>ZFS пул {#POOLNAME} перешёл в статус UNAVAIL</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>ZFS пул {#POOLNAME} перешёл в статус UNAVAIL</description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template RAID:raid.zpool.status[{#POOLNAME}].nodata(300)}=1</expression>
+                            <name>Не получены данные о состоянии пула ZFS {#POOLNAME}</name>
+                            <url/>
+                            <status>0</status>
+                            <priority>5</priority>
+                            <description>Не получены данные о состоянии пула ZFS {#POOLNAME}</description>
                             <type>0</type>
                         </trigger_prototype>
                         <trigger_prototype>
@@ -158,7 +167,7 @@
                             <name>Проблема с ZFS пулом {#POOLNAME}</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>Проблема с ZFS пулом {#POOLNAME}</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -205,7 +214,7 @@
                     <snmp_community/>
                     <snmp_oid/>
                     <key>raid.adaptec.discovery</key>
-                    <delay>300</delay>
+                    <delay>600</delay>
                     <status>0</status>
                     <allowed_hosts/>
                     <snmpv3_contextname/>
@@ -505,7 +514,7 @@
                             <name>Adaptec RAID контроллер {#CONTROLLER} в состоянии DEGRADED</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>Adaptec RAID контроллер {#CONTROLLER} в состоянии DEGRADED</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -514,7 +523,7 @@
                             <name>Adaptec RAID контроллер {#CONTROLLER} в состоянии DEGRADED, REBUILDING</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>Adaptec RAID контроллер {#CONTROLLER} в состоянии DEGRADED, REBUILDING</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -523,7 +532,7 @@
                             <name>Высокая температура Adaptec контроллера {#CONTROLLER}</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>Высокая температура Adaptec контроллера {#CONTROLLER}</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -532,7 +541,7 @@
                             <name>Не получены данные о состоянии Adaptec контроллера {#CONTROLLER}</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>Не получены данные о состоянии Adaptec контроллера {#CONTROLLER}</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -541,7 +550,7 @@
                             <name>Не получены данные о состоянии диска {#PDEVICE} в Adaptec контроллере {#CONTROLLER}</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>Не получены данные о состоянии диска {#PDEVICE} в Adaptec контроллере {#CONTROLLER}</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -550,7 +559,7 @@
                             <name>Проблема с RAID массивом Adaptec контроллера {#CONTROLLER}</name>
                             <url/>
                             <status>0</status>
-                            <priority>4</priority>
+                            <priority>5</priority>
                             <description>Проблема с RAID массивом Adaptec контроллера {#CONTROLLER}</description>
                             <type>0</type>
                         </trigger_prototype>
@@ -661,7 +670,7 @@
                     <snmp_community/>
                     <snmp_oid/>
                     <key>raid.md.discovery</key>
-                    <delay>3600</delay>
+                    <delay>600</delay>
                     <status>0</status>
                     <allowed_hosts/>
                     <snmpv3_contextname/>
@@ -685,19 +694,19 @@
                     <description>Программный RAID-массив</description>
                     <item_prototypes>
                         <item_prototype>
-                            <name>Current synchronization progress on {#MDDEV}</name>
+                            <name>Количество активных устройств в массиве {#MD_RAID}</name>
                             <type>0</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
-                            <key>raid.md[{#MDDEV},sync_completed]</key>
-                            <delay>300</delay>
+                            <key>raid.md.devicesActive[{#MD_RAID}]</key>
+                            <delay>60</delay>
                             <history>90</history>
                             <trends>365</trends>
                             <status>0</status>
                             <value_type>3</value_type>
                             <allowed_hosts/>
-                            <units>секторов</units>
+                            <units>шт</units>
                             <delta>0</delta>
                             <snmpv3_contextname/>
                             <snmpv3_securityname/>
@@ -723,15 +732,494 @@
                                 <application>
                                     <name>MD RAID</name>
                                 </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Количество запасных устройств в массиве {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.devicesSpare[{#MD_RAID}]</key>
+                            <delay>60</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts/>
+                            <units>шт</units>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
                                 <application>
-                                    <name>RAID</name>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Количество неисправных устройств в массиве {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.devicesFailed[{#MD_RAID}]</key>
+                            <delay>60</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts/>
+                            <units>шт</units>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Количество рабочих устройств в массиве {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.devicesWorking[{#MD_RAID}]</key>
+                            <delay>60</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts/>
+                            <units>шт</units>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Необходимое количество устройств для RAID массива {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.devicesRaid[{#MD_RAID}]</key>
+                            <delay>60</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts/>
+                            <units>шт</units>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Синхронизация программного RAID {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.rebuild[{#MD_RAID}]</key>
+                            <delay>60</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts/>
+                            <units>%</units>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Состояние RAID устройства {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.state[{#MD_RAID}]</key>
+                            <delay>60</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts/>
+                            <units/>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap>
+                                <name>RAID Adaptec Status</name>
+                            </valuemap>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Текущее количество устройств в RAID массиве {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.devicesTotal[{#MD_RAID}]</key>
+                            <delay>60</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>3</value_type>
+                            <allowed_hosts/>
+                            <units>шт</units>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
+                                </application>
+                            </applications>
+                            <valuemap/>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Уровень RAID устройства {#MD_RAID}</name>
+                            <type>0</type>
+                            <snmp_community/>
+                            <multiplier>0</multiplier>
+                            <snmp_oid/>
+                            <key>raid.md.level[{#MD_RAID}]</key>
+                            <delay>1200</delay>
+                            <history>90</history>
+                            <trends>365</trends>
+                            <status>0</status>
+                            <value_type>1</value_type>
+                            <allowed_hosts/>
+                            <units/>
+                            <delta>0</delta>
+                            <snmpv3_contextname/>
+                            <snmpv3_securityname/>
+                            <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                            <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                            <snmpv3_authpassphrase/>
+                            <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                            <snmpv3_privpassphrase/>
+                            <formula>1</formula>
+                            <delay_flex/>
+                            <params/>
+                            <ipmi_sensor/>
+                            <data_type>0</data_type>
+                            <authtype>0</authtype>
+                            <username/>
+                            <password/>
+                            <publickey/>
+                            <privatekey/>
+                            <port/>
+                            <description/>
+                            <inventory_link>0</inventory_link>
+                            <applications>
+                                <application>
+                                    <name>MD RAID</name>
                                 </application>
                             </applications>
                             <valuemap/>
                         </item_prototype>
                     </item_prototypes>
-                    <trigger_prototypes/>
-                    <graph_prototypes/>
+                    <trigger_prototypes>
+                        <trigger_prototype>
+                            <expression>{Template RAID:raid.md.state[{#MD_RAID}].nodata(300)}=1</expression>
+                            <name>Не получены данные о состоянии программного RAID {#MD_RAID}</name>
+                            <url/>
+                            <status>0</status>
+                            <priority>5</priority>
+                            <description>Не получены данные о состоянии программного RAID {#MD_RAID}</description>
+                            <type>0</type>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template RAID:raid.md.state[{#MD_RAID}].last()}#7</expression>
+                            <name>Программный RAID {#MD_RAID} не состоянии ACTIVE</name>
+                            <url/>
+                            <status>0</status>
+                            <priority>5</priority>
+                            <description>Программный RAID {#MD_RAID} не состоянии ACTIVE</description>
+                            <type>0</type>
+                        </trigger_prototype>
+                    </trigger_prototypes>
+                    <graph_prototypes>
+                        <graph_prototype>
+                            <name>Количество устройств в программном RAID массиве {#MD_RAID}</name>
+                            <width>900</width>
+                            <height>200</height>
+                            <yaxismin>0.0000</yaxismin>
+                            <yaxismax>100.0000</yaxismax>
+                            <show_work_period>1</show_work_period>
+                            <show_triggers>1</show_triggers>
+                            <type>0</type>
+                            <show_legend>1</show_legend>
+                            <show_3d>0</show_3d>
+                            <percent_left>0.0000</percent_left>
+                            <percent_right>0.0000</percent_right>
+                            <ymin_type_1>0</ymin_type_1>
+                            <ymax_type_1>0</ymax_type_1>
+                            <ymin_item_1>0</ymin_item_1>
+                            <ymax_item_1>0</ymax_item_1>
+                            <graph_items>
+                                <graph_item>
+                                    <sortorder>0</sortorder>
+                                    <drawtype>0</drawtype>
+                                    <color>C80000</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template RAID</host>
+                                        <key>raid.md.devicesRaid[{#MD_RAID}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <drawtype>0</drawtype>
+                                    <color>00C800</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template RAID</host>
+                                        <key>raid.md.devicesTotal[{#MD_RAID}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>2</sortorder>
+                                    <drawtype>0</drawtype>
+                                    <color>0000C8</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template RAID</host>
+                                        <key>raid.md.devicesActive[{#MD_RAID}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>3</sortorder>
+                                    <drawtype>0</drawtype>
+                                    <color>C800C8</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template RAID</host>
+                                        <key>raid.md.devicesSpare[{#MD_RAID}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>4</sortorder>
+                                    <drawtype>0</drawtype>
+                                    <color>00C8C8</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template RAID</host>
+                                        <key>raid.md.devicesFailed[{#MD_RAID}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>5</sortorder>
+                                    <drawtype>0</drawtype>
+                                    <color>C8C800</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template RAID</host>
+                                        <key>raid.md.devicesWorking[{#MD_RAID}]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                        <graph_prototype>
+                            <name>Состояние RAID устройства {#MD_RAID}</name>
+                            <width>900</width>
+                            <height>200</height>
+                            <yaxismin>0.0000</yaxismin>
+                            <yaxismax>100.0000</yaxismax>
+                            <show_work_period>1</show_work_period>
+                            <show_triggers>1</show_triggers>
+                            <type>0</type>
+                            <show_legend>1</show_legend>
+                            <show_3d>0</show_3d>
+                            <percent_left>0.0000</percent_left>
+                            <percent_right>0.0000</percent_right>
+                            <ymin_type_1>1</ymin_type_1>
+                            <ymax_type_1>0</ymax_type_1>
+                            <ymin_item_1>0</ymin_item_1>
+                            <ymax_item_1>0</ymax_item_1>
+                            <graph_items>
+                                <graph_item>
+                                    <sortorder>0</sortorder>
+                                    <drawtype>2</drawtype>
+                                    <color>C80000</color>
+                                    <yaxisside>0</yaxisside>
+                                    <calc_fnc>2</calc_fnc>
+                                    <type>0</type>
+                                    <item>
+                                        <host>Template RAID</host>
+                                        <key>raid.md.state[{#MD_RAID}]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                    </graph_prototypes>
                     <host_prototypes/>
                 </discovery_rule>
             </discovery_rules>
