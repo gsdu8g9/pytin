@@ -107,9 +107,9 @@ class QSW8300ImportDataTest(TestCase):
             print server.id
 
         # There are linked VPS, hypervisor detection logic test.
-        self.assertEqual(4, len(VirtualServer.active.filter(parent=660)))
-        self.assertEqual(2, len(VirtualServer.active.filter(parent=668)))
-        self.assertEqual(3, len(VirtualServer.active.filter(parent=612)))
+        self.assertEqual(4, len(VirtualServer.active.filter(parent=812)))
+        self.assertEqual(2, len(VirtualServer.active.filter(parent=820)))
+        self.assertEqual(3, len(VirtualServer.active.filter(parent=764)))
 
         events = HistoryEvent.objects.filter(type=HistoryEvent.CREATE)
         self.assertEqual(1677, len(events))

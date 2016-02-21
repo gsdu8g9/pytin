@@ -20,6 +20,15 @@ Features
     Run under root user:
     $ bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/cmdb/deploy/init.sh)
 
+
+    drop database pytin_cmdb;
+    create database pytin_cmdb;
+
+    > create database pytin_cmdb;
+    > CREATE USER 'pytin_cmdb'@'localhost' IDENTIFIED BY 'password';
+    > GRANT ALL PRIVILEGES ON pytin_cmdb.* TO 'pytin_cmdb'@'localhost';
+    > FLUSH PRIVILEGES;
+
 2. Overview
 -----------
 
@@ -183,7 +192,7 @@ Features
     ./manage.py runserver 0.0.0.0:8018 >/apps/cmdb/logs/api.server.log 2>&1 &
 
 Use cases
---------
+---------
 
     # Find port 26 from switch 232
     cmdbctl list type=SwitchPort parent=232 number=26

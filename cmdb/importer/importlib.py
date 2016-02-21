@@ -32,7 +32,7 @@ class GenericCmdbImporter(object):
                     self._add_ip(ip_address, parent=server_port)
 
         # There is only one connection from the single server port.
-        logger.info("Clean extra PortConnections")
+        logger.info("Clean extra PortConnections from server ports")
         for server_port in ServerPort.active.filter():
             port_connections = PortConnection.active.filter(linked_port_id=server_port.id).order_by('-last_seen')
 
@@ -44,7 +44,7 @@ class GenericCmdbImporter(object):
                     port_connection.delete()
                     deleted_poconn += 1
 
-                logger.warning("    deleted %s" % deleted_poconn)
+                logger.warning("    deleted %s connections" % deleted_poconn)
 
     def process_virtual_servers(self, link_unresolved_to=None):
         """
