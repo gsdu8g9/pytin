@@ -1,11 +1,10 @@
 # coding=utf-8
 from __future__ import unicode_literals
 
-from argparse import ArgumentParser
 import datetime
+from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
-
 from django.utils import timezone
 
 from assets.models import GatewaySwitch, Switch, VirtualServer, PortConnection, SwitchPort, RegionResource
@@ -109,8 +108,15 @@ class Command(BaseCommand):
                 removed += 1
         logger.info("  removed: %s" % removed)
 
+        logger.info("Clean missing PortConnections (not seen for 15 days)...")
+        removed = 0
+        for connection in PortConnection.active.filter(last_seen__lt=last_seen_31days):
+            connection.delete()
+            removed += 1
+        logger.info("  removed: %s" % removed)
+
         Resource.objects.rebuild()
-        
+
     def _handle_auto(self, *args, **options):
         # update via snmp
         query = dict(type__in=[GatewaySwitch.__name__, Switch.__name__])

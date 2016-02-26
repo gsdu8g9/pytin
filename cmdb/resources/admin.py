@@ -17,7 +17,8 @@ class ResourceCommentInline(admin.StackedInline):
 
 
 class ResourceAdmin(DjangoMpttAdmin):
-    list_display = ['id', 'name', 'content_type', 'status']
+    date_hierarchy = 'last_seen'
+    list_display = ['id', 'name', 'content_type', 'status', 'last_seen']
     search_fields = ['id', 'status', 'type', 'name']
     list_filter = ['type', 'status']
     ordering = ['name']
