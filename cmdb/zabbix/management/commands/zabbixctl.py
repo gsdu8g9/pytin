@@ -93,6 +93,8 @@ class Command(BaseCommand):
         val_format = ResourceOption.FORMAT_STRING
         if zbx_metric['value_type'] == '3':
             val_format = ResourceOption.FORMAT_INT
+        elif zbx_metric['value_type'] == '0':
+            val_format = ResourceOption.FORMAT_FLOAT
 
         zbx_last_value = zbx_metric['lastvalue']
 
