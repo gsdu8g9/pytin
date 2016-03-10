@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
+
 import netaddr
-from pysnmp.entity.rfc3413.oneliner import cmdgen
+from pysnmp.entity.engine import SnmpEngine
+from pysnmp.hlapi import ContextData, CommunityData, UdpTransportTarget, nextCmd
+from pysnmp.smi.rfc1902 import ObjectType, ObjectIdentity
 
 from cmdb.settings import logger
 
@@ -10,25 +13,25 @@ def _snmp_walk(host, community, oid):
     assert community, "community must be defined."
     assert oid, "oid must be defined."
 
-    cmdGen = cmdgen.CommandGenerator()
+    for errorIndication, errorStatus, errorIndex, varBinds in nextCmd(
+            SnmpEngine(),
+            CommunityData(community, mpModel=1),
+            UdpTransportTarget((host, 161)),
+            ContextData(),
+            ObjectType(ObjectIdentity(oid)),
+            ignoreNonIncreasingOid=True,
+            lookupMib=False,
+            lexicographicMode=False):
 
-    errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(
-        cmdgen.CommunityData(community),
-        cmdgen.UdpTransportTarget((host, 161)),
-        oid.encode('ascii'),
-        ignoreNonIncreasingOid=True
-    )
-
-    if errorIndication:
-        logger.error(errorIndication)
-    else:
-        if errorStatus:
-            raise Exception('%s at %s' % (
-                errorStatus.prettyPrint(),
-                errorIndex and varBindTable[-1][int(errorIndex) - 1] or '?'))
+        if errorIndication:
+            logger.error(errorIndication)
         else:
-            for varBindTableRow in varBindTable:
-                for name, val in varBindTableRow:
+            if errorStatus:
+                raise Exception('%s at %s' % (
+                    errorStatus.prettyPrint(),
+                    errorIndex and varBinds[int(errorIndex) - 1][0] or '?'))
+            else:
+                for name, val in varBinds:
                     yield name.prettyPrint(), val.prettyPrint()
 
 
@@ -72,9 +75,12 @@ class L3SwitchPort(object):
     Level3 switch port
     """
 
-    def __init__(self, switch, port_name, port_num, macs=[]):
+    def __init__(self, switch, port_name, port_num, macs=None):
         assert port_name
         assert switch
+
+        if not macs:
+            macs = []
 
         self._switch = switch
         self._port_name = _normalize_port_name(port_name)
@@ -168,7 +174,7 @@ class L3Switch(object):
         oid = '.1.3.6.1.2.1.4.22.1.2'
         for name, value in _snmp_walk(host, community, oid):
             if not value.startswith('0x'):
-                logger.warning("Not valid ARP record: mac:%s <- ip:%s", (value, name))
+                logger.warning("Not valid ARP record: mac:%s <- ip:%s" % (value, name))
                 continue
 
             name_parts = name.split('.')
