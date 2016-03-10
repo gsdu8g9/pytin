@@ -12,15 +12,16 @@ def _snmp_walk(host, community, oid):
     assert host, "host must be defined."
     assert community, "community must be defined."
     assert oid, "oid must be defined."
+    assert isinstance(oid, ObjectType), "oid must be of ObjectType"
 
     for errorIndication, errorStatus, errorIndex, varBinds in nextCmd(
             SnmpEngine(),
             CommunityData(community, mpModel=1),
             UdpTransportTarget((host, 161)),
             ContextData(),
-            ObjectType(ObjectIdentity(oid)),
+            oid,
             ignoreNonIncreasingOid=True,
-            lookupMib=False,
+            lookupMib=True,
             lexicographicMode=False):
 
         if errorIndication:
@@ -156,30 +157,31 @@ class L3Switch(object):
         assert community
 
         # switch port names and numbers
-        oid = '.1.3.6.1.2.1.31.1.1.1.1'
-        for name, value in _snmp_walk(host, community, oid):
-            self._add_switch_port(name[len(oid):], value)
+        # 1.3.6.1.2.1.31.1.1.1.1
+        oid = ObjectType(ObjectIdentity('IP-MIB', 'ifName'))
+        for port_num_raw, port_name in _snmp_walk(host, community, oid):
+            sw_port_num = port_num_raw[str.rfind('.'):]
+            self._add_switch_port(sw_port_num, port_name)
 
         # mac addresses table
-        oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2'
-        for name, value in _snmp_walk(host, community, oid):
-            name_parts = name.split('.')
-            mac_address = "".join(
-                [("%02x" % int(name_parts[x])).upper() for x in
-                 range(len(name_parts) - 6, len(name_parts))]).upper()
+        # 1.3.6.1.2.1.17.7.1.2.2.1.2
+        oid = ObjectType(ObjectIdentity('SNMPv2-SMI', 'mib-2.17.7.1.2.2.1.2'))
+        for mac_raw, sw_port_num in _snmp_walk(host, community, oid):
+            name_parts = mac_raw.split('.')
+            mac_address = _normalize_mac("".join(
+                [("%02x" % int(name_parts[x])).upper() for x in range(len(name_parts) - 6, len(name_parts))]
+            )).upper()
 
-            self._add_server_port(self.get_port_name(value), mac_address)
+            self._add_server_port(self.get_port_name(sw_port_num), mac_address)
 
         # arp address table
-        oid = '.1.3.6.1.2.1.4.22.1.2'
-        for name, value in _snmp_walk(host, community, oid):
-            if not value.startswith('0x'):
-                logger.warning("Not valid ARP record: mac:%s <- ip:%s" % (value, name))
-                continue
-
-            name_parts = name.split('.')
+        # 3.6.1.2.1.4.22.1.2
+        oid = ObjectType(ObjectIdentity('IP-MIB', 'ipNetToMediaPhysAddress'))
+        for ip_addr_raw, mac_addr in _snmp_walk(host, community, oid):
+            mac_addr = _normalize_mac(mac_addr)
+            name_parts = ip_addr_raw.split('.')
             ip_address = ".".join([name_parts[x] for x in range(len(name_parts) - 4, len(name_parts))])
-            self._add_server_port_ip(value[2:].upper(), ip_address)
+            self._add_server_port_ip(mac_addr, ip_address)
 
     def get_port_name(self, number):
         assert number > 0
