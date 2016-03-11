@@ -158,14 +158,14 @@ class L3Switch(object):
 
         # switch port names and numbers
         # 1.3.6.1.2.1.31.1.1.1.1
-        oid = ObjectType(ObjectIdentity('IP-MIB', 'ifName'))
+        oid = ObjectType(ObjectIdentity('IF-MIB', 'ifName'))
         for port_num_raw, port_name in _snmp_walk(host, community, oid):
-            sw_port_num = port_num_raw[str.rfind('.'):]
+            sw_port_num = port_num_raw[port_num_raw.rfind('.')+1:]
             self._add_switch_port(sw_port_num, port_name)
 
         # mac addresses table
         # 1.3.6.1.2.1.17.7.1.2.2.1.2
-        oid = ObjectType(ObjectIdentity('SNMPv2-SMI', 'mib-2.17.7.1.2.2.1.2'))
+        oid = ObjectType(ObjectIdentity('1.3.6.1.2.1.17.7.1.2.2.1.2'))
         for mac_raw, sw_port_num in _snmp_walk(host, community, oid):
             name_parts = mac_raw.split('.')
             mac_address = _normalize_mac("".join(
