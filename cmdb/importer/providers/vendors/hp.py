@@ -9,4 +9,7 @@ class HP1910SwitchPort(L3SwitchPort):
 
 
 class HP1910Switch(L3Switch):
+    """
+    Also known as 3Com 2952
+    """
     port_implementor = HP1910SwitchPort
