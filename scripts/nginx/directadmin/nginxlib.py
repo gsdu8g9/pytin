@@ -1,6 +1,8 @@
+import errno
+import fcntl
 import os
 import re
-import fcntl
+from time import sleep
 
 
 class NginxMap:
@@ -78,7 +80,7 @@ class NginxMap:
         assert file_name, "File must be specified"
 
         with open(file_name, 'w') as map_file:
-            fcntl.flock(map_file, fcntl.LOCK_EX)
+            self._lock(map_file, 30)
 
             map_file.write('map $%s $%s {\n' % (self.map_key, self.map_variable))
 
@@ -95,6 +97,23 @@ class NginxMap:
                 map_file.write(self.map_item_format % (item_key, self.items[item_key]))
 
             map_file.write('}\n\n')
+
+    def _lock(self, fd, timeout=10):
+        assert fd
+
+        retries = timeout
+        while retries >= 0:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return True
+            except IOError as e:
+                if e.errno != errno.EAGAIN or e.errno != errno.EACCES:
+                    retries -= 1
+                    sleep(1)
+                else:
+                    raise e
+
+        raise IOError("Can't acquire lock.")
 
     @staticmethod
     def from_file(map_key, map_variable, file_name):

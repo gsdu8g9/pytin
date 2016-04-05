@@ -17,6 +17,15 @@ class TestNginxlibModule(unittest.TestCase):
 
         self.assertEqual('.testhost2.ru', map_object.find_keys_by_value('"user2"').next())
 
+    def test_file_locking(self):
+        map_object = self._create_test_map()
+
+        map_file = open('test_map.test', 'w')
+        map_object._lock(map_file)
+
+        # waiting for exception
+        self.assertRaises(IOError, map_object.save, 'test_map.test')
+
     def test_load_from_file(self):
         map_object = self._create_test_map()
 
