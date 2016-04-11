@@ -11,6 +11,44 @@
 # bash <(curl https://raw.githubusercontent.com/servancho/pytin/master/scripts/directadmin/setup_da.sh)
 #
 
+### Begin: Do not install security for OpenVZ
+ip link | grep venet
+if [ $? -ne 0 ]; then
+    ### Install BFD and APF
+    mkdir secdistr && cd secdistr
+
+    if [ ! -e /etc/apf ]; then
+        echo "Install APF"
+
+        mkdir -p apf && cd apf
+        wget http://www.rfxn.com/downloads/apf-current.tar.gz
+        tar --strip-components=1 -xzf apf-current.tar.gz
+        ./install.sh
+
+        cp /etc/apf/conf.apf /etc/apf/conf.apf.bkp
+        perl -pi -e 's/DEVEL_MODE="1"/DEVEL_MODE="0"/g' /etc/apf/conf.apf
+        perl -pi -e 's/SET_REFRESH=\"10\"/SET_REFRESH=\"0\"/' /etc/apf/conf.apf
+        perl -pi -e 's/RESV_DNS=\"1\"/RESV_DNS=\"0\"/' /etc/apf/conf.apf
+        perl -pi -e 's/LOG_DROP=\"0\"/LOG_DROP=\"1\"/' /etc/apf/conf.apf
+        perl -pi -e 's/DLIST_RESERVED=\"1\"/DLIST_RESERVED=\"0\"/' /etc/apf/conf.apf
+
+        echo "10.0.0.0/24" >> /etc/apf/allow_hosts.rules
+
+        cd ..
+    fi
+
+    if [ ! -e /usr/local/bfd ]; then
+        echo "Install BFD"
+
+        mkdir -p bfd && cd bfd
+        wget http://www.rfxn.com/downloads/bfd-current.tar.gz
+        tar --strip-components=1 -xzf bfd-current.tar.gz
+        ./install.sh
+        cd ..
+    fi
+fi
+### End: Do not install security for OpenVZ
+
 yum clean all
 yum -y install nano wget openssh-clients gcc gcc-c++ flex bison make bind bind-libs bind-utils openssl openssl-devel perl perl-CPAN quota libaio libcom_err-devel libcurl-devel gd zlib-devel zip unzip libcap-devel cronie bzip2 cyrus-sasl-devel perl-ExtUtils-Embed autoconf automake libtool which patch db4-devel
 
