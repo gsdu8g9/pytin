@@ -22,10 +22,10 @@ yum -y install man nano wget ntp mc net-tools smartmontools
 rm -f /etc/localtime
 ln -s /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 
-/etc/init.d/ntpd stop
+service ntpd stop
 ntpdate -d ntp1.vniiftri.ru
 chkconfig ntpd on
-/etc/init.d/ntpd restart
+service ntpd restart
 
 sed -e "s/\e\[5~/\e\[A/g" /etc/inputrc > /tmp/inputrc
 sed -e "s/\e\[6~/\e[B/g" /tmp/inputrc > /etc/inputrc
