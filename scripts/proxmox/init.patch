@@ -1,0 +1,181 @@
+--- init	2016-06-18 00:27:18.951718860 +0300
++++ init	2016-06-18 00:30:26.418407880 +0300
+@@ -20,7 +20,7 @@
+     root=
+     lvm2root=
+     proxdebug=0
+-    for par in $(cat /proc/cmdline); do 
++    for par in $(cat /proc/cmdline); do
+ 	case $par in
+ 	    lvm2root=*)
+ 		lvm2root=${par#lvm2root=}
+@@ -56,13 +56,13 @@
+ echo /sbin/mdev >/proc/sys/kernel/hotplug
+ 
+ DRIVERS="msdos isofs"
+-for mod in $DRIVERS; do 
++for mod in $DRIVERS; do
+     modprobe -q "$mod"
+ done
+ 
+ filenames=
+ # Note: skip filenames with spaces (avoid problems with bash IFS)
+-# Note: busybox only support -regextype 'posix-basic' 
++# Note: busybox only support -regextype 'posix-basic'
+ for fn in $(find /sys/devices/* -regex '^[^\ ]*/modalias'); do
+     filenames="$filenames $fn"
+ done
+@@ -75,8 +75,8 @@
+     alias=$(cat "${alias_fn}")
+     for mod in $(modprobe -q -R $alias ); do
+ 	mod_found=0
+-	for m in $modlist; do 
+-	    if [ "$m" = "$mod" ]; then 
++	for m in $modlist; do
++	    if [ "$m" = "$mod" ]; then
+ 		mod_found=1
+ 	    fi
+ 	done
+@@ -86,7 +86,7 @@
+     done
+ }
+ 
+-load_mods() { 
++load_mods() {
+     class_prefix=$1
+     for fn in $filenames; do
+ 	dirname=${fn%/*}
+@@ -98,7 +98,7 @@
+ 		    load_alias "$fn"
+ 		fi
+ 	    fi
+-	else 
++	else
+ 	    load_alias "$fn"
+ 	fi
+     done
+@@ -128,13 +128,13 @@
+ done
+ 
+ stdmod="usb-storage usbhid virtio_blk"
+-for mod in $stdmod; do 
++for mod in $stdmod; do
+     modprobe "$mod"
+ done
+ 
+ # we have no iscsi daemon, so we need to scan iscsi device manually.
+ # else we cant boot from iscsi hba because devices are not detected.
+-for i in /sys/class/scsi_host/host*; do 
++for i in /sys/class/scsi_host/host*; do
+     host=${i##*/}
+     if [ -d $i ] && [ -f $i/scan ] && [ -d /sys/class/iscsi_host/$host ] ; then
+ 	echo "Scanning iSCSI $host"
+@@ -166,7 +166,7 @@
+ 	# Reduce padded --'s to -'s
+ 	vg=$(echo ${vg} | sed -e 's#--#-#g')
+ 	echo "activating volume group $vg"
+-	lvm vgchange -aly --ignorelockingfailure ${vg}	
++	lvm vgchange -aly --ignorelockingfailure ${vg}
+     fi
+ 
+     echo "create /dev/mapper/ entries using vgscan"
+@@ -176,10 +176,10 @@
+ 
+     found=
+     for try in 5 4 3 2 1; do
+-	for t in ext4 auto; do 
+-	    if mount -n -t $t -r $lvm2root /mnt; then 
++	for t in ext4 auto; do
++	    if mount -n -t $t -r $lvm2root /mnt; then
+ 		found=ok
+-		break; 
++		break;
+ 	    fi
+ 	done
+ 	if test -n "$found"; then
+@@ -191,47 +191,8 @@
+ 	fi
+     done
+ 
+-elif [ -n "$root" ]; then
+-
+-    case $root in
+-	/dev/*)
+-	    real_root=$root
+-	    ;; 
+-	*:*)
+-	    dev_min=$((0x${root#*:}))
+-	    dev_maj=$((0x${root%:*}))
+-	    mknod /tmp/rootdev b $dev_maj $dev_min
+-	    real_root=/tmp/rootdev
+-	    ;;
+-	*)
+-	    dev_min=$((0x$root & 255))
+-	    dev_maj=$((0x$root >> 8))
+-	    mknod /tmp/rootdev b $dev_maj $dev_min
+-	    real_root=/tmp/rootdev
+-	    ;;
+-    esac
+-
+-    echo "trying to mount root: $real_root ($root)"
+-
+-    found=
+-    for try in 5 4 3 2 1; do
+-	for t in ext4 auto; do 
+-	    if mount -n -t $t -r $real_root /mnt; then 
+-		found=ok
+-		break; 
+-	    fi
+-	done
+-	if test -n "$found"; then
+-	    break;
+-	fi
+-	if test $try -gt 1; then
+-	    echo "testing again in 5 seconds"
+-	    sleep 5
+-	fi
+-    done
+-    
+ else
+- 
++
+     cdrom=
+ 
+     initrdisoimage="/proxmox.iso"
+@@ -242,11 +203,11 @@
+ 	if mount -t iso9660 -o loop,ro $initrdisoimage /mnt >/dev/null 2>&1; then
+ 	    cdrom=$initrdisoimage
+ 	fi
+-    else 
++    else
+ 	echo "searching for cdrom"
+ 	reqid=$(cat /.pve-cd-id.txt)
+ 	for try in 5 4 3 2 1; do
+-	    for i in /sys/block/hd* /sys/block/sr* /sys/block/scd* /sys/block/sd*; do 
++	    for i in /sys/block/hd* /sys/block/sr* /sys/block/scd* /sys/block/sd*; do
+ 
+ 		if [ -d $i ] && [ $(cat $i/removable) = 1 ]; then
+ 
+@@ -272,14 +233,14 @@
+ 	done
+     fi
+ 
+-    if [ -z $cdrom ]; then 
++    if [ -z $cdrom ]; then
+ 	echo "no cdrom found - unable to continue (type exit or CTRL-D to reboot)"
+ 	debugsh
+ 	myreboot
+     fi
+ fi
+ 
+-if [ $proxdebug -ne 0 ]; then 
++if [ $proxdebug -ne 0 ]; then
+     echo "Debugging mode (type exit or CTRL-D to continue startup)"
+     debugsh
+ fi
+@@ -306,5 +267,3 @@
+ 
+     exec /sbin/switch_root -c /dev/console /mnt sbin/init
+ fi
+-
+-
