@@ -1,21 +1,21 @@
 from __future__ import unicode_literals
+
 from rest_framework import serializers
 
-from ipman.models import IPAddress
+from ipman.models import IPAddressGeneric
 
 
 class IpAddressSerializer(serializers.ModelSerializer):
     class Meta:
-        model = IPAddress
+        model = IPAddressGeneric
         fields = (
             'id',
-            'name',
+            'pool',
             'parent',
             'address',
-            'version',
-            'beauty',
-            'type',
             'status',
             'created_at',
             'updated_at',
-            'last_seen')
+            'last_seen',
+            'main'
+        )

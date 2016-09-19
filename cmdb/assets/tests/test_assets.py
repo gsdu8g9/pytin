@@ -6,7 +6,7 @@ from django.test import TestCase
 from assets.models import RegionResource, Server, ServerPort, Rack, Switch, VirtualServer, VirtualServerPort, \
     SwitchPort, \
     PortConnection
-from ipman.models import IPNetworkPool
+from ipman.models import IPAddressGeneric, IPAddressPoolFactory
 from resources.models import Resource, ModelFieldChecker
 
 
@@ -27,16 +27,18 @@ class AssetsTest(TestCase):
         vm1 = VirtualServer.objects.create(label="VM", status=Resource.STATUS_INUSE)
         vmport1 = VirtualServerPort.objects.create(number=15, mac='234567267845', parent=vm1,
                                                    status=Resource.STATUS_INUSE)
-        ippool1 = IPNetworkPool.objects.create(network='192.168.1.1/24', status=Resource.STATUS_INUSE)
-        address1 = ippool1.available().next()
+        ippool1 = IPAddressPoolFactory.from_network(network='192.168.1.1/24', status=Resource.STATUS_INUSE)
+        address1 = ippool1.get_free_ips()[:1][0]
 
-        self.assertEqual(ippool1.id, address1.parent.id)
+        self.assertEqual(ippool1.id, address1.pool.id)
+
+        address1.use()
 
         address1.parent = vmport1
         address1.save()
 
         self.assertEqual(vmport1.id, address1.parent.id)
-        self.assertEqual(ippool1.id, address1.get_option_value('ipman_pool_id'))
+        self.assertEqual(ippool1.id, address1.pool.id)
 
         # existing childs
         try:
@@ -45,19 +47,19 @@ class AssetsTest(TestCase):
         except ValidationError:
             pass
 
-        address1.delete()
+        self.assertEqual(1, IPAddressGeneric.objects.filter(address__exact="%s" % address1).count())
+
+        address1.delete()  # removed from DB
         vmport1.delete()
         vm1.delete()
 
         vm1.refresh_from_db()
         vmport1.refresh_from_db()
         ippool1.refresh_from_db()
-        address1.refresh_from_db()
 
+        self.assertEqual(0, IPAddressGeneric.objects.filter(address__exact="%s" % address1).count())
         self.assertEqual(Resource.STATUS_DELETED, vm1.status)
         self.assertEqual(Resource.STATUS_DELETED, vmport1.status)
-        self.assertEqual(Resource.STATUS_DELETED, address1.status)
-        self.assertNotEquals(ippool1.id, address1.parent.id)
 
     def test_delete_resources(self):
         switch1 = Switch.objects.create(label="test switch", status=Resource.STATUS_INUSE)
@@ -77,17 +79,13 @@ class AssetsTest(TestCase):
 
         self.assertTrue(ModelFieldChecker.is_field_or_property(new_res1, 'type'))
 
-        setattr(new_res1, 'type', 'Server')
-        new_res1.save()
-        new_res1.refresh_from_db()
-
-        self.assertEqual('Switch', new_res1.type)
+        self.assertEqual('assets.switch', new_res1.type)
         self.assertEqual(Switch, new_res1.__class__)
 
         # real change type
         new_res1 = new_res1.cast_type(Server)
 
-        self.assertEqual('Server', new_res1.type)
+        self.assertEqual('assets.server', new_res1.type)
         self.assertEqual(Server, new_res1.__class__)
 
     def test_option_type(self):

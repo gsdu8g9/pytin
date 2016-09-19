@@ -75,7 +75,7 @@ class Command(BaseCommand):
                     current_time_stamp = int(time.time())
                     agentd_heartbeat = hypervisor.get_option_value('agentd_heartbeat', default=0)
                     agentd_heartbeat_value = agentd_heartbeat if (current_time_stamp - int(
-                            agentd_heartbeat)) < 90 else "%s (!)" % agentd_heartbeat
+                        agentd_heartbeat)) < 90 else "%s (!)" % agentd_heartbeat
 
                     table.add_row([hypervisor.id,
                                    hypervisor.get_option_value('group'),
@@ -102,26 +102,26 @@ class Command(BaseCommand):
             ip_addr = options['ip']
 
             tracker = self.backend.create_vps(
-                    node=node_id,
-                    vmid=vmid,
-                    template=template,
-                    user=user_name,
-                    ram=ram,
-                    hdd=hdd,
-                    cpu=cpu,
-                    ip=ip_addr)
+                node=node_id,
+                vmid=vmid,
+                template=template,
+                user=user_name,
+                ram=ram,
+                hdd=hdd,
+                cpu=cpu,
+                ip=ip_addr)
 
         elif options['stop']:
             tracker = self.backend.stop_vps(
-                    node=node_id,
-                    vmid=vmid,
-                    user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         elif options['start']:
             tracker = self.backend.start_vps(
-                    node=node_id,
-                    vmid=vmid,
-                    user=user_name)
+                node=node_id,
+                vmid=vmid,
+                user=user_name)
 
         if tracker:
             logger.info("Attached to the task tracker %s. Ctrl-C to exit." % tracker.id)
@@ -129,8 +129,8 @@ class Command(BaseCommand):
             try:
                 result_data = tracker.wait()
                 logger.info(result_data)
-            except Exception, ex:
-                logger.error(ex.message)
+            except Exception as ex:
+                logger.exception(ex.message)
 
     def _handle_trackers(self, *args, **options):
         if options['cancel']:
@@ -160,7 +160,7 @@ class Command(BaseCommand):
         trackers = self.task_tracker.find(status=status).order_by('-id')[:limit]
 
         table = PrettyTable(
-                ['id', 'task_class', 'status', 'created', 'updated', 'time-delta'])
+            ['id', 'task_class', 'status', 'created', 'updated', 'time-delta'])
         table.padding_width = 1
 
         for tracker in trackers:

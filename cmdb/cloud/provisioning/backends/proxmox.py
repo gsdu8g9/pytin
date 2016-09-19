@@ -5,20 +5,22 @@ from celery import Celery
 
 from assets.models import Server
 from cloud.provisioning import HypervisorBackend, CloudTask, generate_password
+from cloud.provisioning.backends import MockCelery
 from cloud.provisioning.schedulers import RatingBasedScheduler
-from cmdb.settings import logger, PROXMOX_BACKEND
+from cmdb.settings import logger, PROXMOX_BACKEND, DEBUG
 
 agentd_proxy = Celery('agentd',
                       broker=PROXMOX_BACKEND['MSG_BROKER'],
-                      backend=PROXMOX_BACKEND['MSG_BACKEND'])
+                      backend=PROXMOX_BACKEND['MSG_BACKEND']) if not DEBUG else MockCelery()
 
-agentd_proxy.conf.update(
+if not DEBUG:
+    agentd_proxy.conf.update(
         CELERY_TASK_SERIALIZER='json',
         CELERY_RESULT_SERIALIZER='json',
         CELERY_ACCEPT_CONTENT=['json'],
         CELERY_TIMEZONE='Europe/Moscow',
         CELERY_ENABLE_UTC=True
-)
+    )
 
 
 class VpsControlTask(CloudTask):

@@ -4,13 +4,13 @@ from __future__ import unicode_literals
 from assets.analyzers import CmdbAnalyzer
 from assets.models import SwitchPort, PortConnection, ServerPort, Server, VirtualServer, VirtualServerPort
 from cmdb.settings import logger
-from ipman.models import IPAddress, IPAddressPool
+from ipman.models import GlobalIPManager
 from resources.models import Resource
 
 
 class GenericCmdbImporter(object):
     def __init__(self):
-        self.available_ip_pools = IPAddressPool.get_all_pools()
+        self.available_ip_pools = GlobalIPManager.find_pools(status=Resource.STATUS_FREE)
 
     def import_switch(self, switch_cmdb_id, l3switch):
         """
@@ -24,12 +24,12 @@ class GenericCmdbImporter(object):
             else:
                 self._add_foreign_port(l3port)
 
-            # Import IP addresses
-            for connected_mac in l3port.macs:
-                server, server_port = self._add_server_and_port(connected_mac)
+        # Import IP addresses
+        for connected_mac in l3switch.get_connected_servers():
+            server, server_port = self._add_server_and_port(connected_mac)
 
-                for ip_address in l3port.switch.get_mac_ips(unicode(connected_mac)):
-                    self._add_ip(ip_address, parent=server_port)
+            for ip_address in l3switch.get_mac_ips("%s" % connected_mac):
+                self._add_ip(ip_address, parent=server_port)
 
         # There is only one connection from the single server port.
         logger.info("Clean extra PortConnections from server ports")
@@ -115,11 +115,11 @@ class GenericCmdbImporter(object):
 
             logger.info("Physical servers:")
             for server in pysical_srv:
-                logger.info(unicode(server))
+                logger.info(server)
 
             logger.info("Virtual servers:")
             for vserver in virtual_srv:
-                logger.info(unicode(vserver))
+                logger.info(vserver)
 
     def _add_foreign_port(self, l3port):
         """
@@ -190,15 +190,21 @@ class GenericCmdbImporter(object):
 
         logger.debug("Found mac: %s" % connected_mac)
 
-        server_port, created = Resource.active.get_or_create(
-            mac=connected_mac.interface,
-            type__in=[ServerPort.__name__, VirtualServerPort.__name__],
-            defaults=dict(
+        if connected_mac.vendor:
+            server_port, created = ServerPort.active.get_or_create(
                 mac=connected_mac.interface,
-                type="assets.%s" % (ServerPort.__name__ if connected_mac.vendor else VirtualServerPort.__name__),
-                status=Resource.STATUS_INUSE
+                defaults=dict(
+                    status=Resource.STATUS_INUSE
+                )
             )
-        )
+        else:
+            server_port, created = VirtualServerPort.active.get_or_create(
+                mac=connected_mac.interface,
+                defaults=dict(
+                    status=Resource.STATUS_INUSE
+                )
+            )
+
         if created:
             logger.info("Added server port %s (%s)" % (server_port.id, connected_mac.interface))
 
@@ -222,28 +228,18 @@ class GenericCmdbImporter(object):
     def _add_ip(self, ip_address, parent=None):
         assert ip_address, "ip_address must be defined."
 
-        added = False
-        for ip_pool in self.available_ip_pools:
-            if ip_pool.can_add(ip_address):
-                added_ip, created = IPAddress.active.get_or_create(address__exact=ip_address,
-                                                                   defaults=dict(address=ip_address,
-                                                                                 parent=ip_pool))
-                added_ip.use(cascade=True)
+        logger.info("Processing IP %s" % ip_address)
 
-                if created:
-                    logger.info("Added %s to %s" % (ip_address, ip_pool))
-                else:
-                    added_ip.touch(cascade=True)
+        try:
+            added_ip = GlobalIPManager.get_ip(ip_address)
+            added_ip.use()
+            added_ip.touch()
 
-                if parent:
-                    if added_ip.parent and added_ip.parent.id != parent.id:
-                        logger.info("IP %s moved from %s to %s" % (ip_address, added_ip.typed_parent, parent))
+            if parent:
+                if added_ip.parent and added_ip.parent.id != parent.id:
+                    logger.info("IP %s moved from %s to %s" % (ip_address, added_ip.parent, parent))
 
-                    added_ip.parent = parent
-                    added_ip.save()
-
-                added = True
-                break
-
-        if not added:
-            logger.error("%s is not added. IP pool is not available." % ip_address)
+                added_ip.parent = parent
+                added_ip.save()
+        except Exception as ex:
+            logger.exception(ex.message)

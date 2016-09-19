@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import netaddr
+from django.utils.encoding import python_2_unicode_compatible
 from pysnmp.entity.engine import SnmpEngine
 from pysnmp.hlapi import ContextData, CommunityData, UdpTransportTarget, nextCmd
 from pysnmp.smi.rfc1902 import ObjectType, ObjectIdentity
@@ -46,6 +47,7 @@ def _normalize_port_name(port_name):
     return port_name.lower()
 
 
+@python_2_unicode_compatible
 class ServerInterface(object):
     """
     Server interface, connected to the switch
@@ -56,12 +58,12 @@ class ServerInterface(object):
 
         self._mac = netaddr.EUI(mac, dialect=netaddr.mac_bare)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.interface
 
     @property
     def interface(self):
-        return _normalize_mac(unicode(self._mac))
+        return _normalize_mac("%s" % self._mac)
 
     @property
     def vendor(self):
@@ -146,6 +148,9 @@ class L3Switch(object):
 
         return []
 
+    def get_connected_servers(self):
+        return [ServerInterface(mac_addr) for mac_addr in self.server_port__ips__map.keys()]
+
     def from_mac_dump(self, file_name):
         raise NotImplementedError()
 
@@ -160,7 +165,7 @@ class L3Switch(object):
         # 1.3.6.1.2.1.31.1.1.1.1
         oid = ObjectType(ObjectIdentity('IF-MIB', 'ifName'))
         for port_num_raw, port_name in _snmp_walk(host, community, oid):
-            sw_port_num = port_num_raw[port_num_raw.rfind('.')+1:]
+            sw_port_num = port_num_raw[port_num_raw.rfind('.') + 1:]
             self._add_switch_port(sw_port_num, port_name)
 
         # mac addresses table
@@ -197,6 +202,7 @@ class L3Switch(object):
 
         port_name = _normalize_port_name(port_name)
         if port_name not in self.port_name__num__map:
+            logger.debug("Added port %s number %s" % (port_name, port_number))
             self.port_name__num__map[port_name] = port_number
 
     def _add_server_port(self, switch_port_name, server_port_mac):

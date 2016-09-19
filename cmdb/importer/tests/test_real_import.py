@@ -1,4 +1,6 @@
+from __future__ import print_function
 from __future__ import unicode_literals
+
 import os
 
 from django.test import TestCase
@@ -8,7 +10,8 @@ from assets.models import RegionResource, ServerPort, Server, VirtualServer, Gat
 from events.models import HistoryEvent
 from importer.importlib import GenericCmdbImporter
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
-from ipman.models import IPNetworkPool, IPAddress
+from ipman.models import GlobalIPManager, IPAddressPoolFactory
+from resources.models import Resource
 
 
 class QSW8300ImportDataTest(TestCase):
@@ -36,31 +39,32 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(12, len(switch_ports))
 
         # Add our IP pools
-        pool_list = [IPNetworkPool.objects.create(network='46.17.40.0/23', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='46.17.44.0/23', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='176.32.34.0/23', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='176.32.36.0/24', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='176.32.37.0/24', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='176.32.38.0/24', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='176.32.39.0/24', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='2a00:b700::/48', parent=dc_anders),
-                     IPNetworkPool.objects.create(network='46.17.46.0/23', parent=dc_rtcom),
-                     IPNetworkPool.objects.create(network='46.29.160.0/23', parent=dc_rtcom),
-                     IPNetworkPool.objects.create(network='176.32.32.0/23', parent=dc_rtcom),
-                     IPNetworkPool.objects.create(network='46.29.162.0/23', parent=dc_rtcom),
-                     IPNetworkPool.objects.create(network='46.29.164.0/22', parent=dc_rtcom),
-                     IPNetworkPool.objects.create(network='185.22.152.0/22', parent=dc_rtcom),
-                     IPNetworkPool.objects.create(network='2a00:b700:1::/48', parent=dc_rtcom)]
+        pool_list = [IPAddressPoolFactory.from_network(network='46.17.40.0/23', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='46.17.44.0/23', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='176.32.34.0/23', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='176.32.36.0/24', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='176.32.37.0/24', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='176.32.38.0/24', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='176.32.39.0/24', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='2a00:b700::/120', parent=dc_anders),
+                     IPAddressPoolFactory.from_network(network='46.17.46.0/23', parent=dc_rtcom),
+                     IPAddressPoolFactory.from_network(network='46.29.160.0/23', parent=dc_rtcom),
+                     IPAddressPoolFactory.from_network(network='176.32.32.0/23', parent=dc_rtcom),
+                     IPAddressPoolFactory.from_network(network='46.29.162.0/23', parent=dc_rtcom),
+                     IPAddressPoolFactory.from_network(network='46.29.164.0/22', parent=dc_rtcom),
+                     IPAddressPoolFactory.from_network(network='185.22.152.0/22', parent=dc_rtcom),
+                     IPAddressPoolFactory.from_network(network='2a00:b700:1::/120', parent=dc_rtcom),
+                     IPAddressPoolFactory.from_network(network='87.251.133.9/31', parent=dc_rtcom)]
 
         # Double the proccess, to test data update process
         cmdb_importer.import_switch(anders_gw.id, qtech_switch)
         cmdb_importer.import_switch(anders_gw.id, qtech_switch)
 
-        # -1 IP: 87.251.133.9, /30 peering network address
-        self.assertEqual(1328, len(IPAddress.active.filter()))
+        # +1 IP: 87.251.133.9, /31 peering network address
+        self.assertEqual(1329, len(GlobalIPManager.find_ips(status=Resource.STATUS_INUSE)))
 
         for pool in pool_list:
-            print "%s - %d" % (pool, pool.usage)
+            print("%s - %d" % (pool, pool.usage))
 
         # count servers
         self.assertEqual(71, len(Server.active.filter()))
@@ -91,7 +95,7 @@ class QSW8300ImportDataTest(TestCase):
         self.assertEqual(0, len(ServerPort.active.filter(parent=None)))
         self.assertEqual(41, len(VirtualServerPort.active.filter()))
         self.assertEqual(54, len(PortConnection.active.filter()))
-        self.assertEqual(1328, len(IPAddress.active.filter()))
+        self.assertEqual(1329, len(GlobalIPManager.find_ips(status=Resource.STATUS_INUSE)))
 
         # update VPS links to hypervisors
         for switch in Switch.active.all():
@@ -102,14 +106,15 @@ class QSW8300ImportDataTest(TestCase):
             for switch_port in SwitchPort.active.filter(parent=switch):
                 cmdb_importer.process_hypervisors(switch_port)
 
-        self.assertEqual(3, len(Server.active.filter(role='hypervisor')))
-        for server in Server.active.filter(role='hypervisor'):
-            print server.id
+        hypervisors = Server.active.filter(role='hypervisor')
+        self.assertEqual(3, len(hypervisors))
+        for server in hypervisors:
+            print(server.id)
 
         # There are linked VPS, hypervisor detection logic test.
-        self.assertEqual(4, len(VirtualServer.active.filter(parent=812)))
-        self.assertEqual(2, len(VirtualServer.active.filter(parent=820)))
-        self.assertEqual(3, len(VirtualServer.active.filter(parent=764)))
+        self.assertEqual(4, len(VirtualServer.active.filter(parent=hypervisors[0].id)))
+        self.assertEqual(2, len(VirtualServer.active.filter(parent=hypervisors[1].id)))
+        self.assertEqual(3, len(VirtualServer.active.filter(parent=hypervisors[2].id)))
 
-        events = HistoryEvent.objects.filter(type=HistoryEvent.CREATE)
-        self.assertEqual(1677, len(events))
+        events = HistoryEvent.objects.filter(event_type=HistoryEvent.CREATE)
+        self.assertEqual(7492, len(events))  # all IPs are beign created

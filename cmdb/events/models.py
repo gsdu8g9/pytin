@@ -1,17 +1,17 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.db.models.signals import post_init, pre_delete
+from django.db.models.signals import post_init, post_delete
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 
 from cmdb.settings import logger
-from resources.models import Resource, ResourceOption
-
-RESOURCE_HISTORY_FIELDS = ['parent_id', 'name', 'type', 'status']
+from resources.models import ResourceOption
 
 
+@python_2_unicode_compatible
 class HistoryEvent(models.Model):
     CREATE = 'create'
     UPDATE = 'update'
@@ -23,8 +23,9 @@ class HistoryEvent(models.Model):
         (DELETE, 'delete'),
     )
 
-    resource = models.ForeignKey(Resource)
-    type = models.CharField(max_length=64, choices=TYPES, db_index=True)
+    object_id = models.IntegerField(db_index=True)
+    object_type = models.CharField(max_length=64, db_index=True)
+    event_type = models.CharField(max_length=64, choices=TYPES, db_index=True)
     field_name = models.CharField(max_length=155, db_index=True, null=True)
     field_old_value = models.CharField(max_length=255, db_index=True, null=True)
     field_new_value = models.CharField(max_length=255, db_index=True, null=True)
@@ -33,27 +34,43 @@ class HistoryEvent(models.Model):
     class Meta:
         db_table = "resource_history"
 
-    @staticmethod
-    def add_create(resource):
-        assert isinstance(resource, Resource)
+    def __str__(self):
+        return "%s %s[%s].%s '%s'->'%s'" % (self.event_type,
+                                            self.object_type,
+                                            self.object_id,
+                                            self.field_name,
+                                            self.field_old_value,
+                                            self.field_new_value)
 
-        event = HistoryEvent(resource=resource, type=HistoryEvent.CREATE)
+    @staticmethod
+    def add_create(entity):
+        assert entity
+
+        event = HistoryEvent(object_id=entity.id,
+                             object_type=entity.__class__.__name__,
+                             event_type=HistoryEvent.CREATE)
         event.save()
 
     @staticmethod
-    def add_update(resource, field_name, field_old_value, field_new_value):
-        assert isinstance(resource, Resource)
+    def add_update(entity, field_name, field_old_value, field_new_value):
+        assert entity
         assert field_name
 
-        event = HistoryEvent(resource=resource, type=HistoryEvent.UPDATE, field_name=field_name,
-                             field_old_value=field_old_value, field_new_value=field_new_value)
+        event = HistoryEvent(object_id=entity.id,
+                             object_type=entity.__class__.__name__,
+                             field_name=field_name,
+                             field_old_value=field_old_value,
+                             field_new_value=field_new_value,
+                             event_type=HistoryEvent.UPDATE)
         event.save()
 
     @staticmethod
-    def add_delete(resource):
-        assert isinstance(resource, Resource)
+    def add_delete(entity):
+        assert entity
 
-        event = HistoryEvent(resource=resource, type=HistoryEvent.DELETE)
+        event = HistoryEvent(object_id=entity.id,
+                             object_type=entity.__class__.__name__,
+                             event_type=HistoryEvent.DELETE)
         event.save()
 
     def save(self, *args, **kwargs):
@@ -63,28 +80,33 @@ class HistoryEvent(models.Model):
         super(HistoryEvent, self).save(*args, **kwargs)
 
 
-####### Attach history models to the resources #######
-
 @receiver(post_init)
 def resource_post_init(sender, instance, **kwargs):
-    if not issubclass(sender, Resource):
+    if not hasattr(sender, 'HISTORY_FIELDS'):
         return
 
-    for field in RESOURCE_HISTORY_FIELDS:
+    for field in sender.HISTORY_FIELDS:
         value = getattr(instance, field)
         setattr(instance, '_original_%s' % field, value)
+
         logger.debug("POST INIT: %s %s %s" % (instance, field, value))
 
 
 @receiver(post_save)
 def resource_post_save(sender, instance, created, **kwargs):
-    if not issubclass(sender, Resource):
+    if not hasattr(sender, 'HISTORY_FIELDS'):
         return
 
     if created:
         HistoryEvent.add_create(instance)
+
+        for field in sender.HISTORY_FIELDS:
+            value = getattr(instance, field)
+
+            if value:
+                HistoryEvent.add_update(instance, field, None, value)
     else:
-        for field in RESOURCE_HISTORY_FIELDS:
+        for field in sender.HISTORY_FIELDS:
             value = getattr(instance, field)
             history_field = '_original_%s' % field
 
@@ -95,14 +117,14 @@ def resource_post_save(sender, instance, created, **kwargs):
 
                 logger.debug("    original value: %s" % orig_value)
 
-                if unicode(value) != unicode(orig_value):
+                if "%s" % value != "%s" % orig_value:
                     HistoryEvent.add_update(instance, field, orig_value, value)
                     setattr(instance, '_original_%s' % field, value)
 
 
-@receiver(pre_delete)
-def resource_post_delete(sender, instance, using, **kwargs):
-    if not issubclass(sender, Resource):
+@receiver(post_delete)
+def resource_post_delete(sender, instance, **kwargs):
+    if not hasattr(sender, 'HISTORY_FIELDS'):
         return
 
     HistoryEvent.add_delete(instance)
@@ -125,6 +147,6 @@ def resource_option_post_save(sender, instance, created, **kwargs):
     history_field = '_original_value'
     if hasattr(instance, history_field):
         field_old_value = getattr(instance, history_field)
-        if unicode(field_new_value) != unicode(field_old_value) or created:
+        if "%s" % field_new_value != "%s" % field_old_value or created:
             field_old_value = None if created else field_old_value
             HistoryEvent.add_update(instance.resource, field_name, field_old_value, field_new_value)

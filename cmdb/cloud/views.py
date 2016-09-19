@@ -14,6 +14,12 @@ from cloud.serializers import CloudTaskTrackerSerializer, StartStopSerializer, \
 from cmdb.settings import logger
 
 
+def error_response(exception, http_status=status.HTTP_400_BAD_REQUEST):
+    assert exception
+
+    return Response({'detail': exception.message}, status=http_status)
+
+
 class CloudTaskTrackerViewSet(viewsets.mixins.RetrieveModelMixin,
                               viewsets.GenericViewSet):
     """
@@ -30,57 +36,68 @@ class VirtualServerViewSet(viewsets.mixins.CreateModelMixin,
     pagination_class = PageNumberPagination
 
     def create(self, request, *args, **kwargs):
-        indata = CreateVpsSerializer(data=request.data)
-        if not indata.is_valid():
-            return Response(indata.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            indata = CreateVpsSerializer(data=request.data)
+            if not indata.is_valid():
+                return Response(indata.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info("Creating VPS: %s" % indata.data)
+            logger.info("Creating VPS: %s" % indata.data)
 
-        # hardcoded backend
-        cloud = CmdbCloudConfig()
-        backend = ProxMoxJBONServiceBackend(cloud)
+            # hardcoded backend
+            cloud = CmdbCloudConfig()
+            backend = ProxMoxJBONServiceBackend(cloud)
 
-        tracker = backend.create_vps(**indata.data)
+            tracker = backend.create_vps(**indata.data)
 
-        serializer = CloudTaskTrackerSerializer(tracker)
+            serializer = CloudTaskTrackerSerializer(tracker)
 
-        return Response(serializer.data)
+            return Response(serializer.data)
+        except Exception as ex:
+            return error_response(ex)
 
     @detail_route(methods=['patch'])
     def start(self, request, pk=None):
-        indata = StartStopSerializer(data=request.data)
-        if not indata.is_valid():
-            return Response(indata.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            indata = StartStopSerializer(data=request.data)
+            if not indata.is_valid():
+                return Response(indata.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info("Starting VPS: %s" % indata.data)
+            logger.info("Starting VPS: %s" % indata.data)
 
-        # hardcoded backend
-        cloud = CmdbCloudConfig()
-        backend = ProxMoxJBONServiceBackend(cloud)
+            # hardcoded backend
+            cloud = CmdbCloudConfig()
+            backend = ProxMoxJBONServiceBackend(cloud)
 
-        tracker = backend.start_vps(**indata.data)
+            tracker = backend.start_vps(**indata.data)
 
-        serializer = CloudTaskTrackerSerializer(tracker)
+            serializer = CloudTaskTrackerSerializer(tracker)
 
-        return Response(serializer.data)
+            return Response(serializer.data)
+
+        except Exception as ex:
+            return error_response(ex)
 
     @detail_route(methods=['patch'])
     def stop(self, request, pk=None):
-        indata = StartStopSerializer(data=request.data)
-        if not indata.is_valid():
-            return Response(indata.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            indata = StartStopSerializer(data=request.data)
+            if not indata.is_valid():
+                return Response(indata.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info("Stopping VPS: %s" % indata.data)
+            logger.info("Stopping VPS: %s" % indata.data)
 
-        # hardcoded backend
-        cloud = CmdbCloudConfig()
-        backend = ProxMoxJBONServiceBackend(cloud)
+            # hardcoded backend
+            cloud = CmdbCloudConfig()
+            backend = ProxMoxJBONServiceBackend(cloud)
 
-        tracker = backend.stop_vps(**indata.data)
+            tracker = backend.stop_vps(**indata.data)
 
-        serializer = CloudTaskTrackerSerializer(tracker)
+            serializer = CloudTaskTrackerSerializer(tracker)
 
-        return Response(serializer.data)
+            return Response(serializer.data)
+
+        except Exception as ex:
+            return error_response(ex)

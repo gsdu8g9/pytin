@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import netaddr
+from django.utils.encoding import python_2_unicode_compatible
 
 from resources.models import Resource, ResourceOption
 
@@ -13,16 +14,10 @@ class RegionResource(Resource):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
-        return self.name
-
 
 class Datacenter(Resource):
     class Meta:
         proxy = True
-
-    def __unicode__(self):
-        return self.name
 
     @property
     def support_email(self):
@@ -35,6 +30,7 @@ class Datacenter(Resource):
         self.set_option('support_email', value)
 
 
+@python_2_unicode_compatible
 class AssetResource(Resource):
     """
     Physical resource, that have serial number to track it.
@@ -44,7 +40,7 @@ class AssetResource(Resource):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         return "a%s %s (SN: %s)" % (self.id, self.label, self.serial)
 
     @property
@@ -59,7 +55,7 @@ class AssetResource(Resource):
 
     @property
     def serial(self):
-        return self.get_option_value('serial', default=unicode(self.id))
+        return self.get_option_value('serial', default=self.id)
 
     @serial.setter
     def serial(self, value):
@@ -68,6 +64,7 @@ class AssetResource(Resource):
         self.set_option('serial', value.lower())
 
 
+@python_2_unicode_compatible
 class RackMountable(AssetResource):
     """
     Physical resource, that can be mounted in Rack.
@@ -77,7 +74,7 @@ class RackMountable(AssetResource):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         return "i%s %s (%sU)" % (self.id, self.label, self.unit_size)
 
     @staticmethod
@@ -140,6 +137,7 @@ class RackMountable(AssetResource):
             super(AssetResource, self).save()
 
 
+@python_2_unicode_compatible
 class NetworkPort(Resource):
     """
     Network port
@@ -148,7 +146,7 @@ class NetworkPort(Resource):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s:%s%s" % (self.parent.id, self.number, " (uplink)" if self.uplink else "")
 
     @property
@@ -200,6 +198,7 @@ class NetworkPort(Resource):
         super(NetworkPort, self).delete(using=using)
 
 
+@python_2_unicode_compatible
 class PortConnection(Resource):
     """
     Connection between the ports in the network
@@ -208,7 +207,7 @@ class PortConnection(Resource):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         linked_device = '?'
         if self.linked_port and self.linked_port.parent:
             linked_device = self.linked_port.typed_parent
@@ -284,6 +283,7 @@ class SwitchPort(NetworkPort):
         return PortConnection.active.filter(parent=self)
 
 
+@python_2_unicode_compatible
 class ServerPort(NetworkPort):
     """
     Network port
@@ -292,7 +292,7 @@ class ServerPort(NetworkPort):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         return "eth%s:%s" % (self.number, self.mac)
 
     @property
@@ -350,6 +350,7 @@ class Server(RackMountable):
         return ServerPort.active.filter(parent=self)
 
 
+@python_2_unicode_compatible
 class Rack(AssetResource):
     """
     Rack mount object
@@ -358,7 +359,7 @@ class Rack(AssetResource):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     @property
@@ -372,6 +373,7 @@ class Rack(AssetResource):
         self.set_option('rack_size', value, format=ResourceOption.FORMAT_INT)
 
 
+@python_2_unicode_compatible
 class VirtualServerPort(NetworkPort):
     """
     Network port
@@ -380,10 +382,11 @@ class VirtualServerPort(NetworkPort):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         return "veth%s:%s" % (self.number, self.mac)
 
 
+@python_2_unicode_compatible
 class VirtualServer(AssetResource):
     """
     VirtualServer object. This is not inventory.
@@ -392,7 +395,7 @@ class VirtualServer(AssetResource):
     class Meta:
         proxy = True
 
-    def __unicode__(self):
+    def __str__(self):
         return "vm%s %s" % (self.id, self.label)
 
     @property

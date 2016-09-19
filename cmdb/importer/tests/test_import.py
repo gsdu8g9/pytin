@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+
 import os
 
 from django.test import TestCase
@@ -7,11 +8,34 @@ from assets.models import Server, Switch, VirtualServer, ServerPort, PortConnect
     RegionResource
 from importer.importlib import GenericCmdbImporter
 from importer.providers.l3_switch import L3Switch
+from ipman.models import IPAddressGeneric, IPAddressPoolFactory
 from resources.models import Resource
 
 
 class QSW8300ImportDataTest(TestCase):
     DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+    def test_relink_ip(self):
+        new_server1 = Server.objects.create(label="test server")
+        new_server2 = Server.objects.create(label="test server")
+        pool = IPAddressPoolFactory.from_name('test')
+
+        cmdb_importer = GenericCmdbImporter()
+
+        ip1 = IPAddressGeneric.objects.create(address='46.17.40.2',
+                                              status=Resource.STATUS_LOCKED,
+                                              pool=pool,
+                                              parent=new_server1)
+
+        self.assertEqual(Resource.STATUS_LOCKED, ip1.status)
+        self.assertEqual(new_server1.id, ip1.parent.id)
+
+        # used IP relink between parents
+        cmdb_importer._add_ip(ip1.address, parent=new_server2)
+
+        ip1.refresh_from_db()
+        self.assertEqual(Resource.STATUS_INUSE, ip1.status)
+        self.assertEqual(new_server2.id, ip1.parent.id)
 
     def test_process_servers(self):
         new_server1 = Server.objects.create(label="test server")

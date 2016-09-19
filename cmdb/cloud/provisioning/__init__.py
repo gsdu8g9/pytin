@@ -3,8 +3,7 @@ from __future__ import unicode_literals
 from django.utils.translation import ugettext_lazy as _
 
 from assets.models import Server, Datacenter
-from ipman.models import IPAddress, IPNetworkPool, IPAddressPool
-from resources.models import Resource
+from ipman.models import GlobalIPManager, IPAddressRenter
 
 
 def generate_password(length=15):
@@ -96,12 +95,9 @@ class HypervisorBackend(CloudBackend):
         if len(datacenters) <= 0:
             raise Exception("Missing parent datacenters of hypervisor node %s" % node_id)
 
-        datacenter = datacenters[0]
+        renter = IPAddressRenter.from_datacenter(datacenters[0], ip_version=4)
 
-        # Find free IPNetworkPool (we have free and used IP pools in  this DC)
-        ippools = datacenter.filter_childs(IPNetworkPool, status=Resource.STATUS_FREE)
-
-        leased_ips = IPAddressPool.lease_ips([ippool.id for ippool in ippools], count=1)
+        leased_ips = renter.rent(count=1)
         if len(leased_ips) <= 0:
             raise Exception("Unable to lease main IP for hypervisor %s" % node_id)
 
@@ -116,24 +112,12 @@ class HypervisorBackend(CloudBackend):
         """
         assert ip_address
 
-        target_net_pool = None
-        found_ips = IPAddress.active.filter(address=ip_address)
-        if len(found_ips) > 0:
-            found_ip = found_ips[0]
-            target_net_pool = found_ip.get_origin()
+        found_ip = GlobalIPManager.get_ip(ip_address)
+        target_net_pool = found_ip.pool
 
-            netmask = target_net_pool.get_option_value('netmask', default=None)
-            if not netmask:
-                target_net_pool = None
-
-        if not target_net_pool:
-            for ip_net_pool in IPNetworkPool.active.filter():
-                if ip_net_pool.can_add(ip_address):
-                    target_net_pool = ip_net_pool
-                    break
-
-        if not target_net_pool:
-            raise Exception("IP %s have no origin" % ip_address)
+        netmask = target_net_pool.get_option_value('netmask', default=None)
+        if not netmask:
+            target_net_pool = None
 
         # checking IP pool
         netmask = target_net_pool.get_option_value('netmask', default=None)

@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import itertools
 from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
@@ -15,7 +16,7 @@ from importer.providers.vendors.dlink import DSG3200Switch
 from importer.providers.vendors.hp import HP1910Switch
 from importer.providers.vendors.qtech import QtechL3Switch, Qtech3400Switch
 from importer.providers.vendors.sw3com import Switch3Com2250
-from ipman.models import IPAddress, IPAddressPool
+from ipman.models import GlobalIPManager
 from resources.models import Resource
 
 
@@ -73,24 +74,22 @@ class Command(BaseCommand):
         # Clean IP with parent=ip pool (free) with last_seen older that 31 days. It means that IP is not
         # used and can be released.
         logger.info("Clean missing IP addresses: %s" % last_seen_31days)
-        for free_ip_pool in Resource.active.filter(status=Resource.STATUS_FREE, type__in=IPAddressPool.ip_pool_types):
+        for free_ip_pool in GlobalIPManager.find_pools(status=Resource.STATUS_FREE, version=4):
             logger.info("    pool %s" % free_ip_pool)
 
-            for ip in IPAddress.active.filter(
+            for ip in GlobalIPManager.find_ips(
                     status=Resource.STATUS_INUSE,
                     last_seen__lt=last_seen_31days,
-                    ipman_pool_id=free_ip_pool.id,
-                    version=4):
+                    pool=free_ip_pool):
                 logger.warning("    used ip %s from the FREE IP pool is not seen for 31 days. Free it." % ip)
-                ip.free(cascade=True)
+                ip.free()
 
-            for ip in IPAddress.active.filter(
+            for ip in GlobalIPManager.find_ips(
                     status=Resource.STATUS_LOCKED,
                     last_seen__lt=last_seen_15days,
-                    ipman_pool_id=free_ip_pool.id,
-                    version=4):
+                    pool=free_ip_pool):
                 logger.warning("    locked ip %s from the FREE IP pool is not seen for 15 days. Free it." % ip)
-                ip.free(cascade=True)
+                ip.free()
 
         logger.info("Clean missing virtual servers: %s" % last_seen_31days)
         for vm in VirtualServer.active.filter(last_seen__lt=last_seen_31days):
@@ -119,12 +118,12 @@ class Command(BaseCommand):
 
     def _handle_auto(self, *args, **options):
         # update via snmp
-        query = dict(type__in=[GatewaySwitch.__name__, Switch.__name__])
+        query = dict()
         if options['switch_id']:
             query['pk'] = options['switch_id']
 
         if not options['skip_arp']:
-            for switch in Resource.active.filter(**query):
+            for switch in (itertools.chain(GatewaySwitch.active.filter(**query), Switch.active.filter(**query))):
                 logger.info("* Found switch: %s" % switch)
                 if switch.has_option('snmp_provider_key'):
                     snmp_provider_key = switch.get_option_value('snmp_provider_key')

@@ -1,8 +1,9 @@
 # coding=utf-8
+from __future__ import print_function
 from __future__ import unicode_literals
 
-from argparse import ArgumentParser
 import argparse
+from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand
 
@@ -10,7 +11,7 @@ from assets.analyzers import CmdbAnalyzer
 from assets.models import PortConnection, SwitchPort, ServerPort, AssetResource, Rack, RackMountable, Switch, \
     GatewaySwitch
 from cmdb.settings import logger
-from ipman.models import IPAddress
+from ipman.models import GlobalIPManager
 from resources.lib.console import ConsoleResourceWriter
 from resources.models import Resource
 
@@ -123,11 +124,11 @@ class Command(BaseCommand):
 
             logger.info("Physical servers:")
             for server in pysical_srv:
-                logger.info(unicode(server))
+                logger.info("%s" % server)
 
             logger.info("Virtual servers:")
             for vserver in virtual_srv:
-                logger.info(unicode(vserver))
+                logger.info("%s" % vserver)
 
     def _handle_rack(self, *args, **options):
         rack_ids = options['id']
@@ -140,8 +141,8 @@ class Command(BaseCommand):
             if options['set_size']:
                 rack.size = options['set_size']
             elif options['layout']:
-                print "*** {:^44} ***".format(
-                    "%s::%s (id:%s)" % (rack.parent if rack.parent else 'global', rack, rack.id))
+                print("*** {:^44} ***".format(
+                    "%s::%s (id:%s)" % (rack.parent if rack.parent else 'global', rack, rack.id)))
 
                 unsorted_servers = []
                 for rack_resource in rack:
@@ -176,19 +177,19 @@ class Command(BaseCommand):
                     if curr_position in rack_layout_map:
                         server = rack_layout_map[curr_position]
 
-                        print "[{:>3s}|  {:<40s}  |{:s}]".format(unicode(server.position), server,
-                                                                 'o' if server.on_rails else ' ')
+                        print("[{:>3s}|  {:<40s}  |{:s}]".format(server.position, server,
+                                                                 'o' if server.on_rails else ' '))
                     else:
-                        print "[{:>3s}|{:-^46s}]".format(unicode(curr_position), '')
+                        print("[{:>3s}|{:-^46s}]".format(curr_position, ''))
 
                     curr_position -= 1
 
                 # print free space
                 while curr_position > 0:
-                    print "[{:>3s}|{:-^46s}]".format(unicode(curr_position), '')
+                    print("[{:>3s}|{:-^46s}]".format(curr_position, ''))
                     curr_position -= 1
 
-                print "\n"
+                print("\n")
 
     def _handle_rack_unit(self, *args, **options):
         server = self._get_server_by_ip_or_id(options['ip-or-id'])
@@ -214,9 +215,9 @@ class Command(BaseCommand):
 
         server = None
         if server_ip_id.find('.') > -1:
-            ips = IPAddress.active.filter(address=server_ip_id)
+            ips = GlobalIPManager.get_ip(server_ip_id)
             if len(ips) > 0 and isinstance(ips[0].parent.typed_parent, AssetResource):
-                print ips[0].parent.parent.type
+                print(ips[0].parent.parent.type)
                 server = ips[0].parent.typed_parent
             else:
                 logger.warning("IP %s is not assigned to any server." % server_ip_id)
@@ -277,7 +278,7 @@ class Command(BaseCommand):
             else:
                 logger.info("  %s no connections" % server_port)
 
-            for ip_address in IPAddress.active.filter(parent=server_port):
+            for ip_address in GlobalIPManager.find_ips(parent=server_port):
                 logger.info("    %s (seen %s)" % (ip_address, ip_address.last_seen))
 
         logger.info("Options:")

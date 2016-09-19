@@ -10,7 +10,7 @@ from rest_framework.test import APITestCase
 from assets.models import RegionResource, Datacenter, Rack, Server
 from cloud.models import CmdbCloudConfig
 from cloud.provisioning.backends.proxmox import VpsControlTask, ProxMoxJBONServiceBackend
-from ipman.models import IPNetworkPool
+from ipman.models import GlobalIPManager, IPAddressPoolFactory
 from resources.models import Resource
 
 
@@ -62,10 +62,21 @@ class ResourcesAPITests(APITestCase):
         self.rack1 = Rack.objects.create(name='Test Rack 1', parent=self.dc1)
         self.srv1 = Server.objects.create(name='Test hypervisor 1', role='hypervisor', parent=self.rack1)
         self.pools_group1 = RegionResource.objects.create(name='Test DC 1 IP Pools', parent=self.dc1)
-        self.pool1 = IPNetworkPool.objects.create(network='192.168.0.0/23', parent=self.pools_group1,
-                                                  status=Resource.STATUS_FREE)
-        self.pool11 = IPNetworkPool.objects.create(network='192.169.0.0/23', parent=self.pools_group1,
-                                                   status=Resource.STATUS_INUSE)
+
+        self.pool1 = IPAddressPoolFactory.from_network('192.168.0.0/23',
+                                                       parent=self.pools_group1,
+                                                       dns1='46.17.46.200',
+                                                       dns2='46.17.40.200')
+
+        GlobalIPManager.get_ip('192.168.0.1').lock()
+
+        self.pool11 = IPAddressPoolFactory.from_network('192.169.0.0/23',
+                                                        parent=self.pools_group1,
+                                                        dns1='46.17.46.200',
+                                                        dns2='46.17.40.200')
+        self.pool11.use()
+
+        GlobalIPManager.get_ip('192.169.0.1').lock()
 
         self.srv1.set_option('agentd_taskqueue', 'test_task_queue')
 

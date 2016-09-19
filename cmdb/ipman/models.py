@@ -1,247 +1,122 @@
 from __future__ import unicode_literals
 
 import ipaddress
+from django.db import models
+from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 
-from cmdb.settings import logger
+from assets.models import Datacenter
 from resources.models import Resource, ResourceOption
 
 
-class IPAddress(Resource):
-    """
-    IP address
-    Note: IPAddress is added to the IP pool with ipman_pool_id option. This option allows to organize Resources and
-          keep tracking of IP-IP_pool relations.
-    """
+@python_2_unicode_compatible
+class IPAddressGeneric(models.Model):
+    HISTORY_FIELDS = ['pool_id', 'parent_id', 'address', 'status']
 
-    class Meta:
-        proxy = True
+    pool = models.ForeignKey(Resource)
+    parent = models.ForeignKey(Resource, null=True, blank=True, related_name='ipaddress')
 
-    @staticmethod
-    def is_valid_address(address):
-        try:
-            ipaddress.ip_address(unicode(address))
-        except:
-            return False
+    address = models.GenericIPAddressField("IPv4/v6 address", db_index=True, unique=True)
+    status = models.CharField(max_length=25,
+                              db_index=True,
+                              choices=Resource.STATUS_CHOICES,
+                              default=Resource.STATUS_FREE)
 
-        return True
+    version = models.IntegerField("IP address version", db_index=True, default=0)
 
-    def __unicode__(self):
-        return self.address
+    created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField('Date updated', auto_now=True, db_index=True)
+    last_seen = models.DateTimeField('Date last seen', db_index=True, default=timezone.now)
+    main = models.BooleanField("Main IP of the device", db_index=True, default=False)
 
-    def _get_beauty(self, address):
-        assert address, "address must be defined."
+    def __str__(self):
+        return "%s" % self.address
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if not self.version:
+            ip = ipaddress.ip_address(self.address)
+            self.version = ip.version
+
+        return super(IPAddressGeneric, self).save(force_insert, force_update, using, update_fields)
+
+    def free(self):
         """
-        Count beauty factor: 1 - 10
+        Free this IP.
         """
-        diff_map = {}
-        for ch in address:
-            diff_map[ch] = 1
+        self.set_status(Resource.STATUS_FREE)
 
-        return (12 if self.version == 4 else 17) - len(diff_map)
-
-    @property
-    def address(self):
-        return unicode(self.get_option_value('address'))
-
-    @address.setter
-    def address(self, address):
-        assert address is not None, "Parameter 'address' must be defined."
-
-        parsed_addr = ipaddress.ip_address(unicode(address))
-        self.set_option('address', parsed_addr)
-        self.set_option('version', parsed_addr.version)
-        self.set_option('beauty', self._get_beauty(unicode(address)), format=ResourceOption.FORMAT_INT)
-
-    @property
-    def version(self):
-        return self.get_option_value('version')
-
-    @property
-    def beauty(self):
-        return self.get_option_value('beauty', default=self._get_beauty(self.address))
-
-    @property
-    def services(self):
+    def use(self, parent=None):
         """
-        Comma separated list of services.
-        :return: ssh,http:8080,icmp
+        Use this IP.
         """
-        return self.get_option_value('services')
+        self.set_status(Resource.STATUS_INUSE, parent)
 
-    @services.setter
-    def services(self, services_string):
-        self.set_option('services', services_string, format=ResourceOption.FORMAT_STRING)
-
-    @property
-    def main(self):
+    def lock(self, parent=None):
         """
-        Check is this IP is the main IP on port.
+        Use this IP.
         """
-        return self.get_option_value('main', default=False)
+        self.set_status(Resource.STATUS_LOCKED, parent)
 
-    @main.setter
-    def main(self, is_main):
-        self.set_option('main', is_main, format=ResourceOption.FORMAT_BOOL)
-
-    def set_origin(self, pool_id):
+    def release(self):
         """
-        Set original IP pool for the IP. When IP is freed, its parent set to this origin.
+        Release IP address from the parent and move to initial IP pool.
         """
-        assert pool_id > 0
+        self.free()
 
-        self.set_option('ipman_pool_id', pool_id, ResourceOption.FORMAT_INT)
+        if self.parent:
+            self.parent = None
+            self.save()
 
-    def get_origin(self):
-        origin_id = self.get_option_value('ipman_pool_id', default=None)
+    def assign_to_resource(self, parent):
+        assert parent
+        assert isinstance(parent, Resource)
 
-        return Resource.active.get(pk=origin_id) if origin_id else None
-
-    def free(self, cascade=False):
-        """
-        Overriden implementation. Returns IP to the originated IP Pool.
-
-        :param cascade:
-        :return:
-        """
-        self.parent = self.get_origin()
-        self.status = Resource.STATUS_FREE
-        self.services = ''
-        self.main = False
+        self.parent = parent
         self.save()
 
-        super(IPAddress, self).free(cascade=cascade)
-
-    def save(self, *args, **kwargs):
+    def touch(self):
         """
-        Set IPAddress origin (ipman_pool_id) if parent is derived from IPAddressPool.
-        :param args:
-        :param kwargs:
-        :return:
+        Update last_seen date of the resource
         """
-        if not self.is_saved:
-            if self.parent and not isinstance(self.parent, IPAddressPool):
-                raise Exception("IP address must be added to the pool for the first time.")
+        self.last_seen = timezone.now()
+        self.save()
 
-            # Save here, because options must be set on the existing resources
-            super(IPAddress, self).save()
+    def move_to_pool(self, target_pool):
+        assert target_pool
+        assert isinstance(target_pool, Resource), "target_pool must be of Resource type"
 
-        if self.parent and isinstance(self.parent, IPAddressPool):
-            self.set_origin(self.parent.id)
+        if not self.pool or self.pool.id != target_pool.id:
+            self.pool = target_pool
+            self.save()
 
-        super(IPAddress, self).save()
+            return True
+
+        return False
+
+    def set_status(self, status, parent=None):
+        assert status
+
+        changed = False
+
+        if parent:
+            if not self.parent or (self.parent and parent.id != self.parent.id):
+                self.parent = parent
+                changed = True
+
+        if self.status != status:
+            self.status = status
+            changed = True
+
+        if changed:
+            self.save()
 
 
-class IPAddressPool(Resource):
-    ip_pool_types = [
-        'IPAddressPool',
-        'IPAddressRangePool',
-        'IPNetworkPool'
-    ]
-
-    class InfiniteList:
-        """
-        Implementation of the ring buffer. Infinitely iterate through the given list.
-        """
-
-        def __init__(self, list):
-            if not list:
-                raise ValueError('list')
-
-            self.list = list
-
-        def __iter__(self):
-            idx = 0
-            while True:
-                yield self.list[idx % len(self.list)]
-                idx += 1
-
-        def __len__(self):
-            return len(self.list)
-
+class IPAddressPoolGeneric(Resource):
     class Meta:
         proxy = True
-
-    def __unicode__(self):
-        return self.name
-
-    def __iter__(self):
-        for ip_address in IPAddress.active.filter(ipman_pool_id=self.id):
-            yield ip_address
-
-    @staticmethod
-    def lease_ips(ip_pool_ids, count=1):
-        """
-        Returns given number of IPs from different IP address pools.
-        """
-        assert ip_pool_ids
-        assert count > 0
-
-        pool_id_infinite_list = IPAddressPool.InfiniteList(ip_pool_ids)
-
-        rented_ips = []
-        changed = False
-        iterations = len(pool_id_infinite_list)
-        for ip_pool_id in pool_id_infinite_list:
-            if len(rented_ips) >= count:
-                break
-
-            if iterations <= 0 and not changed:
-                raise Exception("There is no available IPs in pools: %s" % ip_pool_ids)
-
-            iterations -= 1
-
-            ip_pool_resource = Resource.active.get(pk=ip_pool_id)
-            if ip_pool_resource.usage >= 95:
-                logger.warning("IP pool %s usage >95%%" % ip_pool_resource.id)
-
-            try:
-                ip = ip_pool_resource.available().next()
-                ip.lock()
-                ip.touch()
-
-                logger.debug("Available IP found: %s" % ip)
-
-                rented_ips.append(ip)
-                changed = True
-            except Exception, ex:
-                logger.error("Exception %s while getting IP from IP pool: %s" % (ex.__class__.__name__, ex.message))
-
-        return rented_ips
-
-    @staticmethod
-    def is_valid_network(network):
-        try:
-            ipaddress.ip_network(unicode(network), strict=False)
-        except:
-            return False
-
-        return True
-
-    @staticmethod
-    def get_all_pools():
-        return Resource.active.filter(type__in=IPAddressPool.ip_pool_types)
-
-    @staticmethod
-    def get_usable_pools():
-        return Resource.active.filter(type__in=IPAddressPool.ip_pool_types, status=Resource.STATUS_FREE)
-
-    @property
-    def version(self):
-        return self.get_option_value('version')
 
     @property
     def usage(self):
-        return self.get_usage()
-
-    @property
-    def total_addresses(self):
-        return IPAddress.active.filter(ipman_pool_id=self.id).count()
-
-    @property
-    def used_addresses(self):
-        return IPAddress.active.filter(ipman_pool_id=self.id, status=Resource.STATUS_INUSE).count()
-
-    def get_usage(self):
         total = float(self.total_addresses)
         used = float(self.used_addresses)
 
@@ -251,166 +126,207 @@ class IPAddressPool(Resource):
 
         return usage_value
 
-    def browse(self):
-        """
-        Iterate through all IP in this pool, even that are not allocated.
-        """
-        for addr in IPAddress.active.filter(ipman_pool_id=self.id):
-            yield addr.address
+    @property
+    def total_addresses(self):
+        return self.get_ips().count()
 
-    def is_reserved(self, ip_address):
+    @property
+    def used_addresses(self):
+        return self.get_used_ips().count()
+
+    @property
+    def version(self):
+        return self.get_option_value('version', default=4)
+
+    def get_used_ips(self):
+        return self.get_ips().exclude(status=Resource.STATUS_FREE)
+
+    def get_free_ips(self, **query):
+        return self.get_ips(status=Resource.STATUS_FREE, **query)
+
+    def get_ips(self, **query):
+        return IPAddressGeneric.objects.filter(pool=self, **query)
+
+    def add_ip(self, address):
+        """
+        Add IP address to the IP pool.
+        """
+        assert address
+
+        if not isinstance(address, IPAddressGeneric):
+            address, create = IPAddressGeneric.objects.update_or_create(
+                address=address,
+                defaults=dict(pool=self))
+
+        return address
+
+
+class IPAddressRenter(object):
+    def __init__(self):
+        self.sources = []
+
+    def add_source(self, ip_pool):
+        assert ip_pool
+        assert isinstance(ip_pool, IPAddressPoolGeneric)
+
+        self.sources.append(ip_pool)
+
+    @staticmethod
+    def from_pools(pools):
+        assert pools, "IP pools are not available."
+
+        renter = IPAddressRenter()
+        for pool in pools:
+            renter.add_source(pool)
+
+        return renter
+
+    @staticmethod
+    def from_datacenter(datacenter, ip_version=4):
+        """
+        Create IP renter from available pools in Datacenter.
+        :param ip_version: Specify version of the IP.
+        :param datacenter: Where to lease IPs.
+        :return: Rented IPs or ValueError.
+        """
+        assert datacenter
+        assert isinstance(datacenter, Datacenter)
+
+        free_ippools = datacenter.filter_childs(IPAddressPoolGeneric,
+                                                status=Resource.STATUS_FREE,
+                                                version=ip_version)
+
+        return IPAddressRenter.from_pools(free_ippools)
+
+    def rent(self, count=1):
+        """
+        Rent Count IPs from available pools.
+        :param count: Number of IPs to rent.
+        :return: Locked IPs, that can be used.
+        """
+        assert len(self.sources) > 0, "Add IP pools"
+
+        result_ips = []
+        while len(result_ips) < count:
+            last_len = len(result_ips)
+
+            for pool in self.sources:
+                if len(result_ips) >= count:
+                    break
+
+                for ip in pool.get_free_ips().order_by('last_seen')[:1]:
+                    ip.lock()
+                    ip.touch()
+                    result_ips.append(ip)
+
+            if last_len == len(result_ips):
+                raise ValueError("Can't rent %s IPs" % count)
+
+        return result_ips
+
+
+class IPAddressPoolFactory(object):
+    MAX_POOL_SIZE = 1024
+
+    @staticmethod
+    def from_name(name, **options):
+        assert name
+
+        pool, created = IPAddressPoolGeneric.objects.update_or_create(name=name, defaults=options)
+
+        return pool
+
+    @staticmethod
+    def from_network(network, **options):
+        assert network
+
+        parsed_net = ipaddress.ip_network(network, strict=False)
+
+        network_address = int(parsed_net.network_address)
+        broadcast = int(parsed_net.broadcast_address)
+        pool_size = broadcast - network_address
+
+        if pool_size >= IPAddressPoolFactory.MAX_POOL_SIZE:
+            raise ValueError("Pool size %s exceeds maximum size %s" % (pool_size, IPAddressPoolFactory.MAX_POOL_SIZE))
+
+        pool, created = IPAddressPoolGeneric.objects.update_or_create(name=network, defaults=options)
+        pool.set_option('netmask', parsed_net.netmask)
+        pool.set_option('gateway', "%s" % (parsed_net.network_address + 1))
+        pool.set_option('version', parsed_net.version)
+
+        for address in parsed_net.hosts():
+            IPAddressGeneric.objects.update_or_create(address="%s" % address, defaults=dict(pool=pool))
+
+        return pool
+
+    @staticmethod
+    def from_range(range_from, range_to, **options):
+        assert range_from
+        assert range_to
+
+        parsed_ip_from = ipaddress.ip_address(range_from)
+        ip_from = int(parsed_ip_from)
+        ip_to = int(ipaddress.ip_address(range_to))
+
+        if ip_from > ip_to:
+            raise ValueError("Property 'range_from' must be less than 'range_to'")
+
+        pool_size = ip_to - ip_from
+        if pool_size >= IPAddressPoolFactory.MAX_POOL_SIZE:
+            raise ValueError("Pool size %s exceeds maximum size %s" % (pool_size, IPAddressPoolFactory.MAX_POOL_SIZE))
+
+        pool, created = IPAddressPoolGeneric.objects.update_or_create(
+            name="%s-%s" % (range_from, range_to),
+            defaults=options
+        )
+
+        pool.set_option('version', parsed_ip_from.version)
+
+        for address in range(ip_from, ip_to + 1):
+            ipaddr = ipaddress.ip_address(address)
+            IPAddressGeneric.objects.update_or_create(address="%s" % ipaddr, defaults=dict(pool=pool))
+
+        return pool
+
+
+class GlobalIPManager(object):
+    @staticmethod
+    def find_pools(datacenter=None, **query):
+        if not datacenter:
+            return IPAddressPoolGeneric.active.filter(**query)
+        else:
+            assert datacenter
+            assert isinstance(datacenter, Datacenter)
+
+            return datacenter.filter_childs(IPAddressPoolGeneric, **query)
+
+    @staticmethod
+    def find_ips(**query):
+        return IPAddressGeneric.objects.filter(**query)
+
+    @staticmethod
+    def get_ip(ip_address):
         assert ip_address
 
-        if ip_address.endswith('.0') or ip_address.endswith('.1') or ip_address.endswith('.255'):
-            return True
+        return IPAddressGeneric.objects.get(address__exact=ip_address)
 
-        return False
+    @staticmethod
+    def move_ips(target_pool, start_ip, count=1, end_ip=None):
+        assert target_pool
+        assert isinstance(target_pool, Resource), "target_pool must be of Resource type"
+        assert start_ip
 
-    def available(self):
-        """
-        Check availability of the specific IP and return IPAddress that can be used.
-        """
-        for address in self.browse():
-            if self.is_reserved(unicode(address)):
-                continue
+        if not end_ip and not count:
+            raise ValueError("end_ip or count must be defined.")
 
-            # search in the current pool
-            ips = IPAddress.active.filter(address=address, ipman_pool_id=self.id)
-            if len(ips) > 0:
-                for ip in ips:
-                    if ip.is_free:
-                        yield ip
-                    else:
-                        continue
-            else:
-                # guarantee the uniq IPs, search in other pools
-                existing_ips = IPAddress.active.filter(address=address)
-                if len(existing_ips) <= 0:
-                    yield IPAddress.objects.create(address=address, parent=self)
-                else:
-                    # IP from this pool is used elsewhere
-                    continue
+        moved_ips = []
+        ip_from = int(ipaddress.ip_address("%s" % start_ip))
+        ip_to = (ip_from + count) if count > 0 else (int(ipaddress.ip_address("%s" % end_ip)) + 1)
+        for ip_raw in range(ip_from, ip_to):
+            ipaddr = ipaddress.ip_address(ip_raw)
+            ip_obj = GlobalIPManager.get_ip("%s" % ipaddr)
 
+            if ip_obj.move_to_pool(target_pool):
+                moved_ips.append(ip_obj)
 
-class IPAddressRangePool(IPAddressPool):
-    class Meta:
-        proxy = True
-
-    def __unicode__(self):
-        return "%s-%s" % (self.range_from, self.range_to)
-
-    @property
-    def range_from(self):
-        return self.get_option_value('range_from', default=None)
-
-    @range_from.setter
-    def range_from(self, ipaddr):
-        assert ipaddr is not None, "Parameter 'ipaddr' must be defined."
-
-        parsed_address = ipaddress.ip_address(unicode(ipaddr))
-        self.set_option('range_from', parsed_address)
-        self.set_option('version', parsed_address.version)
-
-    @property
-    def range_to(self):
-        return self.get_option_value('range_to', default=None)
-
-    @range_to.setter
-    def range_to(self, ipaddr):
-        assert ipaddr is not None, "Parameter 'ipaddr' must be defined."
-
-        parsed_address = ipaddress.ip_address(unicode(ipaddr))
-        self.set_option('range_to', parsed_address)
-        self.set_option('version', parsed_address.version)
-
-    @property
-    def total_addresses(self):
-        ip_from = int(ipaddress.ip_address(unicode(self.range_from)))
-        ip_to = int(ipaddress.ip_address(unicode(self.range_to)))
-
-        return ip_to - ip_from + 1
-
-    def can_add(self, address):
-        """
-        Test if IP address is from this network.
-        """
-        assert address is not None, "Parameter 'address' must be defined."
-
-        parsed_addr = ipaddress.ip_address(unicode(address.address if isinstance(address, IPAddress) else address))
-
-        for ipnet in [self._get_range_addresses()]:
-            if parsed_addr in ipnet:
-                return True
-
-        return False
-
-    def browse(self):
-        """
-        Iterate through all IP in this pool, even that are not allocated.
-        """
-        for address in self._get_range_addresses():
-            yield address
-
-    def _get_range_addresses(self):
-        ip_from = int(ipaddress.ip_address(unicode(self.range_from)))
-        ip_to = int(ipaddress.ip_address(unicode(self.range_to)))
-
-        assert ip_from < ip_to, "Property 'range_from' must be less than 'range_to'"
-
-        for addr in range(ip_from, ip_to + 1):
-            yield ipaddress.ip_address(addr)
-
-
-class IPNetworkPool(IPAddressPool):
-    """
-    IP addresses network.
-    """
-
-    class Meta:
-        proxy = True
-
-    def __unicode__(self):
-        return self.network
-
-    @property
-    def network(self):
-        return self.get_option_value('network', default='0.0.0.0/0')
-
-    @network.setter
-    def network(self, network):
-        assert network is not None, "Parameter 'network' must be defined."
-
-        parsed_net = ipaddress.ip_network(unicode(network), strict=False)
-        self.set_option('network', parsed_net)
-        self.set_option('version', parsed_net.version)
-
-        # populate network parameters
-        self.set_option('netmask', parsed_net.netmask)
-        self.set_option('prefixlen', parsed_net.prefixlen)
-        self.set_option('gateway', unicode(parsed_net[1]) if parsed_net.num_addresses > 0 else '')
-
-    @property
-    def total_addresses(self):
-        return self._get_network_object().num_addresses
-
-    def can_add(self, address):
-        """
-        Test if IP address can be added to this pool.
-        """
-        assert address is not None, "Parameter 'address' must be defined."
-
-        parsed_addr = ipaddress.ip_address(unicode(address.address if isinstance(address, IPAddress) else address))
-        parsed_net = self._get_network_object()
-
-        return parsed_addr in parsed_net
-
-    def browse(self):
-        """
-        Iterate through all IP in this pool, even that are not allocated.
-        """
-        parsed_net = self._get_network_object()
-        for address in parsed_net.hosts():
-            yield address
-
-    def _get_network_object(self):
-        return ipaddress.ip_network(unicode(self.network), strict=False)
+        return moved_ips

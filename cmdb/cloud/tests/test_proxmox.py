@@ -6,7 +6,7 @@ from django.test import TestCase
 from assets.models import RegionResource, Datacenter, Rack, Server
 from cloud.models import CmdbCloudConfig, TaskTrackerStatus
 from cloud.provisioning.backends.proxmox import ProxMoxJBONServiceBackend, VpsControlTask
-from ipman.models import IPNetworkPool
+from ipman.models import GlobalIPManager, IPAddressPoolFactory
 from resources.models import Resource
 
 
@@ -50,12 +50,21 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.rack1 = Rack.objects.create(name='Test Rack 1', parent=self.dc1)
         self.srv1 = Server.objects.create(name='Test hypervisor 1', role='hypervisor', parent=self.rack1)
         self.pools_group1 = RegionResource.objects.create(name='Test DC 1 IP Pools', parent=self.dc1)
-        self.pool1 = IPNetworkPool.objects.create(network='192.168.0.0/23', parent=self.pools_group1,
-                                                  status=Resource.STATUS_FREE,
-                                                  dns1='46.17.46.200', dns2='46.17.40.200')
-        self.pool11 = IPNetworkPool.objects.create(network='192.169.0.0/23', parent=self.pools_group1,
-                                                   status=Resource.STATUS_INUSE,
-                                                   dns1='46.17.46.200', dns2='46.17.40.200')
+
+        self.pool1 = IPAddressPoolFactory.from_network('192.168.0.0/23',
+                                                       parent=self.pools_group1,
+                                                       dns1='46.17.46.200',
+                                                       dns2='46.17.40.200')
+
+        GlobalIPManager.get_ip('192.168.0.1').lock()
+
+        self.pool11 = IPAddressPoolFactory.from_network('192.169.0.0/23',
+                                                        parent=self.pools_group1,
+                                                        dns1='46.17.46.200',
+                                                        dns2='46.17.40.200')
+        self.pool11.use()
+
+        GlobalIPManager.get_ip('192.169.0.1').lock()
 
         self.srv1.set_option('agentd_taskqueue', 'test_task_queue')
 
@@ -75,9 +84,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.start_vps(
-                node=node_id,
-                vmid=vmid,
-                user=user_name)
+            node=node_id,
+            vmid=vmid,
+            user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -103,9 +112,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_KVM)
 
         tracker = self.backend.stop_vps(
-                node=node_id,
-                vmid=vmid,
-                user=user_name)
+            node=node_id,
+            vmid=vmid,
+            user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -131,9 +140,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.start_vps(
-                node=node_id,
-                vmid=vmid,
-                user=user_name)
+            node=node_id,
+            vmid=vmid,
+            user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -159,9 +168,9 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         self.srv1.set_option('hypervisor_driver', CmdbCloudConfig.TECH_HV_OPENVZ)
 
         tracker = self.backend.stop_vps(
-                node=node_id,
-                vmid=vmid,
-                user=user_name)
+            node=node_id,
+            vmid=vmid,
+            user=user_name)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -197,14 +206,14 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-                node=node_id,
-                vmid=vmid,
-                template=template,
-                user=user_name,
-                ram=ram,
-                hdd=hdd,
-                cpu=cpu,
-                ip=ip_addr)
+            node=node_id,
+            vmid=vmid,
+            template=template,
+            user=user_name,
+            ram=ram,
+            hdd=hdd,
+            cpu=cpu,
+            ip=ip_addr)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -256,14 +265,14 @@ class ProxMoxJBONServiceBackendTest(TestCase):
 
         # ip parameter is ignored
         tracker = self.backend.create_vps(
-                node=node_id,
-                vmid=vmid,
-                template=template,
-                user=user_name,
-                ram=ram,
-                hdd=hdd,
-                cpu=cpu,
-                ip=ip_addr)
+            node=node_id,
+            vmid=vmid,
+            template=template,
+            user=user_name,
+            ram=ram,
+            hdd=hdd,
+            cpu=cpu,
+            ip=ip_addr)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -310,14 +319,14 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-                node=node_id,
-                vmid=vmid,
-                template=template,
-                user=user_name,
-                ram=ram,
-                hdd=hdd,
-                cpu=cpu,
-                # ip=, we need to lease IP
+            node=node_id,
+            vmid=vmid,
+            template=template,
+            user=user_name,
+            ram=ram,
+            hdd=hdd,
+            cpu=cpu,
+            # ip=, we need to lease IP
         )
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
@@ -364,14 +373,14 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-                node=node_id,
-                vmid=vmid,
-                template=template,
-                user=user_name,
-                ram=ram,
-                hdd=hdd,
-                cpu=cpu,
-                ip=None)
+            node=node_id,
+            vmid=vmid,
+            template=template,
+            user=user_name,
+            ram=ram,
+            hdd=hdd,
+            cpu=cpu,
+            ip=None)
 
         self.assertEqual(TaskTrackerStatus.STATUS_NEW, tracker.status)
 
@@ -436,13 +445,13 @@ class ProxMoxJBONServiceBackendTest(TestCase):
         user_name = 'unittest'
 
         tracker = self.backend.create_vps(
-                vmid=vmid,
-                template=template,
-                user=user_name,
-                ram=ram,
-                hdd=hdd,
-                cpu=cpu,
-                driver=hv_tech)
+            vmid=vmid,
+            template=template,
+            user=user_name,
+            ram=ram,
+            hdd=hdd,
+            cpu=cpu,
+            driver=hv_tech)
 
         self.assertEqual(s4.id, tracker.context['cmdb_node_id'])
         self.assertEqual('s4', tracker.context['queue'])

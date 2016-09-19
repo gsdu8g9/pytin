@@ -1,0 +1,14 @@
+# many denied query requests
+TRIG="100"
+
+# file must exist for rule to be active
+REQ="/usr/sbin/named"
+
+if [ -f "$REQ" ]; then
+ LP="/var/log/messages"
+ TLOG_TF="named"
+ TMP="/usr/local/bfd/tmp"
+
+ ## NAMED
+ ARG_VAL=`$TLOG_PATH $LP $TLOG_TF | grep named | grep query | grep denied | grep -E '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | sed -n -r -e 's/.*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).*/\1/p'`
+fi

@@ -5,6 +5,7 @@ import time
 
 from django.db import models
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 
 from assets.models import Server
 from cmdb.lib import loader
@@ -25,6 +26,7 @@ class TaskTrackerStatus(object):
     )
 
 
+@python_2_unicode_compatible
 class CloudTaskTracker(models.Model):
     task_class = models.CharField('Python class of the cloud task.', max_length=55, db_index=True)
     created_at = models.DateTimeField('Date created', auto_now_add=True, db_index=True)
@@ -37,7 +39,7 @@ class CloudTaskTracker(models.Model):
 
     error = models.TextField('Error message in case of failed state.')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s %s (%s)" % (self.id, self.task_class, self.status)
 
     @property
@@ -147,7 +149,7 @@ class CloudTaskTracker(models.Model):
                 self.progress()
 
             return result_data
-        except Exception, ex:
+        except Exception as ex:
             self.failed(ex.message)
             raise ex
 
@@ -174,7 +176,7 @@ class CloudTaskTracker(models.Model):
                     logger.info("progress: %s" % last_data)
 
                 time.sleep(1)
-        except Exception, ex:
+        except Exception as ex:
             self.failed(ex.message)
             raise ex
 

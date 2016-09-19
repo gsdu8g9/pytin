@@ -1,15 +1,14 @@
 from __future__ import unicode_literals
-from argparse import ArgumentParser
+
 import argparse
+from argparse import ArgumentParser
 
 from django.core.exceptions import ObjectDoesNotExist
-
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from prettytable import PrettyTable
 
 from cmdb.settings import logger
-
 from events.models import HistoryEvent
 
 
@@ -65,12 +64,12 @@ class Command(BaseCommand):
             events_set = events_set[offset:limit]
 
         table = PrettyTable(
-            ['id', 'created_at', 'type', 'resource_id', 'resource__type', 'field_name', 'field_old_value',
+            ['id', 'created_at', 'type', 'object_id', 'object_type', 'field_name', 'field_old_value',
              'field_new_value'])
         table.padding_width = 1
         table.align['id'] = 'r'
-        table.align['resource_id'] = 'r'
-        table.align['resource_type'] = 'l'
+        table.align['object_id'] = 'r'
+        table.align['object_type'] = 'l'
         table.align['field_name'] = 'l'
         table.align['field_old_value'] = 'l'
         table.align['field_new_value'] = 'l'
@@ -86,7 +85,7 @@ class Command(BaseCommand):
                 logger.debug("Removing event %s with missing resource %s" % (event.id, event.resource_id))
                 event.delete()
 
-        logger.info(unicode(table))
+        logger.info(table)
 
     def _parse_reminder_arg(self, reminder_args):
         query = {}
